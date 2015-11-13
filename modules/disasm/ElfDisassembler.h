@@ -4,7 +4,7 @@
 //
 //===----------------------------------------------------------------------===//
 // 
-// Copyright (c) 2015 Technical University of Kaiserslautern.
+// Copyright (c) 2015 University of Kaiserslautern.
 // Created by M. Ammar Ben Khadra.
 
 #pragma once
@@ -13,18 +13,34 @@
 
 namespace disasm {
 
-enum class ARMCodeSymbol: std::uint8_t {
-    kInvalid = 0,
+enum class BasicBlockISAType: uint8_t {
+    kUnknown = 0,
+    kThumb = 1,
+    kARM = 2,
+    kTriCore = 3,
+    kx86 = 4,
+    kMIPS = 5,
+    kPPC = 6,
+    kSPARC = 7,
+    kx86_64 = 8,
+};
+
+enum class ARMCodeSymbolType: std::uint8_t {
     kThumb = 1,
     kARM = 2,
     kData = 4
 };
 
-enum class BasicBlockType: uint8_t {
-    kUnknown = 0,
-    kThumb = 1,
-    kARM = 2,
-    kTop = 0xFF
+class ARMCodeSymbolVal {
+public:
+    static std::string
+    kThumb() { return "$t"; }
+
+    static std::string
+    kARM() { return "$a"; }
+
+    static std::string
+    kData() { return "$d"; }
 };
 
 class BasicBlock;
@@ -62,13 +78,13 @@ public:
     /**
      * Return the type of code at the initial address of executable.
      */
-    inline BasicBlockType initCodeType() const;
+    inline BasicBlockISAType initCodeType() const;
 
 private:
     void disassembleSectionUsingSymbols(const elf::section &sec) const;
     void initializeCapstone(csh *handle) const;
     void prettyPrintInst(const csh& handle, cs_insn* inst) const;
-    std::vector<std::pair<size_t, ARMCodeSymbol>>
+    std::vector<std::pair<size_t, ARMCodeSymbolType>>
         getCodeSymbolsForSection(const elf::section &sec) const;
 
 private:
@@ -92,21 +108,22 @@ private:
     CapstoneConfig m_config;
 };
 
+//TODO: remove basic block from here.
 class BasicBlock{
 public:
     BasicBlock();
     virtual ~BasicBlock() = default;
 
-    BasicBlock(BasicBlockType type);
-    BasicBlock(BasicBlockType type, void* code, size_t addr);
+    BasicBlock(BasicBlockISAType type);
+    BasicBlock(BasicBlockISAType type, void* code, size_t addr);
 
     BasicBlock(const BasicBlock &src) = default;
     BasicBlock &operator=(const BasicBlock &src) = default;
     BasicBlock(BasicBlock &&src) = default;
     BasicBlock &operator=(BasicBlock &&src) = default;
 
-    BasicBlockType getType() const;
-    void setType(const BasicBlockType type);
+    BasicBlockISAType getType() const;
+    void setType(const BasicBlockISAType type);
 
     void setSize(size_t size);
     size_t getSize() const;
@@ -118,7 +135,7 @@ public:
     void *getCodePtr() const;
 
 private:
-    BasicBlockType m_type;
+    BasicBlockISAType m_type;
     void* m_code_ptr;
     size_t m_addr;
     size_t m_size;

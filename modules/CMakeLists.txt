@@ -29,6 +29,8 @@ add_library(
         disasm/ElfDisassembler.cpp
         disasm/BCInst.cpp
         disasm/ElfData.h
-)
+        disasm/BCInstSmall.cpp disasm/BCInstSmall.h
+        disasm/Fragment.cpp disasm/Fragment.h
+        disasm/BasicBlock.cpp disasm/BasicBlock.h disasm/DominantBlock.cpp disasm/DominantBlock.h disasm/common.h)
 
 add_dependencies(disasm elf++ dwarf++)

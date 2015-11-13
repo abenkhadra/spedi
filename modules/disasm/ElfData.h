@@ -4,12 +4,13 @@
 //
 //===----------------------------------------------------------------------===//
 // 
-// Copyright (c) 2015 Technical University of Kaiserslautern.
+// Copyright (c) 2015 University of Kaiserslautern.
 // Created by M. Ammar Ben Khadra.
 
 #pragma once
 
 namespace elf {
+
 enum class ElfABI: unsigned char {
     kSystem_V = 0x00,
     kHP_UX = 0x01,

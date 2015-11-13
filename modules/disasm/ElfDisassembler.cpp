@@ -4,7 +4,7 @@
 //
 //===----------------------------------------------------------------------===//
 // 
-// Copyright (c) 2015 Technical University of Kaiserslautern.
+// Copyright (c) 2015 University of Kaiserslautern.
 // Created by M. Ammar Ben Khadra.
 
 #include "ElfDisassembler.h"
@@ -13,19 +13,6 @@
 #include <algorithm>
 
 namespace disasm {
-
-
-class ARMCodeSymbolStrings {
-public:
-    static std::string
-    kThumb() { return "$t"; }
-
-    static std::string
-    kARM() { return "$a"; }
-
-    static std::string
-    kData() { return "$d"; }
-};
 
 ElfDisassembler::ElfDisassembler() : m_valid{false} { }
 
@@ -85,7 +72,7 @@ ElfDisassembler::disassembleSectionUsingSymbols(const elf::section &sec) const {
 
     for (auto &symbol : symbols) {
         index++;
-        if (symbol.second == ARMCodeSymbol::kData) {
+        if (symbol.second == ARMCodeSymbolType::kData) {
             if (index < symbols.size())
                 // adjust code_ptr to start of next symbol.
                 code_ptr += (symbols[index].first - symbol.first);
@@ -97,7 +84,7 @@ ElfDisassembler::disassembleSectionUsingSymbols(const elf::section &sec) const {
         else
             size = last_addr - symbol.first;
 
-        if (symbol.second == ARMCodeSymbol::kARM)
+        if (symbol.second == ARMCodeSymbolType::kARM)
             cs_option(handle, CS_OPT_MODE, CS_MODE_ARM);
         else
             // We assume that the value of code symbol type is strictly
@@ -172,9 +159,9 @@ void ElfDisassembler::prettyPrintInst(const csh &handle, cs_insn *inst) const {
     }
 }
 
-std::vector<std::pair<size_t, ARMCodeSymbol>>
+std::vector<std::pair<size_t, ARMCodeSymbolType>>
 ElfDisassembler::getCodeSymbolsForSection(const elf::section &sec) const {
-    std::vector<std::pair<size_t, ARMCodeSymbol>> result;
+    std::vector<std::pair<size_t, ARMCodeSymbolType>> result;
 
     // Check for symbol table, if none was found then
     // the instance is invalid.
@@ -195,17 +182,17 @@ ElfDisassembler::getCodeSymbolsForSection(const elf::section &sec) const {
         // we assume that the start addr of each section is available in
         // code symbols.
         if ((start_addr <= value) && (value < end_addr)) {
-            if (symbol.get_name() == ARMCodeSymbolStrings::kThumb()) {
+            if (symbol.get_name() == ARMCodeSymbolVal::kThumb()) {
                 result.emplace_back(std::make_pair(value,
-                                                   ARMCodeSymbol::kThumb));
+                                                   ARMCodeSymbolType::kThumb));
 
-            } else if (symbol.get_name() == ARMCodeSymbolStrings::kARM()) {
+            } else if (symbol.get_name() == ARMCodeSymbolVal::kARM()) {
                 result.emplace_back(std::make_pair(value,
-                                                   ARMCodeSymbol::kARM));
+                                                   ARMCodeSymbolType::kARM));
 
-            } else if (symbol.get_name() == ARMCodeSymbolStrings::kData()) {
+            } else if (symbol.get_name() == ARMCodeSymbolVal::kData()) {
                 result.emplace_back(std::make_pair(value,
-                                                   ARMCodeSymbol::kData));
+                                                   ARMCodeSymbolType::kData));
 
             }
         }
@@ -235,42 +222,40 @@ ElfDisassembler::disassembleCodeSpeculative() const {
     disassembleCode();
 }
 
-inline BasicBlockType ElfDisassembler::initCodeType() const {
-    if (m_elf_file->get_hdr().entry & 1) return BasicBlockType::kThumb;
-    else return BasicBlockType::kARM;
+inline BasicBlockISAType ElfDisassembler::initCodeType() const {
+    if (m_elf_file->get_hdr().entry & 1) return BasicBlockISAType::kThumb;
+    else return BasicBlockISAType::kARM;
 }
 
 BasicBlock::BasicBlock() :
-    m_type{BasicBlockType::kUnknown},
+    m_type{BasicBlockISAType::kUnknown},
     m_code_ptr{nullptr},
     m_addr{0},
     m_size{0} {
 
 }
 
-BasicBlock::BasicBlock(BasicBlockType type) :
+BasicBlock::BasicBlock(BasicBlockISAType type) :
     m_type{type},
     m_code_ptr{nullptr},
     m_addr{0},
-    m_size{0} {
+    m_size{0}
+{ }
 
-}
-
-BasicBlock::BasicBlock(BasicBlockType type, void *code, size_t addr) :
+BasicBlock::BasicBlock(BasicBlockISAType type, void *code, size_t addr) :
     m_type{type},
     m_code_ptr{code},
     m_addr{addr},
-    m_size{0} {
+    m_size{0}
+{ }
 
-}
-
-BasicBlockType
+BasicBlockISAType
 BasicBlock::getType() const {
     return m_type;
 }
 
 void
-BasicBlock::setType(const BasicBlockType type) {
+BasicBlock::setType(const BasicBlockISAType type) {
     m_type = type;
 }
 
@@ -304,4 +289,3 @@ BasicBlock::setSize(size_t size) {
     BasicBlock::m_size = size;
 }
 }
-
