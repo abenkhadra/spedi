@@ -21,10 +21,10 @@ namespace disasm {
 
 class MCInst final{
 public:
-    /// Allocates memory for instruction and frees memory in destructor.
+    /// Allocates memory for cs_insn and frees memory in destructor.
     MCInst();
 
-    /// owns a pointer to an already allocated cs_inst instruction.
+    /// Owns a pointer to an already allocated cs_insn.
     MCInst(cs_insn * instruction);
     ~MCInst() = default;
     MCInst(const MCInst &src) = delete;

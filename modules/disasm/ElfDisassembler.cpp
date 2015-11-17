@@ -9,6 +9,7 @@
 
 #include "ElfDisassembler.h"
 #include "MCInst.h"
+#include "MCParser.h"
 #include <inttypes.h>
 #include <algorithm>
 
@@ -54,16 +55,16 @@ ElfDisassembler::disassembleSectionUsingSymbols(const elf::section &sec) const {
 //    for (auto& symbol : symbols) {
 //        printf("Type %d, Addrd, 0x%#x \n", symbol.second, symbol.first);
 //    }
-    csh handle;
 
-    initializeCapstone(&handle);
+    MCParser parser{CS_ARCH_ARM, CS_MODE_THUMB};
+    parser.initialize();
+
     size_t start_addr = sec.get_hdr().addr;
     size_t last_addr = start_addr + sec.get_hdr().size;
     const uint8_t* code_ptr = (const uint8_t *) sec.data();
-    cs_insn *inst;
 
-    inst = cs_malloc(handle);
-    MCInst instr(inst);
+    MCInst inst;
+    cs_insn *inst_ptr = inst.getRawPtr();
 
     printf("Section Name: %s\n", sec.get_name().c_str());
 
@@ -87,18 +88,17 @@ ElfDisassembler::disassembleSectionUsingSymbols(const elf::section &sec) const {
             size = last_addr - symbol.first;
 
         if (symbol.second == ARMCodeSymbolType::kARM)
-            cs_option(handle, CS_OPT_MODE, CS_MODE_ARM);
+            parser.changeMode(CS_MODE_ARM);
         else
             // We assume that the value of code symbol type is strictly
             // either Data, ARM, or Thumb.
-            cs_option(handle, CS_OPT_MODE, CS_MODE_THUMB);
+            parser.changeMode(CS_MODE_THUMB);
 
-        while (cs_disasm_iter(handle, &code_ptr, &size, &address, inst)) {
-            prettyPrintInst(handle, inst);
+        while (parser.disasm(code_ptr, &size, &address, &inst)) {
+            prettyPrintInst(parser.handle(), inst_ptr);
         }
     }
 
-    cs_close(&handle);
 }
 
 void

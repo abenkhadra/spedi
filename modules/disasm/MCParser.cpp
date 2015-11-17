@@ -8,7 +8,7 @@
 // Created by M. Ammar Ben Khadra.
 
 #include "MCParser.h"
-#include <stdexcept>
+#include "MCInst.h"
 
 namespace disasm {
 
@@ -43,5 +43,12 @@ void MCParser::reset(cs_arch arch, cs_mode mode) {
 void MCParser::changeMode(cs_mode mode) {
     m_mode = mode;
     cs_option(m_handle, CS_OPT_MODE, mode);
+}
+
+bool MCParser::disasm(const uint8_t *code,
+                      size_t *size,
+                      addr_t *address,
+                      MCInst *inst) {
+    return cs_disasm_iter(m_handle, &code, size, address, inst->getRawPtr());
 }
 }

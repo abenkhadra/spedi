@@ -10,9 +10,12 @@
 
 #pragma once
 
+#include "common.h"
 #include <capstone/capstone.h>
 
 namespace disasm {
+
+class MCInst;
 /**
  * MCParser
  */
@@ -37,12 +40,21 @@ public:
 
     bool valid() const { return m_valid; }
 
+    bool disasm(const uint8_t *code,
+                size_t *size,
+                addr_t *address,
+                MCInst* inst);
+
     const cs_arch& arch() const {
         return m_arch;
     }
 
     const cs_mode& mode() const {
         return m_mode;
+    }
+
+    const csh& handle() const {
+        return m_handle;
     }
 
 private:
