@@ -7,24 +7,24 @@
 // Copyright (c) 2015 University of Kaiserslautern.
 // Created by M. Ammar Ben Khadra.
 
-#include "BCInst.h"
+#include "MCInst.h"
 
 namespace disasm {
 
-BCInst::BCInst() :
+MCInst::MCInst() :
 // Used "malloc" instead of "new" since an instruction can be allocated
-    m_inst(static_cast<cs_insn *>(malloc(sizeof(cs_insn))))
+    m_inst(static_cast<cs_insn*>(malloc(sizeof(cs_insn))))
 {
     // Keep consistency with Capstone's API.
-    m_inst->detail = NULL;
+    m_inst->detail = static_cast<cs_detail*>(malloc(sizeof(cs_detail)));
 }
 
-BCInst::BCInst(cs_insn *inst) :
+MCInst::MCInst(cs_insn *inst) :
     m_inst{inst}
 { }
 
 cs_insn *
-BCInst::getRawPtr()
+MCInst::getRawPtr()
 {
     return m_inst.get();
 }

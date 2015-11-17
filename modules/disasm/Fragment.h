@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "BCInstSmall.h"
+#include "MCInstSmall.h"
 #include <vector>
 
 namespace disasm {
@@ -20,26 +20,26 @@ class Fragment {
 public:
 
     Fragment();
-    Fragment(size_t addr);
+    Fragment(unsigned int id, size_t addr);
     virtual ~Fragment() = default;
 
     Fragment(const Fragment &src) = default;
     Fragment &operator=(const Fragment &src) = default;
     Fragment(Fragment &&src) = default;
 
-    bool isAppendable(const BCInstSmall &inst) const;
-    void appendInst(const BCInstSmall &inst);
+    bool isAppendable(const MCInstSmall &inst) const;
+    void appendInst(const MCInstSmall &inst);
 
-    bool Valid() const;
+    bool valid() const;
 
-    size_t Size() const;
-    size_t MemSize() const;
+    size_t size() const;
+    size_t memSize() const;
 
 private:
     unsigned int m_id;
     addr_t m_start_addr;
-    size_t m_append_addr;
-    std::vector<BCInstSmall> m_insts;
+    size_t m_size;
+    std::vector<MCInstSmall> m_insts;
 
 };
 }

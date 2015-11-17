@@ -8,12 +8,13 @@
 // Created by M. Ammar Ben Khadra.
 
 #pragma once
+#include "DisassemblyResult.h"
 #include "binutils/elf/elf++.hh"
 #include <capstone/capstone.h>
 
 namespace disasm {
 
-enum class BasicBlockISAType: uint8_t {
+enum class BasicBlockISAType: unsigned short {
     kUnknown = 0,
     kThumb = 1,
     kARM = 2,
@@ -25,7 +26,7 @@ enum class BasicBlockISAType: uint8_t {
     kx86_64 = 8,
 };
 
-enum class ARMCodeSymbolType: std::uint8_t {
+enum class ARMCodeSymbolType: unsigned short {
     kThumb = 1,
     kARM = 2,
     kData = 4
@@ -68,10 +69,13 @@ public:
 
     bool valid() const { return m_valid; }
     void disassembleCodeUsingSymbols() const;
-    void disassembleCode() const;
+    void disassembleSectionUsingSymbols(const elf::section &sec) const;
+
     void disassembleCodeSpeculative() const;
+    void disassembleSectionSpeculative() const;
 
     void disassembleSectionbyName(std::string& sec_name) const;
+
     void print_string_hex(unsigned char *str, size_t len) const;
     bool isSymbolTableAvailable();
 
@@ -81,7 +85,7 @@ public:
     inline BasicBlockISAType initCodeType() const;
 
 private:
-    void disassembleSectionUsingSymbols(const elf::section &sec) const;
+
     void initializeCapstone(csh *handle) const;
     void prettyPrintInst(const csh& handle, cs_insn* inst) const;
     std::vector<std::pair<size_t, ARMCodeSymbolType>>
@@ -108,38 +112,6 @@ private:
     CapstoneConfig m_config;
 };
 
-//TODO: remove basic block from here.
-class BasicBlock{
-public:
-    BasicBlock();
-    virtual ~BasicBlock() = default;
-
-    BasicBlock(BasicBlockISAType type);
-    BasicBlock(BasicBlockISAType type, void* code, size_t addr);
-
-    BasicBlock(const BasicBlock &src) = default;
-    BasicBlock &operator=(const BasicBlock &src) = default;
-    BasicBlock(BasicBlock &&src) = default;
-    BasicBlock &operator=(BasicBlock &&src) = default;
-
-    BasicBlockISAType getType() const;
-    void setType(const BasicBlockISAType type);
-
-    void setSize(size_t size);
-    size_t getSize() const;
-
-    void setAddr(size_t addr);
-    size_t getAddr() const;
-
-    void setCodePtr(void *m_code_ptr);
-    void *getCodePtr() const;
-
-private:
-    BasicBlockISAType m_type;
-    void* m_code_ptr;
-    size_t m_addr;
-    size_t m_size;
-};
 }
 
 

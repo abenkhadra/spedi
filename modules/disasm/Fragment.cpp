@@ -9,40 +9,46 @@
 
 
 #include "Fragment.h"
+#include <cassert>
 namespace disasm {
-Fragment::Fragment() : m_append_addr{0} {
 
-}
+Fragment::Fragment() :
+    m_id{0},
+    m_size{0},
+    m_start_addr{0}
+{ }
 
-Fragment::Fragment(size_t addr) : m_append_addr{addr} {
-
-}
+Fragment::Fragment(unsigned int id, size_t addr) :
+    m_id{id},
+    m_start_addr{addr},
+    m_size{0}
+{ }
 
 bool
-Fragment::Valid() const {
+Fragment::valid() const {
     return (m_insts.size() > 0);
 }
 
 bool
-Fragment::isAppendable(const BCInstSmall &inst) const {
-    return (inst.getAddr() == m_append_addr);
+Fragment::isAppendable(const MCInstSmall &inst) const {
+    return (inst.addr() == m_start_addr + m_size);
 }
 
 size_t
-Fragment::Size() const {
+Fragment::size() const {
     return m_insts.size();
 }
 
 size_t
-Fragment::MemSize() const {
-    if (m_insts.size() > 0)
-        m_append_addr - m_insts[0].getAddr();
-    else return 0;
+Fragment::memSize() const {
+    return m_size;
 }
 
 void
-Fragment::appendInst(const BCInstSmall &inst) {
-    if (!isAppendable(inst))
-        m_insts.push_back(inst);
+Fragment::appendInst(const MCInstSmall &inst) {
+    assert(isAppendable(inst)
+               && "Error trying to append a non-appendable instruction");
+    m_insts.push_back(inst);
+    m_size += inst.size();
 }
 }

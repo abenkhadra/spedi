@@ -8,7 +8,7 @@
 // Created by M. Ammar Ben Khadra.
 
 #include "ElfDisassembler.h"
-#include "BCInst.h"
+#include "MCInst.h"
 #include <inttypes.h>
 #include <algorithm>
 
@@ -46,7 +46,9 @@ ElfDisassembler::initializeCapstone(csh *handle) const {
 
 void
 ElfDisassembler::disassembleSectionUsingSymbols(const elf::section &sec) const {
+    // a type_mismatch exception would thrown in case symbol table was found
     auto symbols = getCodeSymbolsForSection(sec);
+
 //    printf("Symbols size is %lu \n", symbols.size());
 //
 //    for (auto& symbol : symbols) {
@@ -61,7 +63,7 @@ ElfDisassembler::disassembleSectionUsingSymbols(const elf::section &sec) const {
     cs_insn *inst;
 
     inst = cs_malloc(handle);
-    BCInst instr(inst);
+    MCInst instr(inst);
 
     printf("Section Name: %s\n", sec.get_name().c_str());
 
@@ -118,6 +120,11 @@ ElfDisassembler::disassembleCodeUsingSymbols() const {
     }
 }
 
+void
+ElfDisassembler::disassembleCodeSpeculative() const {
+
+}
+
 void ElfDisassembler::prettyPrintInst(const csh &handle, cs_insn *inst) const {
 
     cs_detail *detail;
@@ -161,8 +168,8 @@ void ElfDisassembler::prettyPrintInst(const csh &handle, cs_insn *inst) const {
 
 std::vector<std::pair<size_t, ARMCodeSymbolType>>
 ElfDisassembler::getCodeSymbolsForSection(const elf::section &sec) const {
-    std::vector<std::pair<size_t, ARMCodeSymbolType>> result;
 
+    std::vector<std::pair<size_t, ARMCodeSymbolType>> result;
     // Check for symbol table, if none was found then
     // the instance is invalid.
     elf::section sym_sec = m_elf_file->get_section(".symtab");
@@ -212,80 +219,13 @@ ElfDisassembler::isSymbolTableAvailable() {
     return sym_sec.valid();
 }
 
-void
-ElfDisassembler::disassembleCode() const {
-
-}
-
-void
-ElfDisassembler::disassembleCodeSpeculative() const {
-    disassembleCode();
-}
-
 inline BasicBlockISAType ElfDisassembler::initCodeType() const {
     if (m_elf_file->get_hdr().entry & 1) return BasicBlockISAType::kThumb;
     else return BasicBlockISAType::kARM;
 }
 
-BasicBlock::BasicBlock() :
-    m_type{BasicBlockISAType::kUnknown},
-    m_code_ptr{nullptr},
-    m_addr{0},
-    m_size{0} {
 
-}
+void ElfDisassembler::disassembleSectionSpeculative() const {
 
-BasicBlock::BasicBlock(BasicBlockISAType type) :
-    m_type{type},
-    m_code_ptr{nullptr},
-    m_addr{0},
-    m_size{0}
-{ }
-
-BasicBlock::BasicBlock(BasicBlockISAType type, void *code, size_t addr) :
-    m_type{type},
-    m_code_ptr{code},
-    m_addr{addr},
-    m_size{0}
-{ }
-
-BasicBlockISAType
-BasicBlock::getType() const {
-    return m_type;
-}
-
-void
-BasicBlock::setType(const BasicBlockISAType type) {
-    m_type = type;
-}
-
-void*
-BasicBlock::getCodePtr() const {
-    return m_code_ptr;
-}
-
-void
-BasicBlock::setCodePtr(void *m_code_ptr) {
-    BasicBlock::m_code_ptr = m_code_ptr;
-}
-
-size_t
-BasicBlock::getAddr() const {
-    return m_addr;
-}
-
-void
-BasicBlock::setAddr(size_t addr) {
-    BasicBlock::m_addr = addr;
-}
-
-size_t
-BasicBlock::getSize() const {
-    return m_size;
-}
-
-void
-BasicBlock::setSize(size_t size) {
-    BasicBlock::m_size = size;
 }
 }

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(elfparse)
+project(spedi)
 
 set(CMAKE_BUILD_TYPE Debug)
 
@@ -17,12 +17,12 @@ add_library(capstone STATIC IMPORTED)
 
 set(SOURCE_FILES ${CMAKE_SOURCE_DIR}/modules/util/cmdline.h main.cpp)
 
-add_executable(dithumb ${SOURCE_FILES} main.cpp)
+add_executable(spedi ${SOURCE_FILES} main.cpp)
 
-add_dependencies(dithumb elf++ dwarf++ disasm capstone)
+add_dependencies(spedi elf++ dwarf++ disasm capstone)
 
-target_link_libraries(dithumb ${CMAKE_SOURCE_DIR}/lib/libelf++.a)
-target_link_libraries(dithumb ${CMAKE_SOURCE_DIR}/lib/libdwarf++.a)
-target_link_libraries(dithumb ${CMAKE_SOURCE_DIR}/lib/libdisasm.a)
-target_link_libraries(dithumb /usr/lib/libcapstone.a)
+target_link_libraries(spedi ${CMAKE_SOURCE_DIR}/lib/libelf++.a)
+target_link_libraries(spedi ${CMAKE_SOURCE_DIR}/lib/libdwarf++.a)
+target_link_libraries(spedi ${CMAKE_SOURCE_DIR}/lib/libdisasm.a)
+target_link_libraries(spedi /usr/lib/libcapstone.a)
 

@@ -14,25 +14,27 @@
 
 namespace disasm {
 /**
- * BCInst
+ * MCInst
  * A wrapper around capstone's cs_insn, composition was used instead of
  * inheritance to ensure compatiblity with C API.
  */
 
-class BCInst final{
+class MCInst final{
 public:
+    /// Allocates memory for instruction and frees memory in destructor.
+    MCInst();
 
-    BCInst();
-    BCInst(cs_insn * instruction);
-    ~BCInst() = default;
-    BCInst(const BCInst &src) = default;
-    BCInst &operator=(const BCInst &src) = default;
-    BCInst(BCInst &&src) = default;
-    cs_insn * getRawPtr();
+    /// owns a pointer to an already allocated cs_inst instruction.
+    MCInst(cs_insn * instruction);
+    ~MCInst() = default;
+    MCInst(const MCInst &src) = delete;
+    MCInst &operator=(const MCInst &src) = delete;
+    MCInst(MCInst &&src) = default;
+    cs_insn* getRawPtr();
 
 
 private:
-    class BCInstDefaultDeleter {
+    class MCInstDefaultDeleter {
     public:
         void operator()(cs_insn *inst) {
             if (inst->detail != NULL) {
@@ -43,7 +45,7 @@ private:
             free(inst);
         }
     };
-    std::unique_ptr <cs_insn, BCInst::BCInstDefaultDeleter> m_inst;
+    std::unique_ptr <cs_insn, MCInst::MCInstDefaultDeleter> m_inst;
 };
 
 }

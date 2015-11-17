@@ -22,8 +22,6 @@ int main(int argc, char **argv) {
     cmdline::parser cmd_parser;
     cmd_parser.add<string>(config.kFile, 'f',
                    "Path to an ARM ELF file to be disassembled", true, "");
-    cmd_parser.add(config.kNoSymbols, '\0',
-                   "Do not use symbol table even if exists");
     cmd_parser.add(config.kSpeculative, '\0',
                    "Show all 'valid' dissambly");
 
@@ -39,7 +37,7 @@ int main(int argc, char **argv) {
 
     elf::elf elf_file(elf::create_mmap_loader(fd));
 
-    // We only disassmble ARM/Thumb executables.
+    // We disassmble ARM/Thumb executables only
     if (static_cast<elf::ElfISA>(elf_file.get_hdr().machine) !=  elf::ElfISA::kARM){
         fprintf(stderr, "%s : Elf file architechture is not ARM!\n", argv[1]);
         return 3;
@@ -51,19 +49,13 @@ int main(int argc, char **argv) {
             << file_path << "\n";
 
         disassembler.disassembleCodeSpeculative();
-    }else if (cmd_parser.exist("no-symbols")
-        || !disassembler.isSymbolTableAvailable()) {
-        cout << "Standard disassmbly of file: "
-            << file_path << "\n";
 
-        disassembler.disassembleCode();
-
-    } else {
+    } else if (disassembler.isSymbolTableAvailable()) {
         cout << "Disassembly using symbol table of file: "
             << file_path << "\n";
-
         disassembler.disassembleCodeUsingSymbols();
-    }
+    } else
+        cout << "Symbol table was not found!!" << "\n";
 
     return 0;
 }
