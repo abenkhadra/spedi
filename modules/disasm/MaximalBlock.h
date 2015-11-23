@@ -28,41 +28,37 @@ class MaximalBlock {
 public:
     /**
      */
-    MaximalBlock(addr_t start_addr);
     virtual ~MaximalBlock() = default;
     MaximalBlock(const MaximalBlock &src) = default;
     MaximalBlock &operator=(const MaximalBlock &src) = default;
     MaximalBlock(MaximalBlock &&src) = default;
 
-    // Adds an instruction to MB.
-    // if inst continues a fragment then add instruction to fragment. Otherwise,
-    // create a new basic block + fragment and append inst to fragment.
-    bool addInst(const MCInstSmall & inst);
+    friend class MaximalBlockBuilder;
 
-    bool isAppendable(const MCInstSmall & inst);
-
-    void skipData(addr_t addr, addr_t end_addr);
+    /**
+     * MB is valid when all of its BBs are valid. A BB is valid when it
+     * has a branch as last instruction.
+     */
+    bool valid();
 
     void setType(MaxBlockType type);
 
-    size_t getBasicBlockMemSize(unsigned short bb_id);
-    size_t getBasicBlockSize(unsigned short bb_id);
+    // getting size and memsize of fragments are provided by the fragment itself.
+    // providing the same for BBs, however, requires MB intervention!
 
-    size_t getFragmentSize(unsigned short frag_id);
-    size_t getFragmentMemSize(unsigned short frag_id);
+    size_t getBasicBlockMemSize(unsigned int bb_id);
+
+    const BasicBlock& getBasicBlock(unsigned int bb_id);
+
+
+    addr_t getStartAddr() const;
+
+private:
+    MaximalBlock() = default;
 
 private:
     MaxBlockType m_type;
-    addr_t m_start_addr;
-
-    unsigned short m_inst_word_size;
-
     std::vector<Fragment> m_frags;
     std::vector<BasicBlock> m_bblocks;
-
-
 };
 }
-
-
-

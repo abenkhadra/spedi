@@ -13,22 +13,15 @@
 
 namespace disasm {
 
-MaximalBlock::MaximalBlock(addr_t start_addr):
-    m_type{MaxBlockType::kMaybe},
-    m_start_addr{start_addr}
-{
-
-}
-
 size_t
-MaximalBlock::getBasicBlockSize(unsigned short bb_id) {
+MaximalBlock::getBasicBlockSize(unsigned int bb_id) {
     assert(bb_id <= m_bblocks.size()
                && "Invalid Basic Block Id!!");
     return m_bblocks[bb_id].size();
 }
 
 size_t
-MaximalBlock::getBasicBlockMemSize(unsigned short bb_id) {
+MaximalBlock::getBasicBlockMemSize(unsigned int bb_id) {
     assert(bb_id <= m_bblocks.size()
                && "Invalid Basic Block Id!!");
     auto frags = m_bblocks[bb_id].getFragmentIds();
@@ -39,28 +32,30 @@ MaximalBlock::getBasicBlockMemSize(unsigned short bb_id) {
     return result;
 }
 
-size_t
-MaximalBlock::getFragmentSize(unsigned short frag_id) {
-    assert(frag_id <= m_frags.size()
-               && "Invalid Fragment Id!!");
-    return m_frags[frag_id].size();
+bool MaximalBlock::valid() {
+    if (m_bblocks.size() == 0)
+        return false;
+
+    for(BasicBlock& item: m_bblocks)
+        if (!item.valid())
+            return false;
+
+    return true;
 }
 
-size_t
-MaximalBlock::getFragmentMemSize(unsigned short frag_id) {
-    assert(frag_id <= m_frags.size()
-               && "Invalid Fragment Id!!");
-    return m_frags[frag_id].memSize();
-}
-
-void MaximalBlock::skipData(addr_t addr, addr_t end_addr) {
-    assert(addr < end_addr && "Inavlid address!!");
-    while(addr < end_addr){
-
-    }
+addr_t MaximalBlock::getStartAddr() const {
+    if (m_frags.size() == 0)
+        return 0;
+    else
+        return m_frags[0].startAddr();
 }
 
 void MaximalBlock::setType(MaxBlockType type) {
     m_type = type;
+    if (m_type == MaxBlockType::kData) {
+        m_frags.clear();
+        m_bblocks.clear();
+    }
 }
+
 }

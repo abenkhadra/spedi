@@ -19,11 +19,10 @@ ElfDisassembler::ElfDisassembler() : m_valid{false} { }
 
 ElfDisassembler::ElfDisassembler(const elf::elf &elf_file) :
     m_valid{true},
-    m_elf_file{&elf_file},
-    m_config{} { }
+    m_elf_file{&elf_file} { }
 
 void
-ElfDisassembler::print_string_hex(unsigned char *str, size_t len) const {
+ElfDisassembler::printHex(unsigned char *str, size_t len) const {
     unsigned char *c;
 
     printf("Code: ");
@@ -33,99 +32,8 @@ ElfDisassembler::print_string_hex(unsigned char *str, size_t len) const {
     printf("\n");
 }
 
-void inline
-ElfDisassembler::initializeCapstone(csh *handle) const {
-    cs_err err_no;
-    err_no = cs_open(CS_ARCH_ARM, CS_MODE_THUMB, handle);
-    if (err_no) {
-        throw std::runtime_error("Failed on cs_open() "
-                                     "with error returned:" + err_no);
-    }
 
-    cs_option(*handle, CS_OPT_DETAIL, CS_OPT_ON);
-}
-
-void
-ElfDisassembler::disassembleSectionUsingSymbols(const elf::section &sec) const {
-    // a type_mismatch exception would thrown in case symbol table was found
-    auto symbols = getCodeSymbolsForSection(sec);
-
-//    printf("Symbols size is %lu \n", symbols.size());
-//
-//    for (auto& symbol : symbols) {
-//        printf("Type %d, Addrd, 0x%#x \n", symbol.second, symbol.first);
-//    }
-
-    MCParser parser{CS_ARCH_ARM, CS_MODE_THUMB};
-    parser.initialize();
-
-    size_t start_addr = sec.get_hdr().addr;
-    size_t last_addr = start_addr + sec.get_hdr().size;
-    const uint8_t* code_ptr = (const uint8_t *) sec.data();
-
-    MCInst inst;
-    cs_insn *inst_ptr = inst.getRawPtr();
-
-    printf("Section Name: %s\n", sec.get_name().c_str());
-
-    // We assume that symbols are ordered by their address.
-    size_t index = 0;
-    size_t address = 0;
-    size_t size = 0;
-
-    for (auto &symbol : symbols) {
-        index++;
-        if (symbol.second == ARMCodeSymbolType::kData) {
-            if (index < symbols.size())
-                // adjust code_ptr to start of next symbol.
-                code_ptr += (symbols[index].first - symbol.first);
-            continue;
-        }
-        address = symbol.first;
-        if (index < symbols.size())
-            size = symbols[index].first - symbol.first;
-        else
-            size = last_addr - symbol.first;
-
-        if (symbol.second == ARMCodeSymbolType::kARM)
-            parser.changeMode(CS_MODE_ARM);
-        else
-            // We assume that the value of code symbol type is strictly
-            // either Data, ARM, or Thumb.
-            parser.changeMode(CS_MODE_THUMB);
-
-        while (parser.disasm(code_ptr, &size, &address, &inst)) {
-            prettyPrintInst(parser.handle(), inst_ptr);
-        }
-    }
-
-}
-
-void
-ElfDisassembler::disassembleSectionbyName(std::string &sec_name) const {
-    for (auto &sec : m_elf_file->sections()) {
-        if (sec.get_name() == sec_name) {
-            disassembleSectionUsingSymbols(sec);
-            break;
-        }
-    }
-}
-
-void
-ElfDisassembler::disassembleCodeUsingSymbols() const {
-    for (auto &sec : m_elf_file->sections()) {
-        if (sec.is_alloc() && sec.is_exec()) {
-            disassembleSectionUsingSymbols(sec);
-        }
-    }
-}
-
-void
-ElfDisassembler::disassembleCodeSpeculative() const {
-
-}
-
-void ElfDisassembler::prettyPrintInst(const csh &handle, cs_insn *inst) const {
+void prettyPrintInst(const csh &handle, cs_insn *inst) {
 
     cs_detail *detail;
     int n;
@@ -164,6 +72,87 @@ void ElfDisassembler::prettyPrintInst(const csh &handle, cs_insn *inst) const {
         }
         printf("\n");
     }
+}
+
+void
+ElfDisassembler::disassembleSectionUsingSymbols(const elf::section &sec) const {
+
+    // a type_mismatch exception would thrown in case symbol table was not found
+    auto symbols = getCodeSymbolsForSection(sec);
+
+//    printf("Symbols size is %lu \n", symbols.size());
+//
+//    for (auto& symbol : symbols) {
+//        printf("Type %d, Addrd, 0x%#x \n", symbol.second, symbol.first);
+//    }
+
+    size_t start_addr = sec.get_hdr().addr;
+    size_t last_addr = start_addr + sec.get_hdr().size;
+
+    MCParser parser{};
+    parser.initialize(CS_ARCH_ARM, CS_MODE_THUMB, last_addr);
+
+    const uint8_t* code_ptr = (const uint8_t *) sec.data();
+
+    MCInst inst;
+    cs_insn *inst_ptr = inst.getRawPtr();
+
+    printf("Section Name: %s\n", sec.get_name().c_str());
+
+    // We assume that symbols are ordered by their address.
+    size_t index = 0;
+    size_t address = 0;
+    size_t size = 0;
+
+    for (auto &symbol : symbols) {
+        index++;
+        if (symbol.second == ARMCodeSymbolType::kData) {
+            if (index < symbols.size())
+                // adjust code_ptr to start of next symbol.
+                code_ptr += (symbols[index].first - symbol.first);
+            continue;
+        }
+        address = symbol.first;
+        if (index < symbols.size())
+            size = symbols[index].first - symbol.first;
+        else
+            size = last_addr - symbol.first;
+
+        if (symbol.second == ARMCodeSymbolType::kARM)
+            parser.changeModeTo(CS_MODE_ARM);
+        else
+            // We assume that the value of code symbol type is strictly
+            // either Data, ARM, or Thumb.
+            parser.changeModeTo(CS_MODE_THUMB);
+
+        while (parser.disasm(code_ptr, &size, &address, &inst)) {
+            prettyPrintInst(parser.handle(), inst_ptr);
+        }
+    }
+}
+
+void
+ElfDisassembler::disassembleSectionbyName(std::string &sec_name) const {
+    for (auto &sec : m_elf_file->sections()) {
+        if (sec.get_name() == sec_name) {
+            disassembleSectionUsingSymbols(sec);
+            break;
+        }
+    }
+}
+
+void
+ElfDisassembler::disassembleCodeUsingSymbols() const {
+    for (auto &sec : m_elf_file->sections()) {
+        if (sec.is_alloc() && sec.is_exec()) {
+            disassembleSectionUsingSymbols(sec);
+        }
+    }
+}
+
+void
+ElfDisassembler::disassembleCodeSpeculative() const {
+
 }
 
 std::vector<std::pair<size_t, ARMCodeSymbolType>>
@@ -219,13 +208,15 @@ ElfDisassembler::isSymbolTableAvailable() {
     return sym_sec.valid();
 }
 
-inline BasicBlockISAType ElfDisassembler::initCodeType() const {
-    if (m_elf_file->get_hdr().entry & 1) return BasicBlockISAType::kThumb;
-    else return BasicBlockISAType::kARM;
+ISAType
+ElfDisassembler::initialISAType() const {
+    if (m_elf_file->get_hdr().entry & 1) return ISAType::kThumb;
+    else return ISAType::kARM;
 }
 
 
 void ElfDisassembler::disassembleSectionSpeculative() const {
 
 }
+
 }

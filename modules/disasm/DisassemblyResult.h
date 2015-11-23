@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "common.h"
+#include "Common.h"
 #include <string>
 
 namespace disasm {
@@ -25,7 +25,7 @@ public:
      * undefined behavior.
      */
 
-    DisassemblyResult();
+    explicit DisassemblyResult();
     virtual ~DisassemblyResult() = default;
     DisassemblyResult(const DisassemblyResult &src) = default;
     DisassemblyResult &operator=(const DisassemblyResult &src) = default;
@@ -43,6 +43,3 @@ private:
 
 };
 }
-
-
-

@@ -10,12 +10,19 @@
 
 #pragma once
 
-#include "common.h"
+#include "Common.h"
 #include <capstone/capstone.h>
 
 namespace disasm {
 
 class MCInst;
+
+enum class InstWordSize: unsigned short{
+    kByte = 1,
+    kHalfword = 2,
+    kWord = 4,
+    kDoubleWord = 8
+};
 /**
  * MCParser
  */
@@ -26,17 +33,19 @@ public:
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
-    MCParser(cs_arch arch, cs_mode mode);
+    MCParser () = default;
     virtual ~MCParser();
     MCParser(const MCParser &src) = delete;
     MCParser &operator=(const MCParser &src) = delete;
     MCParser(MCParser &&src) = default;
     MCParser &operator=(MCParser &&src) = default;
 
-    void initialize();
+    void initialize(cs_arch arch, cs_mode mode,
+                    addr_t end_addr);
 
     void reset(cs_arch arch, cs_mode);
-    void changeMode(cs_mode);
+
+    void changeModeTo(cs_mode);
 
     bool valid() const { return m_valid; }
 
@@ -59,14 +68,9 @@ public:
 
 private:
     bool m_valid;
-    void * m_code;
-
     csh m_handle;
     cs_arch m_arch;
     cs_mode m_mode;
-
+    addr_t m_end_addr;
 };
 }
-
-
-

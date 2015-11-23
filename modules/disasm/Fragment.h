@@ -19,30 +19,29 @@ namespace disasm {
 class Fragment {
 public:
 
-    Fragment();
+    explicit Fragment();
     Fragment(unsigned int id, size_t addr);
+    Fragment(unsigned int id, const MCInstSmall& inst);
     virtual ~Fragment() = default;
 
     Fragment(const Fragment &src) = default;
     Fragment &operator=(const Fragment &src) = default;
     Fragment(Fragment &&src) = default;
 
+    friend class MaximalBlock;
+    friend class MaximalBlockBuilder;
+
     bool isAppendable(const MCInstSmall &inst) const;
-    void appendInst(const MCInstSmall &inst);
-
+    bool isAppendableAt(const addr_t addr) const;
     bool valid() const;
-
+    unsigned int id() const;
     size_t size() const;
     size_t memSize() const;
+    addr_t startAddr() const;
 
 private:
     unsigned int m_id;
-    addr_t m_start_addr;
     size_t m_size;
     std::vector<MCInstSmall> m_insts;
-
 };
 }
-
-
-

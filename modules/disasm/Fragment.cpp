@@ -9,20 +9,22 @@
 
 
 #include "Fragment.h"
-#include <cassert>
+
 namespace disasm {
 
 Fragment::Fragment() :
     m_id{0},
-    m_size{0},
-    m_start_addr{0}
-{ }
+    m_size{0} { }
 
 Fragment::Fragment(unsigned int id, size_t addr) :
     m_id{id},
-    m_start_addr{addr},
-    m_size{0}
-{ }
+    m_size{0} { }
+
+Fragment::Fragment(unsigned int id, const MCInstSmall &inst) :
+    m_id{id},
+    m_size{inst.size()} {
+    m_insts.push_back(inst);
+}
 
 bool
 Fragment::valid() const {
@@ -31,7 +33,12 @@ Fragment::valid() const {
 
 bool
 Fragment::isAppendable(const MCInstSmall &inst) const {
-    return (inst.addr() == m_start_addr + m_size);
+    return (inst.addr() == startAddr() + m_size);
+}
+
+bool
+Fragment::isAppendableAt(const addr_t addr) const {
+    return (addr == startAddr() + m_size);
 }
 
 size_t
@@ -44,11 +51,11 @@ Fragment::memSize() const {
     return m_size;
 }
 
-void
-Fragment::appendInst(const MCInstSmall &inst) {
-    assert(isAppendable(inst)
-               && "Error trying to append a non-appendable instruction");
-    m_insts.push_back(inst);
-    m_size += inst.size();
+addr_t
+Fragment::startAddr() const {
+    return m_insts[0].addr();
+}
+unsigned int Fragment::id() const {
+    return m_id;
 }
 }

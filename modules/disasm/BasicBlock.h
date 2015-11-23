@@ -8,16 +8,11 @@
 // Created by M. Ammar Ben Khadra.
 
 #pragma once
-#include "common.h"
+#include "Common.h"
+#include "Fragment.h"
 #include <vector>
 
 namespace disasm {
-
-enum class BranchInstType: unsigned short {
-    kUnknown = 0,
-    kDirect = 1,
-    kInDirect = 2
-};
 
 /**
  * BasicBlock
@@ -31,44 +26,33 @@ public:
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
-    BasicBlock();
+    explicit BasicBlock(unsigned int id);
     virtual ~BasicBlock() = default;
     BasicBlock(const BasicBlock &src) = default;
     BasicBlock &operator=(const BasicBlock &src) = default;
     BasicBlock(BasicBlock &&src) = default;
 
-    bool valid() const { return m_valid; }
+    friend class MaximalBlock;
+    friend class MaximalBlockBuilder;
 
-    bool ContainsFragment(unsigned short frag_id);
-
-    size_t size() const {
-        return m_frags.size();
-    }
-
-    unsigned short lastFragmentId();
-
-    unsigned short firstFragmentId();
-
-    unsigned short id() const;
+    unsigned int id() const;
+    bool valid() const ;
+    /**
+     * returns the number of fragments in the basic block.
+     */
+    size_t size() const;
 
     const BranchInstType &getBranchType() const;
 
     addr_t getBranchTarget() const;
 
-    const std::vector<unsigned short>& getFragmentIds(){
-        return m_frags;
-    }
+    const std::vector<unsigned int>& getFragmentIds() const;
 
 private:
-    bool m_valid;
-    unsigned short m_id;
+    unsigned int m_id;
     BranchInstType m_br_type;
-    // contains a valid value only in the case of direct branch
+    // contains a valid value only in the case of a direct branch
     addr_t m_br_target;
-    std::vector<unsigned short> m_frags;
-
+    std::vector<unsigned int> m_frag_ids;
 };
 }
-
-
-

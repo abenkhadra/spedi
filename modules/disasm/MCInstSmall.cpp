@@ -32,7 +32,7 @@ MCInstSmall::size() const {
     return m_size;
 }
 
-size_t
+addr_t
 MCInstSmall::addr() const {
     return m_addr;
 }

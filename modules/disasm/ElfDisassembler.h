@@ -10,11 +10,10 @@
 #pragma once
 #include "DisassemblyResult.h"
 #include "binutils/elf/elf++.hh"
-#include <capstone/capstone.h>
 
 namespace disasm {
 
-enum class BasicBlockISAType: unsigned short {
+enum class ISAType: unsigned short {
     kUnknown = 0,
     kThumb = 1,
     kARM = 2,
@@ -61,7 +60,7 @@ public:
      * Prepares input file for disassembly.
      * Precondition: file is a valid ELF file.
      */
-    ElfDisassembler(const elf::elf& elf_file);
+    explicit ElfDisassembler(const elf::elf& elf_file);
     virtual ~ElfDisassembler() = default;
     ElfDisassembler(const ElfDisassembler &src) = delete;
     ElfDisassembler &operator=(const ElfDisassembler &src) = delete;
@@ -76,18 +75,17 @@ public:
 
     void disassembleSectionbyName(std::string& sec_name) const;
 
-    void print_string_hex(unsigned char *str, size_t len) const;
+    void printHex(unsigned char *str, size_t len) const;
     bool isSymbolTableAvailable();
 
     /**
      * Return the type of code at the initial address of executable.
+     * needed to distinguish ARM/Thumb.
      */
-    inline BasicBlockISAType initCodeType() const;
+    ISAType initialISAType() const;
 
 private:
 
-    void initializeCapstone(csh *handle) const;
-    void prettyPrintInst(const csh& handle, cs_insn* inst) const;
     std::vector<std::pair<size_t, ARMCodeSymbolType>>
         getCodeSymbolsForSection(const elf::section &sec) const;
 
@@ -95,24 +93,6 @@ private:
     bool m_valid;
     const elf::elf* m_elf_file;
 
-    struct CapstoneConfig final{
-        public:
-        CapstoneConfig():
-        arch_type{CS_ARCH_ARM},
-            mode{CS_MODE_THUMB},
-            details{true}{
-        }
-        CapstoneConfig(const CapstoneConfig& src) = default;
-        CapstoneConfig &operator=(const CapstoneConfig& src) = default;
-
-        cs_arch arch_type;
-        cs_mode mode;
-        bool details;
-    };
-    CapstoneConfig m_config;
 };
 
 }
-
-
-
