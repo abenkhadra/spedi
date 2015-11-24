@@ -5,7 +5,6 @@
 //===----------------------------------------------------------------------===//
 // 
 // Copyright (c) 2015 University of Kaiserslautern.
-// Created by M. Ammar Ben Khadra.
 
 #pragma once
 

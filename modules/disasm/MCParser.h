@@ -5,8 +5,6 @@
 //===----------------------------------------------------------------------===//
 // 
 // Copyright (c) 2015 Technical University of Kaiserslautern.
-// Created by M. Ammar Ben Khadra.
-
 
 #pragma once
 
@@ -19,9 +17,9 @@ class MCInst;
 
 enum class InstWordSize: unsigned short{
     kByte = 1,
-    kHalfword = 2,
+    kHWord = 2,  // half-word
     kWord = 4,
-    kDoubleWord = 8
+    kDWord = 8   // double-word
 };
 /**
  * MCParser

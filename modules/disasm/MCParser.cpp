@@ -5,7 +5,6 @@
 //===----------------------------------------------------------------------===//
 // 
 // Copyright (c) 2015 Technical University of Kaiserslautern.
-// Created by M. Ammar Ben Khadra.
 
 #include "MCParser.h"
 #include "MCInst.h"
@@ -58,18 +57,6 @@ bool MCParser::disasm(const uint8_t *code,
                       addr_t *address,
                       MCInst *inst) {
     assert(*address <= m_end_addr && "Address out of bound");
-    return cs_disasm_iter(m_handle, &code, size, address, inst->getRawPtr());
+    return cs_disasm_iter(m_handle, &code, size, address, inst->rawPtr());
 }
-
-////TODO: remove skip data and the corresponding i-word
-//bool MCParser::skipData(const uint8_t *code, addr_t *address, MCInst *inst) {
-//    addr_t original_addr = *address;
-//    assert(*address <= m_end_addr && "Address out of bound");
-//    while((*address <= m_end_addr) &&
-//        !(cs_disasm_iter(m_handle, &code, 0, address, inst->getRawPtr()))) {
-//        *address += static_cast<unsigned int> (m_iword);
-//        code += static_cast<unsigned int> (m_iword);
-//    }
-//    return (original_addr != *address);
-//}
 }

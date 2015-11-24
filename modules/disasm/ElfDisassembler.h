@@ -5,31 +5,12 @@
 //===----------------------------------------------------------------------===//
 // 
 // Copyright (c) 2015 University of Kaiserslautern.
-// Created by M. Ammar Ben Khadra.
 
 #pragma once
 #include "DisassemblyResult.h"
 #include "binutils/elf/elf++.hh"
 
 namespace disasm {
-
-enum class ISAType: unsigned short {
-    kUnknown = 0,
-    kThumb = 1,
-    kARM = 2,
-    kTriCore = 3,
-    kx86 = 4,
-    kMIPS = 5,
-    kPPC = 6,
-    kSPARC = 7,
-    kx86_64 = 8,
-};
-
-enum class ARMCodeSymbolType: unsigned short {
-    kThumb = 1,
-    kARM = 2,
-    kData = 4
-};
 
 class ARMCodeSymbolVal {
 public:

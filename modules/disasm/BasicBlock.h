@@ -5,7 +5,6 @@
 //===----------------------------------------------------------------------===//
 // 
 // Copyright (c) 2015 Technical University of Kaiserslautern.
-// Created by M. Ammar Ben Khadra.
 
 #pragma once
 #include "Common.h"
@@ -37,14 +36,15 @@ public:
 
     unsigned int id() const;
     bool valid() const ;
+
     /**
-     * returns the number of fragments in the basic block.
+     * return the number of fragments in the basic block.
      */
     size_t size() const;
 
-    const BranchInstType &getBranchType() const;
+    const BranchInstType& branchType() const;
 
-    addr_t getBranchTarget() const;
+    addr_t branchTarget() const;
 
     const std::vector<unsigned int>& getFragmentIds() const;
 

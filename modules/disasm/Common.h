@@ -22,4 +22,22 @@ enum class BranchInstType: unsigned short {
     kConditional = 4,
     kUnconditional = 8
 };
+
+enum class ISAType: unsigned short {
+    kUnknown = 0,
+    kThumb = 1,
+    kARM = 2,
+    kTriCore = 3,
+    kx86 = 4,
+    kMIPS = 5,
+    kPPC = 6,
+    kSPARC = 7,
+    kx86_64 = 8,
+};
+
+enum class ARMCodeSymbolType: unsigned short {
+    kThumb = 1,
+    kARM = 2,
+    kData = 4
+};
 }

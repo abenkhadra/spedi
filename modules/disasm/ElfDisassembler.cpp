@@ -5,7 +5,6 @@
 //===----------------------------------------------------------------------===//
 // 
 // Copyright (c) 2015 University of Kaiserslautern.
-// Created by M. Ammar Ben Khadra.
 
 #include "ElfDisassembler.h"
 #include "MCInst.h"
@@ -95,7 +94,7 @@ ElfDisassembler::disassembleSectionUsingSymbols(const elf::section &sec) const {
     const uint8_t* code_ptr = (const uint8_t *) sec.data();
 
     MCInst inst;
-    cs_insn *inst_ptr = inst.getRawPtr();
+    cs_insn *inst_ptr = inst.rawPtr();
 
     printf("Section Name: %s\n", sec.get_name().c_str());
 

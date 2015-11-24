@@ -5,11 +5,9 @@
 //===----------------------------------------------------------------------===//
 // 
 // Copyright (c) 2015 Technical University of Kaiserslautern.
-// Created by M. Ammar Ben Khadra.
 
 #pragma once
 
-#include <capstone/capstone.h>
 #include "Common.h"
 
 // Forward declaration to avoid including capstone.h as much as possible

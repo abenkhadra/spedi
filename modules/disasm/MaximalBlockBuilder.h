@@ -5,8 +5,6 @@
 //===----------------------------------------------------------------------===//
 // 
 // Copyright (c) 2015 Technical University of Kaiserslautern.
-// Created by M. Ammar Ben Khadra.
-
 
 #pragma once
 
@@ -28,7 +26,7 @@ public:
     MaximalBlockBuilder() ;
     virtual ~MaximalBlockBuilder() = default;
     MaximalBlockBuilder(const MaximalBlockBuilder &src) = default;
-    MaximalBlockBuilder &operator=(const MaximalBlockBuilder &src) = default;
+    MaximalBlockBuilder &operator=(const MaximalBlockBuilder &src) = delete;
     MaximalBlockBuilder(MaximalBlockBuilder &&src) = default;
 
     /*

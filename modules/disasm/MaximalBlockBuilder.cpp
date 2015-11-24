@@ -5,8 +5,6 @@
 //===----------------------------------------------------------------------===//
 // 
 // Copyright (c) 2015 Technical University of Kaiserslautern.
-// Created by M. Ammar Ben Khadra.
-
 
 #include "MaximalBlockBuilder.h"
 #include <algorithm>
@@ -30,7 +28,7 @@ MaximalBlockBuilder::appendableBasicBlocksAt(const addr_t addr) const {
         if(frag->isAppendableAt(addr))
             result.push_back(bblock.id());
     }
-    return std::vector<unsigned int>();
+    return result;
 }
 
 void
@@ -143,13 +141,13 @@ MaximalBlockBuilder::findBasicBlock(const unsigned int bb_id) const {
 
 MaximalBlock MaximalBlockBuilder::build() {
     MaximalBlock result;
-    Fragment* frag;
+    Fragment *frag;
     if (!m_buildable)
-        // returns an invalid maximal block!
+        // return an invalid maximal block!
         return result;
 
     std::vector<unsigned int> frag_id_map;
-    auto findInMap = [](unsigned int id){
+    auto findInMap = [](unsigned int id) {
         for (unsigned int i = 0; i < frag_id_map.size(); i++) {
             if (frag_id_map[i] == id) {
                 return i;
@@ -161,13 +159,13 @@ MaximalBlock MaximalBlockBuilder::build() {
     // copy valid BBs to result
     std::copy_if(m_bblocks.begin(), m_bblocks.end(),
                  result.m_bblocks.begin(),
-    [](const BasicBlock& temp){ return temp.valid();});
+                 [](const BasicBlock &temp) { return temp.valid(); });
 
     for (unsigned int i = 0; i < result.m_bblocks.size(); i++) {
         // fixed ids for faster lookup
         result.m_bblocks[i].m_id = i;
         // build id map for fragments
-        for(auto& id: result.m_bblocks[i].m_frag_ids){
+        for (auto &id: result.m_bblocks[i].m_frag_ids) {
             auto pos = findInMap(id);
             if (pos == frag_id_map.size()) {
                 // id was not found in map
@@ -190,16 +188,15 @@ MaximalBlockBuilder::reset() {
     m_bb_idx = 0;
     m_frag_idx = 0;
 
-    Fragment* valid_frag{nullptr};
+    Fragment *valid_frag{nullptr};
     Fragment *current{nullptr};
 
     std::vector<BasicBlock> temp_bb;
     std::vector<Fragment> temp_frag;
 
     // detects a potential overlap between two fragments
-    auto isOverlap = [](const Fragment* vfrag, const Fragment* cfrag)
-    {
-        if(vfrag->id() == cfrag->id()) return false;
+    auto isOverlap = [](const Fragment *vfrag, const Fragment *cfrag) {
+        if (vfrag->id() == cfrag->id()) return false;
 //        int frame = static_cast<int>(
 //        (valid_frag->startAddr() + valid_frag->memSize()) // last address of first
 //        - (current->startAddr() + current->memSize())); // last address of second
@@ -210,7 +207,7 @@ MaximalBlockBuilder::reset() {
     };
 
     // look for the last fragment in a valid basic block
-    for (const BasicBlock& block : m_bblocks) {
+    for (const BasicBlock &block : m_bblocks) {
         if (block.valid()) {
             valid_frag = findFragment(block.m_frag_ids.back());
             assert((valid_frag != nullptr) && "Fragment was not found!!");
@@ -218,19 +215,21 @@ MaximalBlockBuilder::reset() {
         }
     }
 
-    for (const BasicBlock& block : m_bblocks) {
+    for (const BasicBlock &block : m_bblocks) {
         if (!block.valid()) {
             current = findFragment(block.m_frag_ids.back());
-            if(isOverlap(valid_frag, current)){
+            if (isOverlap(valid_frag, current)) {
                 temp_bb.push_back(block);
             }
         }
     }
-    if(temp_bb.size() == 0){
+    assert(temp_bb.size() < 2 && "More than two overlaping BBs found!!");
+    if (temp_bb.size() == 0) {
         // no overlap was detected, resetting data structures.
-        m_bblocks.clear(); m_frags.clear();
+        m_bblocks.clear();
+        m_frags.clear();
         return true;
-    }else{
+    } else {
         // For variable-length RISC it's impossible to have more than 2 overlapping
         //  BBs. For x86, it's extremely unlikely.
         m_bblocks.clear();
@@ -250,7 +249,7 @@ MaximalBlockBuilder::reset() {
 
 void
 MaximalBlockBuilder::remove(const std::vector<unsigned int> &bb_ids) {
-    // XXX erasing elements from a vector is costly. Should be OK here
+    // XXX erasing elements from a vector can be costly. Should be OK here
     //  since the number of elements in this context is very small.
     for(auto& id:bb_ids){
         assert((id < m_bblocks.size()) && "Out of bound access to a vector");

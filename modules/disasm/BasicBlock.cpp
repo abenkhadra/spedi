@@ -5,8 +5,6 @@
 //===----------------------------------------------------------------------===//
 // 
 // Copyright (c) 2015 Technical University of Kaiserslautern.
-// Created by M. Ammar Ben Khadra.
-
 
 #include "BasicBlock.h"
 #include <algorithm>
@@ -21,11 +19,11 @@ BasicBlock::BasicBlock(unsigned int id) :
     m_br_target{0}
 { }
 
-const BranchInstType &BasicBlock::getBranchType() const {
+const BranchInstType &BasicBlock::branchType() const {
     return m_br_type;
 }
 
-addr_t BasicBlock::getBranchTarget() const {
+addr_t BasicBlock::branchTarget() const {
     return m_br_target;
 }
 

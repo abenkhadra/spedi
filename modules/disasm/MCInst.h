@@ -5,7 +5,6 @@
 //===----------------------------------------------------------------------===//
 // 
 // Copyright (c) 2015 University of Kaiserslautern.
-// Created by M. Ammar Ben Khadra.
 
 #pragma once
 
@@ -21,15 +20,19 @@ namespace disasm {
  */
 class MCInst final{
 public:
-    /// Allocates memory for cs_insn and frees memory in destructor.
+    /**
+     * Allocates memory for cs_insn and frees memory in destructor.
+     */
     MCInst();
-    /// Owns a pointer to an already allocated cs_insn.
+    /**
+     * Owns a pointer to an already allocated cs_insn.
+     */
     explicit MCInst(cs_insn * instruction);
     ~MCInst() = default;
     MCInst(const MCInst &src) = delete;
     MCInst &operator=(const MCInst &src) = delete;
     MCInst(MCInst &&src) = default;
-    cs_insn* getRawPtr();
+    cs_insn*rawPtr();
 
 private:
     class MCInstDefaultDeleter {
