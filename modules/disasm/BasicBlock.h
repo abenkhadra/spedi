@@ -36,12 +36,10 @@ public:
 
     unsigned int id() const;
     bool valid() const ;
-
     /**
-     * return the number of fragments in the basic block.
-     */
+    * return the number of fragments in the basic block.
+    */
     size_t size() const;
-
     const BranchInstType& branchType() const;
 
     addr_t branchTarget() const;

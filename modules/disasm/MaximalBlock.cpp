@@ -12,14 +12,14 @@
 namespace disasm {
 
 size_t
-MaximalBlock::getBasicBlockSize(unsigned int bb_id) {
+MaximalBlock::getBasicBlockSize(unsigned int bb_id) const {
     assert(bb_id <= m_bblocks.size()
                && "Invalid Basic Block Id!!");
     return m_bblocks[bb_id].size();
 }
 
 size_t
-MaximalBlock::getBasicBlockMemSize(unsigned int bb_id) {
+MaximalBlock::getBasicBlockMemSize(unsigned int bb_id) const {
     assert(bb_id <= m_bblocks.size()
                && "Invalid Basic Block Id!!");
     auto frags = m_bblocks[bb_id].getFragmentIds();
@@ -30,12 +30,12 @@ MaximalBlock::getBasicBlockMemSize(unsigned int bb_id) {
     return result;
 }
 
-bool MaximalBlock::valid() {
+bool MaximalBlock::valid() const {
     if (m_bblocks.size() == 0)
         return false;
 
-    for(BasicBlock& item: m_bblocks)
-        if (!item.valid())
+    for(const BasicBlock& block: m_bblocks)
+        if (!block.valid())
             return false;
 
     return true;
@@ -56,4 +56,8 @@ void MaximalBlock::setType(MaxBlockType type) {
     }
 }
 
+const BasicBlock&
+MaximalBlock::getBasicBlock(unsigned int bb_id) const {
+    return m_bblocks[bb_id];
+}
 }

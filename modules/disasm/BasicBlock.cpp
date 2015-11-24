@@ -31,10 +31,6 @@ bool BasicBlock::valid() const {
     return (m_br_type != BranchInstType::kUnknown) ;
 }
 
-size_t BasicBlock::size() const {
-    return m_frag_ids.size();
-}
-
 unsigned int BasicBlock::id() const {
     return m_id;
 }
@@ -42,5 +38,9 @@ unsigned int BasicBlock::id() const {
 const std::vector<unsigned int>&
 BasicBlock::getFragmentIds() const {
     return m_frag_ids;
+}
+
+size_t BasicBlock::size() const {
+    return m_frag_ids.size();
 }
 }

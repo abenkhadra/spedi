@@ -12,15 +12,15 @@ namespace disasm {
 
 Fragment::Fragment() :
     m_id{0},
-    m_size{0} { }
+    m_mem_size{0} { }
 
 Fragment::Fragment(unsigned int id, size_t addr) :
     m_id{id},
-    m_size{0} { }
+    m_mem_size{0} { }
 
 Fragment::Fragment(unsigned int id, const MCInstSmall &inst) :
     m_id{id},
-    m_size{inst.size()} {
+    m_mem_size{inst.size()} {
     m_insts.push_back(inst);
 }
 
@@ -31,12 +31,12 @@ Fragment::valid() const {
 
 bool
 Fragment::isAppendable(const MCInstSmall &inst) const {
-    return (inst.addr() == startAddr() + m_size);
+    return (inst.addr() == startAddr() + m_mem_size);
 }
 
 bool
 Fragment::isAppendableAt(const addr_t addr) const {
-    return (addr == startAddr() + m_size);
+    return (addr == startAddr() + m_mem_size);
 }
 
 size_t
@@ -46,7 +46,7 @@ Fragment::size() const {
 
 size_t
 Fragment::memSize() const {
-    return m_size;
+    return m_mem_size;
 }
 
 addr_t
@@ -55,5 +55,9 @@ Fragment::startAddr() const {
 }
 unsigned int Fragment::id() const {
     return m_id;
+}
+void Fragment::append(const MCInstSmall &inst) {
+    m_insts.push_back(inst);
+    m_mem_size += inst.size();
 }
 }

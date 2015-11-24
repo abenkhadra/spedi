@@ -9,6 +9,7 @@
 #include "MaximalBlockBuilder.h"
 #include <algorithm>
 #include <cassert>
+#include <array>
 
 namespace disasm{
 
@@ -20,13 +21,18 @@ MaximalBlockBuilder::MaximalBlockBuilder() :
 
 std::vector<unsigned int>
 MaximalBlockBuilder::appendableBasicBlocksAt(const addr_t addr) const {
+    // XXX: an instruction can be appendable to multiple basic blocks
+    // that share the same last fragment.
     std::vector<unsigned int> result;
-    for(auto& bblock:m_bblocks){
-        // we know that a basic block should contain at least
-        //  one fragment upon creation.
-        Fragment* frag = findFragment(bblock.m_frag_ids.back());
-        if(frag->isAppendableAt(addr))
-            result.push_back(bblock.id());
+    for (auto& frag : m_frags) {
+        if (frag.isAppendableAt(addr) ) {
+            for(auto& block:m_bblocks){
+                // check if fragment is the last in a basic block
+                if (block.m_frag_ids.back() == frag.id() ) {
+                    result.push_back(block.id());
+                }
+            }
+        }
     }
     return result;
 }
@@ -42,75 +48,14 @@ MaximalBlockBuilder::createBasicBlockWith(const MCInstSmall &inst) {
 }
 
 void
-MaximalBlockBuilder::append(
-    const unsigned int bb_id,
-    const MCInstSmall &inst) {
-
-    assert((bb_id < m_bblocks.size()) && "Out of bound block index!!");
-    auto block = findBasicBlock(bb_id);
-
-    assert(block != nullptr && "Error BasicBlock not found!!");
-    auto last_frag_id = block->m_frag_ids.back();
-    // Add instruction to fragment
-    findFragment(last_frag_id)->m_insts.push_back(inst);
-}
-
-void
-MaximalBlockBuilder::append(
-    const unsigned int bb_id,
+MaximalBlockBuilder::createBasicBlockWith(
     const MCInstSmall &inst,
     const BranchInstType br_type,
     const addr_t br_target) {
 
-    assert((bb_id < m_bblocks.size()) && "Out of bound block index!!");
-    auto block = findBasicBlock(bb_id);
-    assert(block != nullptr && "Error BasicBlock not found!!");
-    block->m_br_target = br_target;
-    block->m_br_type = br_type;
-    // Add instruction to last fragment
-    findFragment(block->m_frag_ids.back())->m_insts.push_back(inst);
-    m_buildable = true;
-}
-
-void
-MaximalBlockBuilder::append(
-    const std::vector<unsigned int> &bb_ids,
-    const MCInstSmall &inst) {
-
-    BasicBlock* block;
-    // create a new fragment with the given instruction
-    m_frags.emplace_back(Fragment(m_frag_idx, inst));
-    for (auto& id: bb_ids) {
-        assert((id < m_bblocks.size()) && "Out of bound block index!!");
-        block = findBasicBlock(id);
-        assert(block != nullptr && "Error BasicBlock not found!!");
-        // Append fragment to all basic blocks
-        block->m_frag_ids.push_back(id);
-    }
-    m_frag_idx++;
-}
-
-void
-MaximalBlockBuilder::append(
-    const std::vector<unsigned int> &bb_ids,
-    const MCInstSmall &inst,
-    const BranchInstType br_type,
-    const addr_t br_target) {
-
-    BasicBlock* block;
-    // create a new fragment with the given instruction
-    m_frags.emplace_back(Fragment(m_frag_idx, inst));
-    for (auto& id: bb_ids) {
-        assert((id < m_bblocks.size()) && "Out of bound block index!!");
-        block = findBasicBlock(id);
-        assert(block != nullptr && "Error BasicBlock not found!!");
-        // Append fragment to all basic blocks
-        block->m_frag_ids.push_back(id);
-        block-> m_br_type = br_type;
-        block->m_br_target = br_target;
-    }
-    m_frag_idx++;
-    m_buildable = true;
+    createBasicBlockWith(inst);
+    m_bblocks.back().m_br_type = br_type;
+    m_bblocks.back().m_br_target = br_target;
 }
 
 Fragment*
@@ -190,7 +135,6 @@ MaximalBlockBuilder::reset() {
 
     Fragment *valid_frag{nullptr};
     Fragment *current{nullptr};
-
     std::vector<BasicBlock> temp_bb;
     std::vector<Fragment> temp_frag;
 
@@ -255,5 +199,114 @@ MaximalBlockBuilder::remove(const std::vector<unsigned int> &bb_ids) {
         assert((id < m_bblocks.size()) && "Out of bound access to a vector");
         m_bblocks.erase(m_bblocks.begin()+id);
     }
+}
+
+void MaximalBlockBuilder::append(const MCInstSmall &inst) {
+
+    if (m_bblocks.size() == 0) {
+        createBasicBlockWith(inst);
+        return;
+    }
+    if (m_bblocks.size() == 1) {
+        Fragment* frag = findFragment(m_bblocks.back().m_frag_ids.back());
+        if (frag->isAppendable(inst)) {
+            frag->append(inst);
+            return;
+        } else {
+            createBasicBlockWith(inst);
+            return;
+        }
+    }
+
+    std::vector<BasicBlock*> append_blocks(m_bblocks.size());
+    std::vector<Fragment*> append_frag(m_frags.size());
+    // find appendable basic blocks
+    for (auto& frag : m_frags) {
+        if (frag.isAppendableAt(inst.addr()) ) {
+            append_frag.push_back(&frag);
+            for(auto& block:m_bblocks){
+                // check if fragment is the last in a basic block
+                if (block.m_frag_ids.back() == frag.id() ) {
+                    append_blocks.push_back(&block);
+                }
+            }
+        }
+    }
+    switch (append_frag.size()){
+        case 0:
+            createBasicBlockWith(inst);
+            break;
+        case 1:
+            append_frag.back()->append(inst);
+            break;
+        default:
+            // create a new fragment with the given instruction
+            m_frags.emplace_back(Fragment(m_frag_idx, inst));
+            for (auto block : append_blocks) {
+                block->m_frag_ids.push_back(m_frag_idx);
+            }
+            m_frag_idx;
+        break;
+    }
+}
+void MaximalBlockBuilder::append(const MCInstSmall &inst,
+                                 const BranchInstType br_type,
+                                 const addr_t br_target) {
+
+    if (m_bblocks.size() == 0) {
+        createBasicBlockWith(inst, br_type, br_target);
+        return;
+    }
+    if (m_bblocks.size() == 1) {
+        Fragment* frag = findFragment(m_bblocks.back().m_frag_ids.back());
+        if (frag->isAppendable(inst)) {
+            m_bblocks.back().m_br_type = br_type;
+            m_bblocks.back().m_br_target = br_target;
+            frag->append(inst);
+            return;
+        } else {
+            createBasicBlockWith(inst, br_type, br_target);
+            return;
+        }
+    }
+
+    std::vector<BasicBlock*> append_blocks(m_bblocks.size());
+    std::vector<Fragment*> append_frag(m_frags.size());
+    // find appendable basic blocks
+    for (auto& frag : m_frags) {
+        if (frag.isAppendableAt(inst.addr()) ) {
+            append_frag.push_back(&frag);
+            for(auto& block:m_bblocks){
+                // check if fragment is the last in a basic block
+                if (block.m_frag_ids.back() == frag.id() ) {
+                    append_blocks.push_back(&block);
+                }
+            }
+        }
+    }
+    switch (append_frag.size()){
+        case 0:
+            createBasicBlockWith(inst, br_type, br_target);
+            break;
+        case 1:
+            append_frag.back()->append(inst);
+            // there can be multiple BBs sharing an appendable fragment
+            for (auto block : append_blocks) {
+                block->m_br_type = br_type;
+                block->m_br_target = br_target;
+            }
+            break;
+        default:
+            // create a new fragment with the given instruction
+            m_frags.emplace_back(Fragment(m_frag_idx, inst));
+            for (auto block : append_blocks) {
+                block->m_frag_ids.push_back(m_frag_idx);
+                block->m_br_type = br_type;
+                block->m_br_target = br_target;
+            }
+            m_frag_idx++;
+            break;
+    }
+    m_buildable = true;
 }
 }

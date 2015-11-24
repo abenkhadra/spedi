@@ -44,35 +44,27 @@ public:
     void createBasicBlockWith
         (const MCInstSmall &inst);
 
-    /**
-     * precondition: inst is appendable to basic block.
+    /*
+     * Adds a new block with a single fragment containing the instruction. Used
+     * when the given instruction is not appendable.
      */
-    void append
-        (const unsigned int bb_id, const MCInstSmall &inst);
+    void createBasicBlockWith
+        (const MCInstSmall &inst,
+        const BranchInstType br_type,
+        const addr_t br_target);
 
-    /**
-     * precondition: inst is appendable to basic block.
-     * MaximalBlock is buildable after this operation.
+    /*
+     * Instead of looking up appendable basic blocks first and then appending.
+     * This method mixes both steps for more efficiency.
      */
-    void append
-        (const unsigned int bb_id,
-         const MCInstSmall &inst,
-         const BranchInstType br_type,
-         const addr_t br_target);
+    void append(const MCInstSmall& inst);
 
-    /**
-     * precondition: inst is appendable to all given basic blocks.
+    /*
+     * Instead of looking up appendable basic blocks first and then appending.
+     * This method mixes both steps for more efficiency.
      */
     void append
-        (const std::vector<unsigned int> &bb_ids, const MCInstSmall &inst);
-
-    /**
-     * precondition: inst is appendable to all given basic blocks.
-     * MaximalBlock is buildable after this operation.
-     */
-    void append
-        (const std::vector<unsigned int> &bb_ids,
-         const MCInstSmall &inst,
+        (const MCInstSmall &inst,
          const BranchInstType br_type,
          const addr_t br_target);
 
