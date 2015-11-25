@@ -40,7 +40,7 @@ public:
      */
     bool valid() const;
 
-    void setType(MaxBlockType type);
+    void setType(const MaxBlockType type);
 
     // getting size and memsize of fragments are provided by the fragment itself.
     // providing the same for BBs, however, requires MB intervention!
@@ -48,14 +48,13 @@ public:
     /*
      * return the size in bytes of basic block
      */
-    size_t getBasicBlockMemSize(unsigned int bb_id) const;
+    size_t getBasicBlockMemSize(const unsigned int bb_id) const;
     /**
     * return the number of fragments in basic block.
     */
-    size_t getBasicBlockSize(unsigned int bb_id) const;
+    size_t getBasicBlockSize(const unsigned int bb_id) const;
 
-    const BasicBlock& getBasicBlock(unsigned int bb_id) const;
-
+    const BasicBlock& getBasicBlock(const unsigned int bb_id) const;
 
     addr_t getStartAddr() const;
 

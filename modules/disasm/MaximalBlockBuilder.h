@@ -38,15 +38,15 @@ public:
         (const addr_t addr) const;
 
     /*
-     * Adds a new block with a single fragment containing the instruction. Used
+     * Add a new block with a single fragment containing the instruction. Used
      * when the given instruction is not appendable.
      */
     void createBasicBlockWith
         (const MCInstSmall &inst);
 
     /*
-     * Adds a new block with a single fragment containing the instruction. Used
-     * when the given instruction is not appendable.
+     * Add a new block with a single fragment containing a branch instruction.
+     * Used when the given instruction is not appendable.
      */
     void createBasicBlockWith
         (const MCInstSmall &inst,
@@ -54,14 +54,14 @@ public:
         const addr_t br_target);
 
     /*
-     * Instead of looking up appendable basic blocks first and then appending.
-     * This method mixes both steps for more efficiency.
+     * Look up appendable basic blocks first and then append instruction if possible.
+     * Otherwise, create a new basic block.
      */
     void append(const MCInstSmall& inst);
 
     /*
-     * Instead of looking up appendable basic blocks first and then appending.
-     * This method mixes both steps for more efficiency.
+     * Look up appendable basic blocks first and then append branch instruction
+     * if possible. Otherwise, create a new basic block.
      */
     void append
         (const MCInstSmall &inst,
@@ -74,9 +74,9 @@ public:
     MaximalBlock build();
 
     /*
-     * Reset the builder to its original state except in the case of MB overlap.
-     * There, partial results will be kept to build the next MB.
-     * Return true on clean reset, false otherwise.
+     * Reset the builder to its original state except in the case of
+     * Maximal Block overlap. There, partial results will be kept to build
+     * the next MB. Return true on clean (no overlap) reset, false otherwise.
      */
     bool reset();
 

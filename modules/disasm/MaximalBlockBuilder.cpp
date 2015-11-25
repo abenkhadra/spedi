@@ -87,40 +87,42 @@ MaximalBlockBuilder::findBasicBlock(const unsigned int bb_id) const {
 MaximalBlock MaximalBlockBuilder::build() {
     MaximalBlock result;
     Fragment *frag;
+
+    unsigned int frag_idx = 0;
+    unsigned int bb_idx = 0;
+
     if (!m_buildable)
         // return an invalid maximal block!
         return result;
 
-    std::vector<unsigned int> frag_id_map;
-    auto findInMap = [](unsigned int id) {
-        for (unsigned int i = 0; i < frag_id_map.size(); i++) {
-            if (frag_id_map[i] == id) {
-                return i;
-            }
-        }
-        return (0);
-    };
+    std::array<int, m_frags.size()> frag_id_map;
+    frag_id_map.fill(-1);
 
     // copy valid BBs to result
     std::copy_if(m_bblocks.begin(), m_bblocks.end(),
                  result.m_bblocks.begin(),
                  [](const BasicBlock &temp) { return temp.valid(); });
 
-    for (unsigned int i = 0; i < result.m_bblocks.size(); i++) {
+    for (auto& block:result.m_bblocks) {
         // fixed ids for faster lookup
-        result.m_bblocks[i].m_id = i;
+        block.m_id = bb_idx;
+        bb_idx++;
         // build id map for fragments
-        for (auto &id: result.m_bblocks[i].m_frag_ids) {
-            auto pos = findInMap(id);
-            if (pos == frag_id_map.size()) {
+        for (auto id: block.m_frag_ids) {
+            if (frag_id_map[id] == -1) {
+                // mapping the new frag_id
+                frag_id_map[id] = frag_idx;
                 // id was not found in map
                 frag = findFragment(id);
                 assert((frag != nullptr) && "Fragment was not found!!");
-                frag_id_map.push_back(id);
                 result.m_frags.push_back(*frag);
-                result.m_frags.back().m_id = pos;
+                result.m_frags.back().m_id = frag_idx;
+                block.m_frag_ids[id] = frag_idx;
+                frag_idx++;
+            } else {
+                block.m_frag_ids[id] =
+                    static_cast<unsigned int>(frag_id_map[id]);
             }
-
         }
     }
     return result;
@@ -221,18 +223,22 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst) {
     std::vector<BasicBlock*> append_blocks(m_bblocks.size());
     std::vector<Fragment*> append_frag(m_frags.size());
     // find appendable basic blocks
+    bool is_last = false; // used for invariant checking
     for (auto& frag : m_frags) {
         if (frag.isAppendableAt(inst.addr()) ) {
+            is_last = false;
             append_frag.push_back(&frag);
             for(auto& block:m_bblocks){
                 // check if fragment is the last in a basic block
                 if (block.m_frag_ids.back() == frag.id() ) {
+                    is_last = true;
                     append_blocks.push_back(&block);
                 }
             }
+            assert(is_last && "Found appendable fragment that is not last!!");
         }
     }
-    switch (append_frag.size()){
+    switch (append_frag.size()) {
         case 0:
             createBasicBlockWith(inst);
             break;
@@ -242,10 +248,11 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst) {
         default:
             // create a new fragment with the given instruction
             m_frags.emplace_back(Fragment(m_frag_idx, inst));
+            // link BBs to new fragment
             for (auto block : append_blocks) {
                 block->m_frag_ids.push_back(m_frag_idx);
             }
-            m_frag_idx;
+            m_frag_idx++;
         break;
     }
 }
@@ -273,15 +280,19 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst,
     std::vector<BasicBlock*> append_blocks(m_bblocks.size());
     std::vector<Fragment*> append_frag(m_frags.size());
     // find appendable basic blocks
+    bool is_last = false; // used for invariant checking
     for (auto& frag : m_frags) {
         if (frag.isAppendableAt(inst.addr()) ) {
+            is_last = false;
             append_frag.push_back(&frag);
             for(auto& block:m_bblocks){
                 // check if fragment is the last in a basic block
                 if (block.m_frag_ids.back() == frag.id() ) {
+                    is_last = true;
                     append_blocks.push_back(&block);
                 }
             }
+            assert(is_last && "Found appendable fragment that is not last!!");
         }
     }
     switch (append_frag.size()){
@@ -291,7 +302,7 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst,
         case 1:
             append_frag.back()->append(inst);
             // there can be multiple BBs sharing an appendable fragment
-            for (auto block : append_blocks) {
+            for (auto& block : append_blocks) {
                 block->m_br_type = br_type;
                 block->m_br_target = br_target;
             }
@@ -299,7 +310,7 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst,
         default:
             // create a new fragment with the given instruction
             m_frags.emplace_back(Fragment(m_frag_idx, inst));
-            for (auto block : append_blocks) {
+            for (auto& block : append_blocks) {
                 block->m_frag_ids.push_back(m_frag_idx);
                 block->m_br_type = br_type;
                 block->m_br_target = br_target;
