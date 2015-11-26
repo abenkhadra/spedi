@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Common.h"
+#include "common.h"
 #include <string>
 
 namespace disasm {

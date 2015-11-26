@@ -9,6 +9,7 @@
 #include "ElfDisassembler.h"
 #include "MCInst.h"
 #include "MCParser.h"
+#include "MaximalBlock.h"
 #include <inttypes.h>
 #include <algorithm>
 
@@ -21,7 +22,7 @@ ElfDisassembler::ElfDisassembler(const elf::elf &elf_file) :
     m_elf_file{&elf_file} { }
 
 void
-ElfDisassembler::printHex(unsigned char *str, size_t len) const {
+printHex(unsigned char *str, size_t len) const {
     unsigned char *c;
 
     printf("Code: ");
@@ -73,6 +74,20 @@ void prettyPrintInst(const csh &handle, cs_insn *inst) {
     }
 }
 
+void prettyPrintMaximalBlock
+    (const unsigned int id,
+     const MaximalBlock& mblock){
+    printf("******************************\n");
+    printf("Printing MB No. %u, starts at %u :\n",
+           id, mblock.startAddr());
+    printf("BB No.%u, Frag No.%u\n",
+           mblock.getBasicBlocksCount(), mblock.getFragmentsCount());
+    for (auto& item :mblock.getBasicBlocks()) {
+        printf("Basic Block Id %u");
+    }
+
+
+}
 void
 ElfDisassembler::disassembleSectionUsingSymbols(const elf::section &sec) const {
 
@@ -150,8 +165,68 @@ ElfDisassembler::disassembleCodeUsingSymbols() const {
 }
 
 void
-ElfDisassembler::disassembleCodeSpeculative() const {
+ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
+    // a type_mismatch exception would thrown in case symbol table was not found
+    auto symbols = getCodeSymbolsForSection(sec);
+    // choose
+//    printf("Symbols size is %lu \n", symbols.size());
+//
+//    for (auto& symbol : symbols) {
+//        printf("Type %d, Addrd, 0x%#x \n", symbol.second, symbol.first);
+//    }
 
+    size_t start_addr = sec.get_hdr().addr;
+    size_t last_addr = start_addr + sec.get_hdr().size;
+
+    MCParser parser{};
+    parser.initialize(CS_ARCH_ARM, CS_MODE_THUMB, last_addr);
+
+    const uint8_t* code_ptr = (const uint8_t *) sec.data();
+
+    MCInst inst;
+    cs_insn *inst_ptr = inst.rawPtr();
+
+    printf("Section Name: %s\n", sec.get_name().c_str());
+
+    // We assume that symbols are ordered by their address.
+    size_t index = 0;
+    size_t address = 0;
+    size_t size = 0;
+
+    for (auto &symbol : symbols) {
+        index++;
+        if (symbol.second == ARMCodeSymbolType::kData) {
+            if (index < symbols.size())
+                // adjust code_ptr to start of next symbol.
+                code_ptr += (symbols[index].first - symbol.first);
+            continue;
+        }
+        address = symbol.first;
+        if (index < symbols.size())
+            size = symbols[index].first - symbol.first;
+        else
+            size = last_addr - symbol.first;
+
+        if (symbol.second == ARMCodeSymbolType::kARM)
+            parser.changeModeTo(CS_MODE_ARM);
+        else
+            // We assume that the value of code symbol type is strictly
+            // either Data, ARM, or Thumb.
+            parser.changeModeTo(CS_MODE_THUMB);
+
+        while (parser.disasm(code_ptr, &size, &address, &inst)) {
+            prettyPrintInst(parser.handle(), inst_ptr);
+        }
+    }
+}
+
+void
+ElfDisassembler::disassembleCodeSpeculative() const {
+    for (auto &sec : m_elf_file->sections()) {
+        if (sec.is_alloc() && sec.is_exec()) {
+            disassembleSectionSpeculative(sec);
+        }
+    }
 }
 
 std::vector<std::pair<size_t, ARMCodeSymbolType>>
@@ -211,11 +286,6 @@ ISAType
 ElfDisassembler::initialISAType() const {
     if (m_elf_file->get_hdr().entry & 1) return ISAType::kThumb;
     else return ISAType::kARM;
-}
-
-
-void ElfDisassembler::disassembleSectionSpeculative() const {
-
 }
 
 }

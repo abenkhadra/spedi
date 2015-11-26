@@ -102,12 +102,13 @@ MaximalBlock MaximalBlockBuilder::build() {
     std::copy_if(m_bblocks.begin(), m_bblocks.end(),
                  result.m_bblocks.begin(),
                  [](const BasicBlock &temp) { return temp.valid(); });
-
+    // TODO: defragment consecutive getFragments that belong to only one BB.
+    // TODO: set a size to the maximal block equal to the size of its biggest BB
     for (auto& block:result.m_bblocks) {
         // fixed ids for faster lookup
         block.m_id = bb_idx;
         bb_idx++;
-        // build id map for fragments
+        // build id map for getFragments
         for (auto id: block.m_frag_ids) {
             if (frag_id_map[id] == -1) {
                 // mapping the new frag_id
@@ -140,7 +141,7 @@ MaximalBlockBuilder::reset() {
     std::vector<BasicBlock> temp_bb;
     std::vector<Fragment> temp_frag;
 
-    // detects a potential overlap between two fragments
+    // detects a potential overlap between two getFragments
     auto isOverlap = [](const Fragment *vfrag, const Fragment *cfrag) {
         if (vfrag->id() == cfrag->id()) return false;
 //        int frame = static_cast<int>(

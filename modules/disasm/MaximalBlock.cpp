@@ -12,13 +12,6 @@
 namespace disasm {
 
 size_t
-MaximalBlock::getBasicBlockSize(const unsigned int bb_id) const {
-    assert(bb_id <= m_bblocks.size()
-               && "Invalid Basic Block Id!!");
-    return m_bblocks[bb_id].size();
-}
-
-size_t
 MaximalBlock::getBasicBlockMemSize(const unsigned int bb_id) const {
     assert(bb_id <= m_bblocks.size()
                && "Invalid Basic Block Id!!");
@@ -40,7 +33,7 @@ bool MaximalBlock::valid() const {
     return true;
 }
 
-addr_t MaximalBlock::getStartAddr() const {
+addr_t MaximalBlock::startAddr() const {
     if (m_frags.size() == 0)
         return 0;
     else
@@ -56,7 +49,29 @@ void MaximalBlock::setType(const MaxBlockType type) {
 }
 
 const BasicBlock&
-MaximalBlock::getBasicBlock(const unsigned int bb_id) const {
+MaximalBlock::getBasicBlockById(const unsigned int bb_id) const {
     return m_bblocks[bb_id];
+}
+
+unsigned int
+MaximalBlock::getBasicBlocksCount() const {
+    return static_cast<unsigned int>(m_bblocks.size());
+}
+
+unsigned int
+MaximalBlock::getFragmentsCount() const {
+    return static_cast<unsigned int>(m_frags.size());
+}
+
+const std::vector<BasicBlock>&
+MaximalBlock::getBasicBlocks() const {
+    return m_bblocks;
+}
+const std::vector<Fragment> &
+MaximalBlock::getFragments() const {
+    return m_frags;
+}
+MaximalBlock::MaximalBlock(): m_type{MaxBlockType::kMaybe} {
+
 }
 }

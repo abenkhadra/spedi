@@ -8,19 +8,12 @@
 
 #pragma once
 
-#include "Common.h"
+#include "common.h"
 #include <capstone/capstone.h>
 
 namespace disasm {
 
 class MCInst;
-
-enum class InstWordSize: unsigned short{
-    kByte = 1,
-    kHWord = 2,  // half-word
-    kWord = 4,
-    kDWord = 8   // double-word
-};
 /**
  * MCParser
  */

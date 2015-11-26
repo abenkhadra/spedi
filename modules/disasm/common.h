@@ -5,7 +5,6 @@
 //===----------------------------------------------------------------------===//
 // 
 // Copyright (c) 2015 Technical University of Kaiserslautern.
-// Created by M. Ammar Ben Khadra.
 
 #pragma once
 #include <stddef.h>
@@ -13,7 +12,7 @@
 
 namespace disasm {
 // memory address type
-using addr_t = uint64_t;
+using addr_t = size_t ;
 
 enum class BranchInstType: unsigned short {
     kUnknown = 0,
@@ -21,6 +20,12 @@ enum class BranchInstType: unsigned short {
     kInDirect = 2,
     kConditional = 4,
     kUnconditional = 8
+};
+
+enum class ARMCodeSymbolType: unsigned short {
+    kThumb = 1,
+    kARM = 2,
+    kData = 4
 };
 
 enum class ISAType: unsigned short {
@@ -35,9 +40,10 @@ enum class ISAType: unsigned short {
     kx86_64 = 8,
 };
 
-enum class ARMCodeSymbolType: unsigned short {
-    kThumb = 1,
-    kARM = 2,
-    kData = 4
+enum class ISAInstLength: unsigned short{
+    kByte = 1,
+    kHWord = 2,  // half-word
+    kWord = 4,
+    kDWord = 8   // double-word
 };
 }

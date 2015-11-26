@@ -12,25 +12,27 @@
 
 namespace disasm {
 
-MCInstSmall::MCInstSmall(cs_insn *inst)
-    : m_id{inst->id},
-      m_addr{inst->address},
-      m_size{inst->size} {
+MCInstSmall::MCInstSmall(cs_insn *inst):
+    m_id{inst->id},
+    m_addr{inst->address},
+    m_size{inst->size},
+    m_mnemonic{inst->mnemonic},
+    m_operands{inst->op_str} {
 
     std::memcpy(m_bytes, inst->bytes, inst->size);
 }
 
-unsigned int
+const unsigned int &
 MCInstSmall::id() const {
     return m_id;
 }
 
-size_t
+const size_t &
 MCInstSmall::size() const {
     return m_size;
 }
 
-addr_t
+const addr_t &
 MCInstSmall::addr() const {
     return m_addr;
 }

@@ -39,32 +39,27 @@ public:
      * has a branch as last instruction.
      */
     bool valid() const;
-
+    addr_t startAddr() const;
     void setType(const MaxBlockType type);
 
-    // getting size and memsize of fragments are provided by the fragment itself.
+    unsigned int getBasicBlocksCount() const;
+    const BasicBlock& getBasicBlockById(const unsigned int bb_id) const;
+    const std::vector<BasicBlock>& getBasicBlocks() const;
+    // getting size and memsize of getFragments are provided by the fragment itself.
     // providing the same for BBs, however, requires MB intervention!
-
-    /*
-     * return the size in bytes of basic block
-     */
     size_t getBasicBlockMemSize(const unsigned int bb_id) const;
-    /**
-    * return the number of fragments in basic block.
-    */
-    size_t getBasicBlockSize(const unsigned int bb_id) const;
 
-    const BasicBlock& getBasicBlock(const unsigned int bb_id) const;
+    unsigned int getFragmentsCount() const;
 
-    addr_t getStartAddr() const;
+    //XXX: access should be to an iterator instead of a collection?
+    const std::vector<Fragment>& getFragments() const;
 
 private:
-    MaximalBlock() = default;
+    MaximalBlock();
 
 private:
     MaxBlockType m_type;
     std::vector<Fragment> m_frags;
     std::vector<BasicBlock> m_bblocks;
-
 };
 }

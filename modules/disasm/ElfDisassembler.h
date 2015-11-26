@@ -51,12 +51,11 @@ public:
     void disassembleCodeUsingSymbols() const;
     void disassembleSectionUsingSymbols(const elf::section &sec) const;
 
+    void disassembleSectionSpeculative(const elf::section &sec) const;
     void disassembleCodeSpeculative() const;
-    void disassembleSectionSpeculative() const;
 
     void disassembleSectionbyName(std::string& sec_name) const;
 
-    void printHex(unsigned char *str, size_t len) const;
     bool isSymbolTableAvailable();
 
     /**
@@ -72,6 +71,7 @@ private:
 
 private:
     bool m_valid;
+    ISAInstLength m_inst_len;
     const elf::elf* m_elf_file;
 
 };

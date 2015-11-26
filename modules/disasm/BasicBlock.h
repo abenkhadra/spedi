@@ -7,7 +7,7 @@
 // Copyright (c) 2015 Technical University of Kaiserslautern.
 
 #pragma once
-#include "Common.h"
+#include "common.h"
 #include "Fragment.h"
 #include <vector>
 
@@ -37,7 +37,7 @@ public:
     unsigned int id() const;
     bool valid() const ;
     /**
-    * return the number of fragments in the basic block.
+    * return the number of getFragments in the basic block.
     */
     size_t size() const;
     const BranchInstType& branchType() const;
