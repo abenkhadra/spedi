@@ -60,4 +60,9 @@ void Fragment::append(const MCInstSmall &inst) {
     m_insts.push_back(inst);
     m_mem_size += inst.size();
 }
+
+const std::vector<MCInstSmall> &
+Fragment::getInstructions() const {
+    return m_insts;
+}
 }

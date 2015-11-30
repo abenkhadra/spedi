@@ -37,6 +37,7 @@ public:
     size_t size() const;
     size_t memSize() const;
     addr_t startAddr() const;
+    const std::vector<MCInstSmall>& getInstructions() const;
 private:
     void append(const MCInstSmall& inst);
 

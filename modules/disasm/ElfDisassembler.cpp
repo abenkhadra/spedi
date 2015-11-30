@@ -10,6 +10,8 @@
 #include "MCInst.h"
 #include "MCParser.h"
 #include "MaximalBlock.h"
+#include "MCInstAnalyzer.h"
+#include "MaximalBlockBuilder.h"
 #include <inttypes.h>
 #include <algorithm>
 
@@ -19,10 +21,14 @@ ElfDisassembler::ElfDisassembler() : m_valid{false} { }
 
 ElfDisassembler::ElfDisassembler(const elf::elf &elf_file) :
     m_valid{true},
-    m_elf_file{&elf_file} { }
+    m_inst_width{ISAInstWidth::kHWord},
+    m_elf_file{&elf_file},
+    m_isa{getInitialISAType()} {
+//    m_inst_width = getISAMinWidth(m_isa);
+}
 
 void
-printHex(unsigned char *str, size_t len) const {
+printHex(unsigned char *str, size_t len) {
     unsigned char *c;
 
     printf("Code: ");
@@ -75,21 +81,32 @@ void prettyPrintInst(const csh &handle, cs_insn *inst) {
 }
 
 void prettyPrintMaximalBlock
-    (const unsigned int id,
-     const MaximalBlock& mblock){
+    (const MaximalBlock& mblock){
     printf("******************************\n");
-    printf("Printing MB No. %u, starts at %u :\n",
-           id, mblock.startAddr());
-    printf("BB No.%u, Frag No.%u\n",
+    printf("MB No. %u, starts at 0x%08x",
+           mblock.id(), static_cast<unsigned int> (mblock.startAddr()));
+    printf("BB count. %u, Total frag count %u: \n",
            mblock.getBasicBlocksCount(), mblock.getFragmentsCount());
-    for (auto& item :mblock.getBasicBlocks()) {
-        printf("Basic Block Id %u");
+    for (auto& block :mblock.getBasicBlocks()) {
+        printf("Basic Block Id %u: ", block.id());
+        for (auto& id : block.getFragmentIds()) {
+            printf("Frag Id: %u", id);
+        }
+        printf("\n");
     }
-
-
+    for (auto& frag :mblock.getFragments()) {
+        printf("Fragment Id %u: ", frag.id());
+        for (auto& inst:frag.getInstructions()) {
+            printf("0x%" PRIx64 ":\t%s\t\t%s // insn-ID: %u, insn-mnem: \n",
+                   inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str(),
+                   inst.id());
+        }
+    }
 }
+
 void
-ElfDisassembler::disassembleSectionUsingSymbols(const elf::section &sec) const {
+ElfDisassembler::disassembleSectionUsingSymbols
+    (const elf::section &sec) const {
 
     // a type_mismatch exception would thrown in case symbol table was not found
     auto symbols = getCodeSymbolsForSection(sec);
@@ -166,57 +183,41 @@ ElfDisassembler::disassembleCodeUsingSymbols() const {
 
 void
 ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
-    // a type_mismatch exception would thrown in case symbol table was not found
-    auto symbols = getCodeSymbolsForSection(sec);
-    // choose
-//    printf("Symbols size is %lu \n", symbols.size());
-//
-//    for (auto& symbol : symbols) {
-//        printf("Type %d, Addrd, 0x%#x \n", symbol.second, symbol.first);
-//    }
 
-    size_t start_addr = sec.get_hdr().addr;
-    size_t last_addr = start_addr + sec.get_hdr().size;
-
-    MCParser parser{};
-    parser.initialize(CS_ARCH_ARM, CS_MODE_THUMB, last_addr);
-
+    printf("Section Name: %s\n", sec.get_name().c_str());
+    size_t current = sec.get_hdr().addr;
+    size_t temp_addr = 0;
+    size_t last_addr = current + sec.get_hdr().size;
+    size_t buf_size = 4;
     const uint8_t* code_ptr = (const uint8_t *) sec.data();
+
+    MCParser parser;
+    parser.initialize(CS_ARCH_ARM, CS_MODE_THUMB, last_addr);
 
     MCInst inst;
     cs_insn *inst_ptr = inst.rawPtr();
 
-    printf("Section Name: %s\n", sec.get_name().c_str());
+    MaximalBlockBuilder max_block_builder;
 
-    // We assume that symbols are ordered by their address.
-    size_t index = 0;
-    size_t address = 0;
-    size_t size = 0;
+    MCInstAnalyzer analyzer(ISAType::kThumb);
 
-    for (auto &symbol : symbols) {
-        index++;
-        if (symbol.second == ARMCodeSymbolType::kData) {
-            if (index < symbols.size())
-                // adjust code_ptr to start of next symbol.
-                code_ptr += (symbols[index].first - symbol.first);
-            continue;
+    while (current < last_addr) {
+        temp_addr = current;
+        if (parser.disasm(code_ptr, &buf_size, &temp_addr, &inst)) {
+            if(analyzer.isBranch(inst_ptr)){
+                analyzer.branchTarget(inst_ptr);
+                max_block_builder.append(MCInstSmall(inst_ptr),
+                                         BranchInstType::kConditional,
+                                         0);
+                prettyPrintMaximalBlock(max_block_builder.build());
+                max_block_builder.reset();
+            }else{
+                max_block_builder.append(MCInstSmall(inst_ptr));
+            }
         }
-        address = symbol.first;
-        if (index < symbols.size())
-            size = symbols[index].first - symbol.first;
-        else
-            size = last_addr - symbol.first;
-
-        if (symbol.second == ARMCodeSymbolType::kARM)
-            parser.changeModeTo(CS_MODE_ARM);
-        else
-            // We assume that the value of code symbol type is strictly
-            // either Data, ARM, or Thumb.
-            parser.changeModeTo(CS_MODE_THUMB);
-
-        while (parser.disasm(code_ptr, &size, &address, &inst)) {
-            prettyPrintInst(parser.handle(), inst_ptr);
-        }
+        buf_size = 4; // code buf size should be reset after each read
+        current += static_cast<unsigned>(m_inst_width);
+        code_ptr += static_cast<unsigned>(m_inst_width);
     }
 }
 
@@ -283,9 +284,21 @@ ElfDisassembler::isSymbolTableAvailable() {
 }
 
 ISAType
-ElfDisassembler::initialISAType() const {
+ElfDisassembler::getInitialISAType() const {
     if (m_elf_file->get_hdr().entry & 1) return ISAType::kThumb;
     else return ISAType::kARM;
 }
 
+ISAInstWidth ElfDisassembler::getISAMinWidth(ISAType isa) const {
+    switch (isa) {
+        case ISAType::kx86:
+        case ISAType::kx86_64:
+            return ISAInstWidth::kByte;
+        case ISAType::kThumb:
+        case ISAType::kTriCore:
+            return ISAInstWidth::kHWord;
+        default:
+            return ISAInstWidth::kWord;
+    }
+}
 }

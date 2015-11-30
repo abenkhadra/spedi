@@ -62,7 +62,9 @@ public:
      * Return the type of code at the initial address of executable.
      * needed to distinguish ARM/Thumb.
      */
-    ISAType initialISAType() const;
+    ISAType getInitialISAType() const;
+
+    ISAInstWidth getISAMinWidth(ISAType isa) const;
 
 private:
 
@@ -71,9 +73,9 @@ private:
 
 private:
     bool m_valid;
-    ISAInstLength m_inst_len;
+    ISAInstWidth m_inst_width;
     const elf::elf* m_elf_file;
+    ISAType m_isa;
 
 };
-
 }

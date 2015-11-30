@@ -67,11 +67,18 @@ const std::vector<BasicBlock>&
 MaximalBlock::getBasicBlocks() const {
     return m_bblocks;
 }
+
 const std::vector<Fragment> &
 MaximalBlock::getFragments() const {
     return m_frags;
 }
-MaximalBlock::MaximalBlock(): m_type{MaxBlockType::kMaybe} {
 
+MaximalBlock::MaximalBlock(unsigned int id):
+    m_id{id},
+    m_type{MaxBlockType::kMaybe} {
+}
+
+const unsigned int &MaximalBlock::id() const {
+    return m_id;
 }
 }

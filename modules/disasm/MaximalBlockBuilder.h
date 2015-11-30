@@ -80,25 +80,19 @@ public:
      */
     bool reset();
 
-    /*
-     * remove basic blocks given by their Ids.
-     */
-    void remove
-        (const std::vector<unsigned int> &bb_ids);
-
-
 private:
-    // Attention: pointer to a vector element will get invalidated in case
-    // of reallocation.
-    Fragment* findFragment
-        (const unsigned int frag_id) const;
-    BasicBlock* findBasicBlock
-        (const unsigned int bb_id) const;
+    // return index of the fragment
+//    Fragment* findFragment
+//        (const unsigned int frag_id) const;
+//    BasicBlock* findBasicBlock
+//        (const unsigned int bb_id) const;
 
 private:
     bool m_buildable;
     unsigned int m_bb_idx;
     unsigned int m_frag_idx;
+    unsigned int m_max_block_idx;
+    addr_t m_last_addr;
     std::vector<BasicBlock> m_bblocks;
     std::vector<Fragment> m_frags;
 };

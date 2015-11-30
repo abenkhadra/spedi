@@ -54,10 +54,13 @@ public:
     //XXX: access should be to an iterator instead of a collection?
     const std::vector<Fragment>& getFragments() const;
 
-private:
-    MaximalBlock();
+    const unsigned int& id() const ;
 
 private:
+    explicit MaximalBlock(unsigned int id);
+
+private:
+    unsigned int m_id;
     MaxBlockType m_type;
     std::vector<Fragment> m_frags;
     std::vector<BasicBlock> m_bblocks;

@@ -40,10 +40,9 @@ enum class ISAType: unsigned short {
     kx86_64 = 8,
 };
 
-enum class ISAInstLength: unsigned short{
+enum class ISAInstWidth: unsigned short{
     kByte = 1,
     kHWord = 2,  // half-word
     kWord = 4,
-    kDWord = 8   // double-word
 };
 }
