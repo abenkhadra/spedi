@@ -39,7 +39,7 @@ public:
     /**
     * return the number of getFragments in the basic block.
     */
-    size_t size() const;
+    size_t fragCount() const;
     const BranchInstType& branchType() const;
 
     addr_t branchTarget() const;

@@ -40,7 +40,7 @@ Fragment::isAppendableAt(const addr_t addr) const {
 }
 
 size_t
-Fragment::size() const {
+Fragment::instCount() const {
     return m_insts.size();
 }
 

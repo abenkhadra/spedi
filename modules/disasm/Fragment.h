@@ -34,7 +34,7 @@ public:
     bool isAppendableAt(const addr_t addr) const;
     bool valid() const;
     unsigned int id() const;
-    size_t size() const;
+    size_t instCount() const;
     size_t memSize() const;
     addr_t startAddr() const;
     const std::vector<MCInstSmall>& getInstructions() const;

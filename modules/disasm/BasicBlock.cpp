@@ -40,7 +40,7 @@ BasicBlock::getFragmentIds() const {
     return m_frag_ids;
 }
 
-size_t BasicBlock::size() const {
+size_t BasicBlock::fragCount() const {
     return m_frag_ids.size();
 }
 }

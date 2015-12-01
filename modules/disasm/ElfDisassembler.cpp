@@ -82,20 +82,20 @@ void prettyPrintInst(const csh &handle, cs_insn *inst) {
 
 void prettyPrintMaximalBlock
     (const MaximalBlock& mblock){
-    printf("******************************\n");
-    printf("MB No. %u, starts at 0x%08x",
+    printf("**************************************\n");
+    printf("MB No. %u, starts at %#6x",
            mblock.id(), static_cast<unsigned int> (mblock.startAddr()));
-    printf("BB count. %u, Total frag count %u: \n",
+    printf(" / BB count. %u, Total frag count %u: \n",
            mblock.getBasicBlocksCount(), mblock.getFragmentsCount());
     for (auto& block :mblock.getBasicBlocks()) {
-        printf("Basic Block Id %u: ", block.id());
+        printf("Basic Block Id %u / ", block.id());
         for (auto& id : block.getFragmentIds()) {
             printf("Frag Id: %u", id);
         }
         printf("\n");
     }
     for (auto& frag :mblock.getFragments()) {
-        printf("Fragment Id %u: ", frag.id());
+        printf("Fragment Id %u: \n", frag.id());
         for (auto& inst:frag.getInstructions()) {
             printf("0x%" PRIx64 ":\t%s\t\t%s // insn-ID: %u, insn-mnem: \n",
                    inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str(),
