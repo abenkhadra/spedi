@@ -35,12 +35,28 @@ unsigned int BasicBlock::id() const {
     return m_id;
 }
 
-const std::vector<unsigned int>&
-BasicBlock::getFragmentIds() const {
-    return m_frag_ids;
+const size_t &BasicBlock::size() const {
+    return m_mem_size;
 }
 
-size_t BasicBlock::fragCount() const {
-    return m_frag_ids.size();
+bool BasicBlock::isAppendableBy(const MCInstSmall &inst) const {
+    return (inst.addr() == startAddr() + m_mem_size);
+}
+
+bool BasicBlock::isAppendableAt(const addr_t addr) const {
+    return (addr == startAddr() + m_mem_size);
+}
+
+size_t BasicBlock::instCount() const {
+    return m_insts_addr.size();
+}
+
+addr_t BasicBlock::startAddr() const {
+    return m_insts_addr[0];
+}
+
+void BasicBlock::append(const MCInstSmall &inst) {
+    m_insts_addr.push_back(inst.addr());
+    m_mem_size += inst.size();
 }
 }

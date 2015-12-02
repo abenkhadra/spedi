@@ -89,18 +89,16 @@ void prettyPrintMaximalBlock
            mblock.getBasicBlocksCount(), mblock.getFragmentsCount());
     for (auto& block :mblock.getBasicBlocks()) {
         printf("Basic Block Id %u / ", block.id());
-        for (auto& id : block.getFragmentIds()) {
-            printf(" Frag Id: %u", id);
+        for (auto addr : block.getInstAddresses()) {
+            printf(" Inst Addr: %#6x",  static_cast<unsigned>(addr));
         }
         printf("\n");
     }
-    for (auto& frag :mblock.getFragments()) {
-        printf("Fragment Id %u: \n", frag.id());
-        for (auto& inst:frag.getInstructions()) {
-            printf("0x%" PRIx64 ":\t%s\t\t%s // insn-ID: %u, insn-mnem: \n",
-                   inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str(),
-                   inst.id());
-        }
+    for (auto &inst :mblock.getInstructions()) {
+        printf("0x%" PRIx64 ":\t%s\t\t%s // insn-ID: %u, insn-mnem: \n",
+               inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str(),
+               inst.id());
+
     }
 }
 

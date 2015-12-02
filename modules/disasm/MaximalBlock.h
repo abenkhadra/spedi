@@ -42,17 +42,24 @@ public:
     addr_t startAddr() const;
     void setType(const MaxBlockType type);
 
-    unsigned int getBasicBlocksCount() const;
+
     const BasicBlock& getBasicBlockById(const unsigned int bb_id) const;
     const std::vector<BasicBlock>& getBasicBlocks() const;
     // getting size and memsize of getFragments are provided by the fragment itself.
     // providing the same for BBs, however, requires MB intervention!
     size_t getBasicBlockMemSize(const unsigned int bb_id) const;
 
-    unsigned int getFragmentsCount() const;
+    unsigned getBasicBlocksCount() const;
+    unsigned getFragmentsCount() const;
+    unsigned getInstructionCount() const;
+
+    const std::vector<MCInstSmall*> getInstructions(BasicBlock& bblock);
 
     //XXX: access should be to an iterator instead of a collection?
     const std::vector<Fragment>& getFragments() const;
+    const std::vector<MCInstSmall> &getInstructions() const {
+        return m_insts;
+    }
 
     const unsigned int& id() const ;
 
@@ -63,6 +70,8 @@ private:
     unsigned int m_id;
     MaxBlockType m_type;
     std::vector<Fragment> m_frags;
+private:
+    std::vector<MCInstSmall> m_insts;
     std::vector<BasicBlock> m_bblocks;
 };
 }

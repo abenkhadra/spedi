@@ -36,21 +36,30 @@ public:
 
     unsigned int id() const;
     bool valid() const ;
-    /**
-    * return the number of getFragments in the basic block.
-    */
-    size_t fragCount() const;
     const BranchInstType& branchType() const;
 
     addr_t branchTarget() const;
+    const size_t &size() const;
 
-    const std::vector<unsigned int>& getFragmentIds() const;
+    bool isAppendableBy(const MCInstSmall &inst) const;
+    bool isAppendableAt(const addr_t addr) const;
+    size_t instCount() const;
+    addr_t startAddr() const;
+    const std::vector<addr_t> &getInstAddresses() const {
+        return m_insts_addr;
+    }
+
+
+private:
+    void append(const MCInstSmall& inst);
 
 private:
     unsigned int m_id;
     BranchInstType m_br_type;
     // contains a valid value only in the case of a direct branch
     addr_t m_br_target;
-    std::vector<unsigned int> m_frag_ids;
+    size_t m_mem_size;
+private:
+    std::vector<addr_t> m_insts_addr;
 };
 }

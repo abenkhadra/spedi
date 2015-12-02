@@ -90,10 +90,9 @@ private:
 private:
     bool m_buildable;
     unsigned int m_bb_idx;
-    unsigned int m_frag_idx;
     unsigned int m_max_block_idx;
     addr_t m_last_addr;
     std::vector<BasicBlock> m_bblocks;
-    std::vector<Fragment> m_frags;
+    std::vector<MCInstSmall> m_insts;
 };
 }

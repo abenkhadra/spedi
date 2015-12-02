@@ -10,13 +10,13 @@
 #include <algorithm>
 #include <cassert>
 #include <array>
+#include <cstring>
 
 namespace disasm{
 
 MaximalBlockBuilder::MaximalBlockBuilder() :
     m_buildable{false},
     m_bb_idx{0},
-    m_frag_idx{0},
     m_max_block_idx{0},
     m_last_addr{0} {
 }
@@ -26,15 +26,9 @@ MaximalBlockBuilder::appendableBasicBlocksAt(const addr_t addr) const {
     // XXX: an instruction can be appendable to multiple basic blocks
     // that share the same last fragment.
     std::vector<unsigned int> result;
-    for (auto& frag : m_frags) {
-        if (frag.isAppendableAt(addr) ) {
-            for(auto& block:m_bblocks){
-                // check if fragment is the last in a basic block
-                if (block.m_frag_ids.back() == frag.id() ) {
-                    result.push_back(block.id());
-                }
-            }
-        }
+    for (auto &bblock : m_bblocks) {
+        if (bblock.isAppendableAt(addr))
+            result.push_back(bblock.id());
     }
     return result;
 }
@@ -42,11 +36,11 @@ MaximalBlockBuilder::appendableBasicBlocksAt(const addr_t addr) const {
 void
 MaximalBlockBuilder::createBasicBlockWith(const MCInstSmall &inst) {
     m_bblocks.emplace_back(BasicBlock(m_bb_idx));
-    m_frags.emplace_back(Fragment(m_frag_idx, inst));
     // link basic block to fragment
-    m_bblocks.back().m_frag_ids.push_back(m_frag_idx);
+    m_bblocks.back().append(inst);
+    m_insts.push_back(inst);
+    m_last_addr = inst.addr() + inst.size();
     m_bb_idx++;
-    m_frag_idx++;
 }
 
 void
@@ -58,19 +52,9 @@ MaximalBlockBuilder::createBasicBlockWith(
     createBasicBlockWith(inst);
     m_bblocks.back().m_br_type = br_type;
     m_bblocks.back().m_br_target = br_target;
+    m_buildable = true;
 }
 
-//Fragment*
-//MaximalBlockBuilder::findFragment(const unsigned int frag_id) const {
-//    Fragment* result = nullptr;
-//    for (int idx = 0; idx < m_frags.size(); ++idx) {
-//        if (m_frags[idx].id() == frag_id ) {
-//            return idx;
-//        }
-//    }
-//    return -1;
-//}
-//
 //BasicBlock*
 //MaximalBlockBuilder::findBasicBlock(const unsigned int bb_id) const {
 //    BasicBlock* result = nullptr;
@@ -91,44 +75,49 @@ MaximalBlock MaximalBlockBuilder::build() {
     if (!m_buildable)
         // return an invalid maximal block!
         return result;
-
-    unsigned int frag_idx = 0;
-    unsigned int bb_idx = 0;
-
-    std::array<int, 15> frag_id_map;
-    assert(m_frags.size() < 15 && "Max size of frag_id_map exceeded!!!");
-    frag_id_map.fill(-1);
-
     // copy valid BBs to result
-    std::copy_if(m_bblocks.begin(), m_bblocks.end(),
-                 std::back_inserter(result.m_bblocks),
-                 [&](const BasicBlock &temp) { return temp.valid(); });
-    // TODO: defragment consecutive getFragments that belong to only one BB.
-    // TODO: set a memory size to the maximal block equal to the size of its biggest BB
-    for (auto& block:result.m_bblocks) {
-        // fixed ids for faster lookup
-        block.m_id = bb_idx;
-        bb_idx++;
-        // Fix id mapping for each block
-        for (unsigned int &id: block.m_frag_ids) {
-            if (frag_id_map[id] == -1) {
-                // mapping the new frag_id
-                frag_id_map[id] = frag_idx;
-                // id was not found in map
-                std::vector<Fragment>::iterator iter;
-                for (iter = m_frags.begin(); iter < m_frags.end(); ++iter) {
-                    if ((*iter).id() == id) break;
+    unsigned idx = 0;
+    std::vector<BasicBlock> invalid_blocks;
+    std::vector<MCInstSmall> invalid_insts;
+
+    for (const BasicBlock& bblock : m_bblocks) {
+        if (bblock.valid()) {
+            result.m_bblocks.push_back(bblock);
+            result.m_bblocks.back().m_id = idx;
+            idx++;
+        }else{
+            invalid_blocks.push_back(bblock);
+        }
+    }
+
+    auto inst_count = m_insts.size();
+    bool valid_insts[inst_count];
+    std::memset(valid_insts, 0, inst_count *sizeof(bool));
+
+    // check all valid instruction in the maximal block
+    for (unsigned i = 0; i < inst_count; ++i) {
+        for (auto& bblock : m_bblocks) {
+            if (valid_insts[i]) break;
+            for (auto addr : bblock.m_insts_addr) {
+                if (m_insts[i].addr() == addr) {
+                    valid_insts[i] = true;
+                    break;
                 }
-                assert((iter != m_frags.end()) && "Fragment was not found!!");
-                result.m_frags.push_back(*iter);
-                result.m_frags.back().m_id = frag_idx;
-                id =frag_idx;
-                frag_idx++;
-            } else {
-                id = static_cast<unsigned int>(frag_id_map[id]);;
             }
         }
     }
+    // we do a second iteration in order to maintain the invariant that
+    //  m_inst should remain sorted by instruction address.
+    for (unsigned j = 0; j < inst_count; ++j) {
+        if (valid_insts[j]) {
+            result.m_insts.push_back(m_insts[j]);
+        }else{
+            invalid_insts.push_back(m_insts[j]);
+        }
+    }
+    // MB should maintain invalid basic blocks and their instructions.
+    m_insts.swap(invalid_insts);
+    m_bblocks.swap(invalid_blocks);
     return result;
 }
 
@@ -136,58 +125,47 @@ bool MaximalBlockBuilder::reset() {
 
     m_buildable = false;
     m_bb_idx = 0;
-
-    if (m_bblocks.size() == 0) return true;
-
-    std::vector<BasicBlock> temp_bb;
-    std::vector<BasicBlock>::iterator it_block;
-    std::vector<Fragment> temp_frag;
-    std::vector<Fragment>::iterator it_frag;
-
-    for (it_frag = m_frags.begin(); it_frag < m_frags.end() ; ++it_frag) {
-        // XXX: overlap distance between fragments should be double checked.
-        if ((*it_frag).startAddr() + (*it_frag).memSize() - m_last_addr == 2) {
-            temp_frag.push_back(*it_frag);
-        }        
+    if (m_bblocks.size() == 0) {
+        assert(m_insts.size() == 0 && "Instructions found without BB!!");
+        m_last_addr = 0;
+        m_insts.clear();
+        return true;
+    }
+    unsigned id = 0;
+    std::vector<BasicBlock> overlap_blocks;
+    for (auto& bblock : m_bblocks) {
+        // XXX for variable length RISC an overlap can happen only at last
+        //  two bytes.
+        if (abs(static_cast<int>
+                (bblock.startAddr() + bblock.size() - m_last_addr)) == 2) {
+            overlap_blocks.push_back(bblock);
+            overlap_blocks.back().m_id = m_bb_idx;
+            m_bb_idx++;
+        }
     }
 
-    for (const BasicBlock &block : m_bblocks) {
-        // only non-valid basic blocks can be considered as a partial result
-        //  for next MB.
-        if (!block.valid()) {
-            for (auto& frag : temp_frag) {
-                if (frag.id() == block.m_frag_ids.back()) {
-                    temp_bb.push_back(block);
-                    temp_bb.back().m_id = m_bb_idx;
-                    m_bb_idx++;
-                    break;
-                }
+    if (overlap_blocks.size() == 0) {
+        m_last_addr = 0;
+        m_bblocks.clear();
+        m_insts.clear();
+        return true;
+    }
+    assert(overlap_blocks.size() == 1
+               && "Extra overlapping basic blocks detected!!");
+    std::vector<MCInstSmall> overlap_insts;
+    for (auto& addr: overlap_blocks.back().m_insts_addr) {
+        for (auto& inst : overlap_insts) {
+            if (inst.addr() == addr) {
+                overlap_insts.push_back(inst);
+                break;
             }
         }
     }
-    assert(temp_bb.size() < 2 && "More than two overlaping BBs found!!");
-    if (temp_bb.size() == 0) {
-        // no overlap was detected, resetting data structures.
-        m_bblocks.clear();
-        m_frags.clear();
-        m_frag_idx = 0;
-        return true;
-    } else {
-        // For variable-length RISC it's impossible to have more than 2 overlapping
-        //  BBs. For x86, it's extremely unlikely.
-        m_bblocks.clear();
-        m_bblocks.push_back(temp_bb.back());
-        // XXX: we will leave m_frags intact for the moment.
-//        for (auto id : m_bblocks.back().m_frag_ids) {
-//            current = findFragment(id);
-//            current->m_id = m_frag_idx;
-//            temp_frag.push_back(*current);
-//            m_frag_idx++;
-//        }
-//        m_frags.clear();
-//        m_frags.swap(temp_frag);
-        return false;
-    }
+    assert(overlap_insts.size() > 0 && "Empty overlap instructions detected!!");
+    m_insts.swap(overlap_insts);
+    m_last_addr = overlap_blocks.back().startAddr()
+        + overlap_blocks.back().size();
+    return false;
 }
 
 void MaximalBlockBuilder::append(const MCInstSmall &inst) {
@@ -197,56 +175,20 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst) {
         return;
     }
 
-    if (m_bblocks.size() == 1) {
-        // XXX: in case we have only one basic block then the
-        // last fragment in that block should be the appendable fragment.
-        assert(m_frags.back().id() == m_bblocks.back().m_frag_ids.back()
-                   && "Last fragment doesn't match with Basic Block");
-        if (m_frags.back().isAppendableBy(inst)) {
-            m_frags.back().append(inst);
-            return;
-        } else {
-            createBasicBlockWith(inst);
-            return;
+    // get all appendable BBs
+    bool appendable = false;
+    for (auto& bblock : m_bblocks) {
+        if (bblock.isAppendableBy(inst)) {
+            bblock.append(inst);
+            appendable = true;
         }
     }
 
-    std::vector<BasicBlock*> append_blocks;
-    std::vector<Fragment*> append_frag;
-
-    // find appendable basic blocks
-    bool is_last; // used for invariant checking
-    for (auto& frag : m_frags) {
-        if (frag.isAppendableBy(inst) ) {
-            is_last = false;
-            // XXX: is it reliable to store pointers here?
-            append_frag.push_back(&frag);
-            for(auto& block:m_bblocks){
-                // check if fragment is the last in a basic block
-                if (block.m_frag_ids.back() == frag.id() ) {
-                    is_last = true;
-                    append_blocks.push_back(&block);
-                }
-            }
-            assert(is_last && "Found appendable fragment that is not last!!");
-        }
-    }
-    switch (append_frag.size()) {
-        case 0:
-            createBasicBlockWith(inst);
-            break;
-        case 1:
-            append_frag.back()->append(inst);
-            break;
-        default:
-            // create a new fragment with the given instruction
-            m_frags.emplace_back(Fragment(m_frag_idx, inst));
-            // link BBs to new fragment
-            for (auto& block : append_blocks) {
-                block->m_frag_ids.push_back(m_frag_idx);
-            }
-            m_frag_idx++;
-        break;
+    if (appendable) {
+        m_insts.push_back(inst);
+        m_last_addr += inst.size();
+    } else {
+        createBasicBlockWith(inst);
     }
 }
 
@@ -255,64 +197,26 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst,
                                  const addr_t br_target) {
     m_buildable = true;
     if (m_bblocks.size() == 0) {
-        createBasicBlockWith(inst, br_type, br_target);
+        createBasicBlockWith(inst);
         return;
     }
-    if (m_bblocks.size() == 1) {
-        assert(m_frags.back().id() == m_bblocks.back().m_frag_ids.back()
-                   && "Last fragment doesn't match with Basic Block");
-        if (m_frags.back().isAppendableBy(inst)) {
-            m_bblocks.back().m_br_type = br_type;
-            m_bblocks.back().m_br_target = br_target;
-            m_frags.back().append(inst);
-            return;
-        } else {
-            createBasicBlockWith(inst, br_type, br_target);
-            return;
+
+    // get all appendable BBs
+    bool appendable = false;
+    for (auto& bblock : m_bblocks) {
+        if (bblock.isAppendableBy(inst)) {
+            bblock.append(inst);
+            bblock.m_br_type = br_type;
+            bblock.m_br_target = br_target;
+            appendable = true;
         }
     }
-    assert(m_frags.size() > 0 && "Basic blocks without fragments exist!!");
-    std::vector<BasicBlock*> append_blocks;
-    std::vector<Fragment*> append_frag;
-    // find appendable basic blocks
-    bool is_last; // used for invariant checking
-    for (auto& frag : m_frags) {
-        if (frag.isAppendableBy(inst) ) {
-            is_last = false;
-            append_frag.push_back(&frag);
-            for(auto& block:m_bblocks){
-                // check if fragment is the last in a basic block
-                if (block.m_frag_ids.back() == frag.id() ) {
-                    is_last = true;
-                    append_blocks.push_back(&block);
-                }
-            }
-            assert(is_last && "Found appendable fragment that is not last!!");
-        }
+
+    if (appendable) {
+        m_insts.push_back(inst);
+        m_last_addr += inst.size();
+    } else {
+        createBasicBlockWith(inst, br_type, br_target);
     }
-    switch (append_frag.size()){
-        case 0:
-            createBasicBlockWith(inst, br_type, br_target);
-            break;
-        case 1:
-            append_frag.back()->append(inst);
-            // there can be multiple BBs sharing an appendable fragment
-            for (auto& block : append_blocks) {
-                block->m_br_type = br_type;
-                block->m_br_target = br_target;
-            }
-            break;
-        default:
-            // create a new fragment with the given instruction
-            m_frags.emplace_back(Fragment(m_frag_idx, inst));
-            for (auto& block : append_blocks) {
-                block->m_frag_ids.push_back(m_frag_idx);
-                block->m_br_type = br_type;
-                block->m_br_target = br_target;
-            }
-            m_frag_idx++;
-            break;
-    }
-    m_last_addr = inst.addr() + inst.size();
 }
 }

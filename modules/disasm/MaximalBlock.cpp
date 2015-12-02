@@ -15,11 +15,7 @@ size_t
 MaximalBlock::getBasicBlockMemSize(const unsigned int bb_id) const {
     assert(bb_id <= m_bblocks.size()
                && "Invalid Basic Block Id!!");
-    size_t result = 0;
-    for(auto index:m_bblocks[bb_id].m_frag_ids){
-        result += m_frags[index].memSize();
-    }
-    return result;
+    return m_bblocks[bb_id].size();
 }
 
 bool MaximalBlock::valid() const {
@@ -37,7 +33,7 @@ addr_t MaximalBlock::startAddr() const {
     if (m_frags.size() == 0)
         return 0;
     else
-        return m_frags[0].startAddr();
+        return m_insts[0].addr();
 }
 
 void MaximalBlock::setType(const MaxBlockType type) {
@@ -80,5 +76,28 @@ MaximalBlock::MaximalBlock(unsigned int id):
 
 const unsigned int &MaximalBlock::id() const {
     return m_id;
+}
+
+unsigned MaximalBlock::getInstructionCount() const {
+    return static_cast<unsigned> (m_insts.size());
+}
+
+const std::vector<MCInstSmall*>
+MaximalBlock::getInstructions(BasicBlock &bblock){
+    std::vector<MCInstSmall*> result;
+    std::vector<MCInstSmall>::iterator iter;
+    std::vector<MCInstSmall>::iterator current = m_insts.begin();
+//    current = m_insts.begin();
+
+    for (auto addr : bblock.m_insts_addr) {
+        for (iter = current; iter < m_insts.end(); ++iter) {
+            if ((*iter).addr() == addr) {
+                result.push_back(&(*iter));
+                current = iter;
+                break;
+            }
+        }
+    }
+    return result;
 }
 }

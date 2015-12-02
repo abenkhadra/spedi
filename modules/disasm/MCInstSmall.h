@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include <bits/stringfwd.h>
 #include "common.h"
 #include <string>
 
