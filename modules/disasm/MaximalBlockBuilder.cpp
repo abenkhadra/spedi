@@ -110,7 +110,7 @@ MaximalBlock MaximalBlockBuilder::build() {
         block.m_id = bb_idx;
         bb_idx++;
         // Fix id mapping for each block
-        for (auto id: block.m_frag_ids) {
+        for (unsigned int &id: block.m_frag_ids) {
             if (frag_id_map[id] == -1) {
                 // mapping the new frag_id
                 frag_id_map[id] = frag_idx;
@@ -122,11 +122,10 @@ MaximalBlock MaximalBlockBuilder::build() {
                 assert((iter != m_frags.end()) && "Fragment was not found!!");
                 result.m_frags.push_back(*iter);
                 result.m_frags.back().m_id = frag_idx;
-                block.m_frag_ids[id] = frag_idx;
+                id =frag_idx;
                 frag_idx++;
             } else {
-                block.m_frag_ids[id] =
-                    static_cast<unsigned int>(frag_id_map[id]);
+                id = static_cast<unsigned int>(frag_id_map[id]);;
             }
         }
     }
@@ -137,6 +136,8 @@ bool MaximalBlockBuilder::reset() {
 
     m_buildable = false;
     m_bb_idx = 0;
+
+    if (m_bblocks.size() == 0) return true;
 
     std::vector<BasicBlock> temp_bb;
     std::vector<BasicBlock>::iterator it_block;
@@ -199,7 +200,9 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst) {
     if (m_bblocks.size() == 1) {
         // XXX: in case we have only one basic block then the
         // last fragment in that block should be the appendable fragment.
-        if (m_frags.back().isAppendable(inst)) {
+        assert(m_frags.back().id() == m_bblocks.back().m_frag_ids.back()
+                   && "Last fragment doesn't match with Basic Block");
+        if (m_frags.back().isAppendableBy(inst)) {
             m_frags.back().append(inst);
             return;
         } else {
@@ -214,7 +217,7 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst) {
     // find appendable basic blocks
     bool is_last; // used for invariant checking
     for (auto& frag : m_frags) {
-        if (frag.isAppendableAt(inst.addr()) ) {
+        if (frag.isAppendableBy(inst) ) {
             is_last = false;
             // XXX: is it reliable to store pointers here?
             append_frag.push_back(&frag);
@@ -256,7 +259,9 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst,
         return;
     }
     if (m_bblocks.size() == 1) {
-        if (m_frags.back().isAppendable(inst)) {
+        assert(m_frags.back().id() == m_bblocks.back().m_frag_ids.back()
+                   && "Last fragment doesn't match with Basic Block");
+        if (m_frags.back().isAppendableBy(inst)) {
             m_bblocks.back().m_br_type = br_type;
             m_bblocks.back().m_br_target = br_target;
             m_frags.back().append(inst);
@@ -266,13 +271,13 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst,
             return;
         }
     }
-
-    std::vector<BasicBlock*> append_blocks(m_bblocks.size());
-    std::vector<Fragment*> append_frag(m_frags.size());
+    assert(m_frags.size() > 0 && "Basic blocks without fragments exist!!");
+    std::vector<BasicBlock*> append_blocks;
+    std::vector<Fragment*> append_frag;
     // find appendable basic blocks
     bool is_last; // used for invariant checking
     for (auto& frag : m_frags) {
-        if (frag.isAppendableAt(inst.addr()) ) {
+        if (frag.isAppendableBy(inst) ) {
             is_last = false;
             append_frag.push_back(&frag);
             for(auto& block:m_bblocks){

@@ -30,7 +30,7 @@ public:
     Fragment &operator=(const Fragment &src) = default;
     Fragment(Fragment &&src) = default;
 
-    bool isAppendable(const MCInstSmall &inst) const;
+    bool isAppendableBy(const MCInstSmall &inst) const;
     bool isAppendableAt(const addr_t addr) const;
     bool valid() const;
     unsigned int id() const;

@@ -30,7 +30,7 @@ Fragment::valid() const {
 }
 
 bool
-Fragment::isAppendable(const MCInstSmall &inst) const {
+Fragment::isAppendableBy(const MCInstSmall &inst) const {
     return (inst.addr() == startAddr() + m_mem_size);
 }
 

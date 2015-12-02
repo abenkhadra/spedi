@@ -90,7 +90,7 @@ void prettyPrintMaximalBlock
     for (auto& block :mblock.getBasicBlocks()) {
         printf("Basic Block Id %u / ", block.id());
         for (auto& id : block.getFragmentIds()) {
-            printf("Frag Id: %u", id);
+            printf(" Frag Id: %u", id);
         }
         printf("\n");
     }
@@ -209,6 +209,7 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
                 max_block_builder.append(MCInstSmall(inst_ptr),
                                          BranchInstType::kConditional,
                                          0);
+
                 prettyPrintMaximalBlock(max_block_builder.build());
                 max_block_builder.reset();
             }else{
