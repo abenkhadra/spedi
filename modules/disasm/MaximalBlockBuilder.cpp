@@ -12,13 +12,15 @@
 #include <array>
 #include <cstring>
 
-namespace disasm{
+namespace disasm {
 
 MaximalBlockBuilder::MaximalBlockBuilder() :
     m_buildable{false},
     m_bb_idx{0},
     m_max_block_idx{0},
-    m_last_addr{0} {
+    m_last_addr{0},
+    m_br_type{BranchInstType::kUnknown},
+    m_br_target{0} {
 }
 
 std::vector<unsigned int>
@@ -44,29 +46,11 @@ MaximalBlockBuilder::createBasicBlockWith(const MCInstSmall &inst) {
 }
 
 void
-MaximalBlockBuilder::createBasicBlockWith(
-    const MCInstSmall &inst,
-    const BranchInstType br_type,
-    const addr_t br_target) {
+MaximalBlockBuilder::createValidBasicBlockWith(const MCInstSmall &inst) {
 
     createBasicBlockWith(inst);
-    m_bblocks.back().m_br_type = br_type;
-    m_bblocks.back().m_br_target = br_target;
-    m_buildable = true;
+    m_bblocks.back().m_valid = true;
 }
-
-//BasicBlock*
-//MaximalBlockBuilder::findBasicBlock(const unsigned int bb_id) const {
-//    BasicBlock* result = nullptr;
-//    std::vector<BasicBlock>::iterator block;
-//    for (block = m_bblocks.begin(); block < m_bblocks.end(); block++) {
-//        if (block->id() == bb_id ) {
-//            result = &(*block);
-//            break;
-//        }
-//    }
-//    return result;
-//}
 
 MaximalBlock MaximalBlockBuilder::build() {
     MaximalBlock result{m_max_block_idx};
@@ -80,23 +64,23 @@ MaximalBlock MaximalBlockBuilder::build() {
     std::vector<BasicBlock> invalid_blocks;
     std::vector<MCInstSmall> invalid_insts;
 
-    for (const BasicBlock& bblock : m_bblocks) {
+    for (const BasicBlock &bblock : m_bblocks) {
         if (bblock.valid()) {
             result.m_bblocks.push_back(bblock);
             result.m_bblocks.back().m_id = idx;
             idx++;
-        }else{
+        } else {
             invalid_blocks.push_back(bblock);
         }
     }
 
     auto inst_count = m_insts.size();
     bool valid_insts[inst_count];
-    std::memset(valid_insts, 0, inst_count *sizeof(bool));
+    std::memset(valid_insts, 0, inst_count * sizeof(bool));
 
     // check all valid instruction in the maximal block
     for (unsigned i = 0; i < inst_count; ++i) {
-        for (auto& bblock : m_bblocks) {
+        for (auto &bblock : m_bblocks) {
             if (valid_insts[i]) break;
             for (auto addr : bblock.m_insts_addr) {
                 if (m_insts[i].addr() == addr) {
@@ -111,7 +95,7 @@ MaximalBlock MaximalBlockBuilder::build() {
     for (unsigned j = 0; j < inst_count; ++j) {
         if (valid_insts[j]) {
             result.m_insts.push_back(m_insts[j]);
-        }else{
+        } else {
             invalid_insts.push_back(m_insts[j]);
         }
     }
@@ -133,7 +117,7 @@ bool MaximalBlockBuilder::reset() {
     }
     unsigned id = 0;
     std::vector<BasicBlock> overlap_blocks;
-    for (auto& bblock : m_bblocks) {
+    for (auto &bblock : m_bblocks) {
         // XXX for variable length RISC an overlap can happen only at last
         //  two bytes.
         if (abs(static_cast<int>
@@ -153,8 +137,8 @@ bool MaximalBlockBuilder::reset() {
     assert(overlap_blocks.size() == 1
                && "Extra overlapping basic blocks detected!!");
     std::vector<MCInstSmall> overlap_insts;
-    for (auto& addr: overlap_blocks.back().m_insts_addr) {
-        for (auto& inst : overlap_insts) {
+    for (auto &addr: overlap_blocks.back().m_insts_addr) {
+        for (auto &inst : overlap_insts) {
             if (inst.addr() == addr) {
                 overlap_insts.push_back(inst);
                 break;
@@ -177,7 +161,7 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst) {
 
     // get all appendable BBs
     bool appendable = false;
-    for (auto& bblock : m_bblocks) {
+    for (auto &bblock : m_bblocks) {
         if (bblock.isAppendableBy(inst)) {
             bblock.append(inst);
             appendable = true;
@@ -196,18 +180,19 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst,
                                  const BranchInstType br_type,
                                  const addr_t br_target) {
     m_buildable = true;
+    m_br_type = br_type;
+    m_br_target = br_target;
+
     if (m_bblocks.size() == 0) {
-        createBasicBlockWith(inst);
+        createValidBasicBlockWith(inst);
         return;
     }
-
     // get all appendable BBs
     bool appendable = false;
-    for (auto& bblock : m_bblocks) {
+    for (auto &bblock : m_bblocks) {
         if (bblock.isAppendableBy(inst)) {
             bblock.append(inst);
-            bblock.m_br_type = br_type;
-            bblock.m_br_target = br_target;
+            bblock.m_valid = true;
             appendable = true;
         }
     }
@@ -215,8 +200,9 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst,
     if (appendable) {
         m_insts.push_back(inst);
         m_last_addr += inst.size();
+
     } else {
-        createBasicBlockWith(inst, br_type, br_target);
+        createValidBasicBlockWith(inst);
     }
 }
 }

@@ -22,7 +22,7 @@ bool MaximalBlock::valid() const {
     if (m_bblocks.size() == 0)
         return false;
 
-    for(const BasicBlock& block: m_bblocks)
+    for (const BasicBlock &block: m_bblocks)
         if (!block.valid())
             return false;
 
@@ -30,10 +30,7 @@ bool MaximalBlock::valid() const {
 }
 
 addr_t MaximalBlock::startAddr() const {
-    if (m_frags.size() == 0)
-        return 0;
-    else
-        return m_insts[0].addr();
+    return m_insts[0].addr();
 }
 
 void MaximalBlock::setType(const MaxBlockType type) {
@@ -44,7 +41,7 @@ void MaximalBlock::setType(const MaxBlockType type) {
     }
 }
 
-const BasicBlock&
+const BasicBlock &
 MaximalBlock::getBasicBlockById(const unsigned int bb_id) const {
     return m_bblocks[bb_id];
 }
@@ -59,7 +56,7 @@ MaximalBlock::getFragmentsCount() const {
     return static_cast<unsigned int>(m_frags.size());
 }
 
-const std::vector<BasicBlock>&
+const std::vector<BasicBlock> &
 MaximalBlock::getBasicBlocks() const {
     return m_bblocks;
 }
@@ -69,9 +66,11 @@ MaximalBlock::getFragments() const {
     return m_frags;
 }
 
-MaximalBlock::MaximalBlock(unsigned int id):
+MaximalBlock::MaximalBlock(unsigned int id) :
     m_id{id},
-    m_type{MaxBlockType::kMaybe} {
+    m_type{MaxBlockType::kMaybe},
+    m_br_type{BranchInstType::kUnknown},
+    m_br_target{0} {
 }
 
 const unsigned int &MaximalBlock::id() const {
@@ -82,12 +81,11 @@ unsigned MaximalBlock::getInstructionCount() const {
     return static_cast<unsigned> (m_insts.size());
 }
 
-const std::vector<MCInstSmall*>
-MaximalBlock::getInstructions(BasicBlock &bblock){
-    std::vector<MCInstSmall*> result;
+const std::vector<MCInstSmall *>
+MaximalBlock::getInstructions(BasicBlock &bblock) {
+    std::vector<MCInstSmall *> result;
     std::vector<MCInstSmall>::iterator iter;
     std::vector<MCInstSmall>::iterator current = m_insts.begin();
-//    current = m_insts.begin();
 
     for (auto addr : bblock.m_insts_addr) {
         for (iter = current; iter < m_insts.end(); ++iter) {

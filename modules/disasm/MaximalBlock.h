@@ -69,8 +69,10 @@ private:
 private:
     unsigned int m_id;
     MaxBlockType m_type;
+    BranchInstType m_br_type;
+    // contains a valid value only in the case of a direct branch
+    addr_t m_br_target;
     std::vector<Fragment> m_frags;
-private:
     std::vector<MCInstSmall> m_insts;
     std::vector<BasicBlock> m_bblocks;
 };

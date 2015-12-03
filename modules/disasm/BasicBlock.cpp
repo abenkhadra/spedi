@@ -15,20 +15,13 @@ namespace disasm{
 
 BasicBlock::BasicBlock(unsigned int id) :
     m_id{id},
-    m_br_type{BranchInstType::kUnknown},
-    m_br_target{0}
+    m_valid{false},
+    m_mem_size{0}
 { }
 
-const BranchInstType &BasicBlock::branchType() const {
-    return m_br_type;
-}
-
-addr_t BasicBlock::branchTarget() const {
-    return m_br_target;
-}
 
 bool BasicBlock::valid() const {
-    return (m_br_type != BranchInstType::kUnknown) ;
+    return m_valid ;
 }
 
 unsigned int BasicBlock::id() const {

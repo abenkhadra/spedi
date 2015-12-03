@@ -38,20 +38,18 @@ public:
         (const addr_t addr) const;
 
     /*
-     * Add a new block with a single fragment containing the instruction. Used
+     * Add a new block with a single instruction. Used
      * when the given instruction is not appendable.
      */
     void createBasicBlockWith
         (const MCInstSmall &inst);
 
     /*
-     * Add a new block with a single fragment containing a branch instruction.
+     * Add a new valid block with a single branch instruction.
      * Used when the given instruction is not appendable.
      */
-    void createBasicBlockWith
-        (const MCInstSmall &inst,
-        const BranchInstType br_type,
-        const addr_t br_target);
+    void createValidBasicBlockWith
+        (const MCInstSmall &inst);
 
     /*
      * Look up appendable basic blocks first and then append instruction if possible.
@@ -92,6 +90,9 @@ private:
     unsigned int m_bb_idx;
     unsigned int m_max_block_idx;
     addr_t m_last_addr;
+    BranchInstType m_br_type;
+    // contains a valid value only in the case of a direct branch
+    addr_t m_br_target;
     std::vector<BasicBlock> m_bblocks;
     std::vector<MCInstSmall> m_insts;
 };

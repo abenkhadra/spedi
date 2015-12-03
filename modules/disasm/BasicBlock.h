@@ -36,9 +36,6 @@ public:
 
     unsigned int id() const;
     bool valid() const ;
-    const BranchInstType& branchType() const;
-
-    addr_t branchTarget() const;
     const size_t &size() const;
 
     bool isAppendableBy(const MCInstSmall &inst) const;
@@ -54,12 +51,9 @@ private:
     void append(const MCInstSmall& inst);
 
 private:
+    bool m_valid;
     unsigned int m_id;
-    BranchInstType m_br_type;
-    // contains a valid value only in the case of a direct branch
-    addr_t m_br_target;
     size_t m_mem_size;
-private:
     std::vector<addr_t> m_insts_addr;
 };
 }
