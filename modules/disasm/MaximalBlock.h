@@ -42,8 +42,7 @@ public:
     addr_t startAddr() const;
     void setType(const MaxBlockType type);
 
-
-    const BasicBlock& getBasicBlockById(const unsigned int bb_id) const;
+    const BasicBlock& getBasicBlockById(const unsigned bb_id) const;
     const std::vector<BasicBlock>& getBasicBlocks() const;
     // getting size and memsize of getFragments are provided by the fragment itself.
     // providing the same for BBs, however, requires MB intervention!
@@ -61,7 +60,7 @@ public:
         return m_insts;
     }
 
-    const unsigned int& id() const ;
+    const unsigned & id() const ;
 
 private:
     explicit MaximalBlock(unsigned int id);

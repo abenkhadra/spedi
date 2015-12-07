@@ -79,13 +79,6 @@ public:
     bool reset();
 
 private:
-    // return index of the fragment
-//    Fragment* findFragment
-//        (const unsigned int frag_id) const;
-//    BasicBlock* findBasicBlock
-//        (const unsigned int bb_id) const;
-
-private:
     bool m_buildable;
     unsigned int m_bb_idx;
     unsigned int m_max_block_idx;

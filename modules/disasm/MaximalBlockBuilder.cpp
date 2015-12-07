@@ -78,9 +78,11 @@ MaximalBlock MaximalBlockBuilder::build() {
     bool valid_insts[inst_count];
     std::memset(valid_insts, 0, inst_count * sizeof(bool));
 
-    // check all valid instruction in the maximal block
+    // check all valid instruction in the maximal block.
+    // an instruction is valid if it belongs to at least one valid block.
     for (unsigned i = 0; i < inst_count; ++i) {
         for (auto &bblock : m_bblocks) {
+            if (!bblock.valid()) continue;
             if (valid_insts[i]) break;
             for (auto addr : bblock.m_insts_addr) {
                 if (m_insts[i].addr() == addr) {
@@ -111,17 +113,19 @@ bool MaximalBlockBuilder::reset() {
     m_bb_idx = 0;
     if (m_bblocks.size() == 0) {
         assert(m_insts.size() == 0 && "Instructions found without BB!!");
-        m_last_addr = 0;
-        m_insts.clear();
         return true;
     }
-    unsigned id = 0;
+
+    int overlap_distance = 0;
     std::vector<BasicBlock> overlap_blocks;
     for (auto &bblock : m_bblocks) {
         // XXX for variable length RISC an overlap can happen only at last
         //  two bytes.
-        if (abs(static_cast<int>
-                (bblock.startAddr() + bblock.size() - m_last_addr)) == 2) {
+        overlap_distance = abs(static_cast<int>(bblock.startAddr()
+            + bblock.size() - m_last_addr));
+        if (overlap_distance == 2 || overlap_distance == 0) {
+            // XXX There can be multiple overlap blocks that but all of them
+            // should end with the same instruction
             overlap_blocks.push_back(bblock);
             overlap_blocks.back().m_id = m_bb_idx;
             m_bb_idx++;
@@ -129,26 +133,43 @@ bool MaximalBlockBuilder::reset() {
     }
 
     if (overlap_blocks.size() == 0) {
-        m_last_addr = 0;
         m_bblocks.clear();
         m_insts.clear();
         return true;
     }
-    assert(overlap_blocks.size() == 1
-               && "Extra overlapping basic blocks detected!!");
+
+    if (m_bblocks.size() == 1) {
+        // there is only one basic block which happens to be also overlapping.
+        m_bblocks.back().m_id = 0;
+        m_last_addr = m_bblocks.back().startAddr() + m_bblocks.back().size();
+        return false;
+    }
+    // there are multiple invalid basic blocks. Keep only insts of overlap block.
     std::vector<MCInstSmall> overlap_insts;
-    for (auto &addr: overlap_blocks.back().m_insts_addr) {
-        for (auto &inst : overlap_insts) {
-            if (inst.addr() == addr) {
-                overlap_insts.push_back(inst);
-                break;
+
+    auto inst_count = m_insts.size();
+    bool valid_insts[inst_count];
+    std::memset(valid_insts, 0, inst_count * sizeof(bool));
+
+    // check all valid instruction in the maximal block.
+    // an instruction is valid if it belongs to at least one valid block.
+    for (unsigned i = 0; i < inst_count; ++i) {
+        for (auto &bblock : overlap_blocks) {
+            if (valid_insts[i]) break;
+            for (auto addr : bblock.m_insts_addr) {
+                if (m_insts[i].addr() == addr) {
+                    valid_insts[i] = true;
+                    overlap_insts.push_back(m_insts[i]);
+                    break;
+                }
             }
         }
     }
     assert(overlap_insts.size() > 0 && "Empty overlap instructions detected!!");
     m_insts.swap(overlap_insts);
-    m_last_addr = overlap_blocks.back().startAddr()
-        + overlap_blocks.back().size();
+    m_bblocks.swap(overlap_blocks);
+    // all overlap block would end at the same address in Variable Length Risc
+    m_last_addr = m_bblocks.back().startAddr() + m_bblocks.back().size();
     return false;
 }
 
@@ -158,7 +179,6 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst) {
         createBasicBlockWith(inst);
         return;
     }
-
     // get all appendable BBs
     bool appendable = false;
     for (auto &bblock : m_bblocks) {

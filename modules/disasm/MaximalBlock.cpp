@@ -66,14 +66,14 @@ MaximalBlock::getFragments() const {
     return m_frags;
 }
 
-MaximalBlock::MaximalBlock(unsigned int id) :
+MaximalBlock::MaximalBlock(unsigned id) :
     m_id{id},
     m_type{MaxBlockType::kMaybe},
     m_br_type{BranchInstType::kUnknown},
     m_br_target{0} {
 }
 
-const unsigned int &MaximalBlock::id() const {
+const unsigned &MaximalBlock::id() const {
     return m_id;
 }
 
