@@ -95,7 +95,7 @@ void prettyPrintMaximalBlock
         printf("\n");
     }
     for (auto &inst :mblock.getInstructions()) {
-        printf("0x%" PRIx64 ":\t%s\t\t%s // insn-ID: %u, insn-mnem: \n",
+        printf("0x%" PRIx64 ":\t%s\t\t%s // insn-ID: %u \n",
                inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str(),
                inst.id());
 
@@ -154,7 +154,7 @@ ElfDisassembler::disassembleSectionUsingSymbols
             // either Data, ARM, or Thumb.
             parser.changeModeTo(CS_MODE_THUMB);
 
-        while (parser.disasm(code_ptr, &size, &address, &inst)) {
+        while (parser.disasm2(&code_ptr, &size, &address, &inst)) {
             prettyPrintInst(parser.handle(), inst_ptr);
         }
     }

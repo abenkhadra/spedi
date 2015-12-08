@@ -59,4 +59,12 @@ bool MCParser::disasm(const uint8_t *code,
     assert(*address <= m_end_addr && "Address out of bound");
     return cs_disasm_iter(m_handle, &code, size, address, inst->rawPtr());
 }
+
+bool MCParser::disasm2(const uint8_t **code,
+                      size_t *size,
+                      addr_t *address,
+                      MCInst *inst) {
+    assert(*address <= m_end_addr && "Address out of bound");
+    return cs_disasm_iter(m_handle, code, size, address, inst->rawPtr());
+}
 }

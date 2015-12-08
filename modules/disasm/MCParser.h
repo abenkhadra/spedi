@@ -45,6 +45,11 @@ public:
                 addr_t *address,
                 MCInst* inst);
 
+    bool disasm2(const uint8_t **code,
+                size_t *size,
+                addr_t *address,
+                MCInst* inst);
+
     const cs_arch& arch() const {
         return m_arch;
     }
