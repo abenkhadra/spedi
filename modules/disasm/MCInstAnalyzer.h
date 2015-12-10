@@ -7,7 +7,6 @@
 // Copyright (c) 2015 Technical University of Kaiserslautern.
 
 #pragma once
-#include <capstone/capstone.h>
 #include "common.h"
 
 struct cs_insn;

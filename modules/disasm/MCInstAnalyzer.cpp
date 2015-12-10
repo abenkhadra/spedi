@@ -9,10 +9,9 @@
 #include "MCInstAnalyzer.h"
 #include <capstone/capstone.h>
 
-namespace disasm{
+namespace disasm {
 
-MCInstAnalyzer::MCInstAnalyzer(ISAType isa): m_isa{isa}
-{}
+MCInstAnalyzer::MCInstAnalyzer(ISAType isa) : m_isa{isa} { }
 
 bool MCInstAnalyzer::isBranch(const cs_insn *inst) const {
     if (inst->detail == NULL) return false;
@@ -36,7 +35,6 @@ bool MCInstAnalyzer::isBranch(const cs_insn *inst) const {
         return true;
     }
 
-
     return false;
 }
 
@@ -54,13 +52,70 @@ int MCInstAnalyzer::branchTarget(const cs_insn *inst) const {
 
 //TODO: a function to get the absolute branch target based on current PC
 bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
-
-    if (ARM_INS_STRBT <= inst->id
-        && inst->id <= ARM_INS_STRT
-        && inst->detail->arm.operands[0].type == ARM_OP_REG
+    // restrictions on PC usage
+    if (inst->detail->arm.operands[0].type == ARM_OP_REG
         && inst->detail->arm.operands[0].reg == ARM_REG_PC) {
-        // If the instruction is a modified store then it can't store pc!
-        return false;
+        // based on manual A2-46
+        switch (inst->id) {
+            case ARM_INS_ADD:
+            case ARM_INS_MOV:
+            // in arm state only
+            case ARM_INS_ADC:
+            case ARM_INS_ADR:
+            case ARM_INS_AND:
+            case ARM_INS_ASR:
+            case ARM_INS_BIC:
+            case ARM_INS_EOR:
+            case ARM_INS_MVN:
+            case ARM_INS_ORR:
+            case ARM_INS_ROR:
+            case ARM_INS_SUB:
+            case ARM_INS_RRX:
+            case ARM_INS_RSB:
+            case ARM_INS_STR:
+            case ARM_INS_BX:
+            case ARM_INS_BLX:
+            case ARM_INS_POP:
+                return true;
+            default:
+                // we allow loads to use PC
+                if (ARM_INS_LDA <= inst->id && inst->id <= ARM_INS_LDR) {
+                    return true;
+                }
+                printf("Found invalid pc at 0x%lx, %s, %s\n", inst->address,
+                       inst->mnemonic,
+                       inst->op_str);
+                return false;
+        }
+    }
+
+    // restrictions on SP usage
+    for (int i = 0; i < inst->detail->arm.op_count; ++i) {
+        if (inst->detail->arm.operands[i].type == ARM_OP_REG
+            && inst->detail->arm.operands[i].reg == ARM_REG_SP) {
+            switch (inst->id) {
+                case ARM_INS_MOV:
+                case ARM_INS_ADD:
+                case ARM_INS_ADDW:
+                case ARM_INS_SUB:
+                case ARM_INS_CMN:
+                case ARM_INS_CMP:
+                    return true;
+                default:
+                    // we allow loads to use SP
+                    if (ARM_INS_LDA <= inst->id && inst->id <= ARM_INS_LDR) {
+                        return true;
+                    }
+                    // we allow stores to use SP
+                    if (ARM_INS_STMDA <= inst->id && inst->id <= ARM_INS_STR) {
+                        return true;
+                    }
+                    printf("Found invalid sp at 0x%lx, %s, %s\n", inst->address,
+                           inst->mnemonic,
+                           inst->op_str);
+                    return false;
+            }
+        }
     }
     return true;
 }
