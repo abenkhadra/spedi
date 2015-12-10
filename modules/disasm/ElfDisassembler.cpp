@@ -202,16 +202,18 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
     while (current < last_addr) {
         temp_addr = current;
         if (parser.disasm(code_ptr, &buf_size, &temp_addr, &inst)) {
-            if(analyzer.isBranch(inst_ptr)){
-                analyzer.branchTarget(inst_ptr);
-                max_block_builder.append(MCInstSmall(inst_ptr),
-                                         BranchInstType::kConditional,
-                                         0);
+            if (analyzer.isValid(inst_ptr)) {
+                if (analyzer.isBranch(inst_ptr)) {
+                    analyzer.branchTarget(inst_ptr);
+                    max_block_builder.append(MCInstSmall(inst_ptr),
+                                             BranchInstType::kConditional,
+                                             0);
 
-                prettyPrintMaximalBlock(max_block_builder.build());
-                max_block_builder.reset();
-            }else{
-                max_block_builder.append(MCInstSmall(inst_ptr));
+                    prettyPrintMaximalBlock(max_block_builder.build());
+                    max_block_builder.reset();
+                } else {
+                    max_block_builder.append(MCInstSmall(inst_ptr));
+                }
             }
         }
         buf_size = 4; // code buf size should be reset after each read
