@@ -165,10 +165,20 @@ ElfDisassembler::disassembleSectionUsingSymbols
 }
 
 void
-ElfDisassembler::disassembleSectionbyName(std::string &sec_name) const {
+ElfDisassembler::disassembleSectionbyName(std::string sec_name) const {
     for (auto &sec : m_elf_file->sections()) {
         if (sec.get_name() == sec_name) {
             disassembleSectionUsingSymbols(sec);
+            break;
+        }
+    }
+}
+
+void
+ElfDisassembler::disassembleSectionbyNameSpeculative(std::string sec_name) const {
+    for (auto &sec : m_elf_file->sections()) {
+        if (sec.get_name() == sec_name) {
+            disassembleSectionSpeculative(sec);
             break;
         }
     }

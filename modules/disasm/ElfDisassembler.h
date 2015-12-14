@@ -54,7 +54,8 @@ public:
     void disassembleSectionSpeculative(const elf::section &sec) const;
     void disassembleCodeSpeculative() const;
 
-    void disassembleSectionbyName(std::string& sec_name) const;
+    void disassembleSectionbyName(std::string sec_name) const;
+    void disassembleSectionbyNameSpeculative(std::string sec_name) const;
 
     bool isSymbolTableAvailable();
 
