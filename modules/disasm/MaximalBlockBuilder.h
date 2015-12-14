@@ -10,7 +10,9 @@
 
 #include "MCInstSmall.h"
 #include "MaximalBlock.h"
+#include "ARMBranchData.h"
 #include <vector>
+#include <capstone/capstone.h>
 
 namespace disasm {
 /**
@@ -23,7 +25,7 @@ public:
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
-    MaximalBlockBuilder() ;
+    MaximalBlockBuilder();
     virtual ~MaximalBlockBuilder() = default;
     MaximalBlockBuilder(const MaximalBlockBuilder &src) = default;
     MaximalBlockBuilder &operator=(const MaximalBlockBuilder &src) = delete;
@@ -42,29 +44,25 @@ public:
      * when the given instruction is not appendable.
      */
     void createBasicBlockWith
-        (const MCInstSmall &inst);
+        (const cs_insn *inst);
 
     /*
-     * Add a new valid block with a single branch instruction.
-     * Used when the given instruction is not appendable.
+     * Add a new valid block with a single instruction.
+     * precondition: inst is a branch instruction.
      */
     void createValidBasicBlockWith
-        (const MCInstSmall &inst);
-
+        (const cs_insn *inst);
     /*
-     * Look up appendable basic blocks first and then append instruction if possible.
+     * Look up appendable basic blocks first and then appendBranch instruction if possible.
      * Otherwise, create a new basic block.
      */
-    void append(const MCInstSmall& inst);
+    void append(const cs_insn *inst);
 
     /*
-     * Look up appendable basic blocks first and then append branch instruction
+     * Look up appendable basic blocks first and then appendBranch branch instruction
      * if possible. Otherwise, create a new basic block.
      */
-    void append
-        (const MCInstSmall &inst,
-         const BranchInstType br_type,
-         const addr_t br_target);
+    void appendBranch(const cs_insn *inst);
 
     /**
      * precondition: maximal block is buildable.
@@ -79,13 +77,14 @@ public:
     bool reset();
 
 private:
+    void setBranch(const cs_insn* inst);
+
+private:
     bool m_buildable;
     unsigned int m_bb_idx;
     unsigned int m_max_block_idx;
     addr_t m_last_addr;
-    BranchInstType m_br_type;
-    // contains a valid value only in the case of a direct branch
-    addr_t m_br_target;
+    ARMBranchData m_branch;
     std::vector<BasicBlock> m_bblocks;
     std::vector<MCInstSmall> m_insts;
 };

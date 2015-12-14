@@ -10,6 +10,7 @@
 
 #include "Fragment.h"
 #include "BasicBlock.h"
+#include "ARMBranchData.h"
 #include <vector>
 
 namespace disasm {
@@ -59,18 +60,18 @@ public:
     const std::vector<MCInstSmall> &getInstructions() const {
         return m_insts;
     }
-
+    const ARMBranchData& branch() const{
+        return m_branch;
+    }
     const unsigned & id() const ;
 
 private:
-    explicit MaximalBlock(unsigned int id);
+    explicit MaximalBlock(unsigned int id, const ARMBranchData &branch);
 
 private:
     unsigned int m_id;
     MaxBlockType m_type;
-    BranchInstType m_br_type;
-    // contains a valid value only in the case of a direct branch
-    addr_t m_br_target;
+    ARMBranchData m_branch;
     std::vector<Fragment> m_frags;
     std::vector<MCInstSmall> m_insts;
     std::vector<BasicBlock> m_bblocks;

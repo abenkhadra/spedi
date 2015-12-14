@@ -81,16 +81,20 @@ void prettyPrintInst(const csh &handle, cs_insn *inst) {
 }
 
 void prettyPrintMaximalBlock
-    (const MaximalBlock& mblock){
+    (const MaximalBlock &mblock) {
     printf("**************************************\n");
-    printf("MB No. %u, starts at %#6x",
-           mblock.id(), static_cast<unsigned int> (mblock.startAddr()));
-    printf(" / BB count. %u, Total frag count %u: \n",
-           mblock.getBasicBlocksCount(), mblock.getFragmentsCount());
-    for (auto& block :mblock.getBasicBlocks()) {
-        printf("Basic Block Id %u / ", block.id());
+    printf("MB No. %u, starts at %#6x, Direct branch: %d, Condition: %s",
+           mblock.id(),
+           static_cast<unsigned int> (mblock.startAddr()),
+           mblock.branch().isDirect(),
+           mblock.branch().conditionString().c_str());
+    printf(" / BB count. %u, Total inst count %u: \n",
+           mblock.getBasicBlocksCount(), mblock.getInstructionCount());
+    for (auto &block :mblock.getBasicBlocks()) {
+        printf("Basic Block Id %u, inst count %lu\n / ",
+               block.id(), block.instCount());
         for (auto addr : block.getInstAddresses()) {
-            printf(" Inst Addr: %#6x",  static_cast<unsigned>(addr));
+            printf(" Inst Addr: %#6x", static_cast<unsigned>(addr));
         }
         printf("\n");
     }
@@ -121,7 +125,7 @@ ElfDisassembler::disassembleSectionUsingSymbols
     MCParser parser{};
     parser.initialize(CS_ARCH_ARM, CS_MODE_THUMB, last_addr);
 
-    const uint8_t* code_ptr = (const uint8_t *) sec.data();
+    const uint8_t *code_ptr = (const uint8_t *) sec.data();
 
     MCInst inst;
     cs_insn *inst_ptr = inst.rawPtr();
@@ -187,7 +191,7 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
     size_t temp_addr = 0;
     size_t last_addr = current + sec.get_hdr().size;
     size_t buf_size = 4;
-    const uint8_t* code_ptr = (const uint8_t *) sec.data();
+    const uint8_t *code_ptr = (const uint8_t *) sec.data();
 
     MCParser parser;
     parser.initialize(CS_ARCH_ARM, CS_MODE_THUMB, last_addr);
@@ -204,15 +208,11 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
         if (parser.disasm(code_ptr, &buf_size, &temp_addr, &inst)) {
             if (analyzer.isValid(inst_ptr)) {
                 if (analyzer.isBranch(inst_ptr)) {
-                    analyzer.branchTarget(inst_ptr);
-                    max_block_builder.append(MCInstSmall(inst_ptr),
-                                             BranchInstType::kConditional,
-                                             0);
-
+                    max_block_builder.appendBranch(inst_ptr);
                     prettyPrintMaximalBlock(max_block_builder.build());
                     max_block_builder.reset();
                 } else {
-                    max_block_builder.append(MCInstSmall(inst_ptr));
+                    max_block_builder.append(inst_ptr);
                 }
             }
         }
@@ -271,7 +271,7 @@ ElfDisassembler::getCodeSymbolsForSection(const elf::section &sec) const {
     }
     // Symbols are not necessary sorted, this step is required to
     // avoid potential SEGEV.
-    std::sort(result.begin(),result.end());
+    std::sort(result.begin(), result.end());
     return result;
 }
 

@@ -22,7 +22,7 @@ namespace disasm {
 class MCInstSmall {
 public:
     MCInstSmall() = delete;
-    explicit MCInstSmall(cs_insn* inst);
+    explicit MCInstSmall(const cs_insn *inst);
     virtual ~MCInstSmall() = default;
     MCInstSmall(const MCInstSmall &src) = default;
     MCInstSmall &operator=(const MCInstSmall &src) = default;
@@ -32,11 +32,9 @@ public:
 
     const unsigned int & id() const;
 
-    const size_t & size() const;
+    const size_t size() const;
 
-    const addr_t & addr() const;
-
-    const uint8_t* bytes() const;
+    const addr_t addr() const;
 
     bool operator<(MCInstSmall other) const;
     bool operator==(MCInstSmall &other) const;
@@ -54,7 +52,7 @@ private:
     unsigned int m_size;
     // Practically, we only need 4 bytes for RISC ISA. We can follow Capstone
     // to accommodate x86_64 which can reach 15 bytes.
-    uint8_t m_bytes[4];
+//    uint8_t m_bytes[4];
     std::string m_mnemonic;
     std::string m_operands;
 };

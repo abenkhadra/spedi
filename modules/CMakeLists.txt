@@ -37,6 +37,6 @@ add_library(
         disasm/DisassemblyResult.cpp disasm/DisassemblyResult.h
         disasm/MCParser.cpp disasm/MCParser.h
         disasm/MaximalBlockBuilder.cpp disasm/MaximalBlockBuilder.h
-        disasm/MCInstAnalyzer.cpp disasm/MCInstAnalyzer.h)
+        disasm/MCInstAnalyzer.cpp disasm/MCInstAnalyzer.h disasm/ARMBranchData.cpp disasm/ARMBranchData.h)
 
 add_dependencies(disasm elf++ dwarf++)

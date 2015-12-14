@@ -14,14 +14,6 @@ namespace disasm {
 // memory address type
 using addr_t = size_t ;
 
-enum class BranchInstType: unsigned short {
-    kUnknown = 0,
-    kDirect = 1,
-    kInDirect = 2,
-    kConditional = 4,
-    kUnconditional = 8
-};
-
 enum class ARMCodeSymbolType: unsigned short {
     kThumb = 1,
     kARM = 2,

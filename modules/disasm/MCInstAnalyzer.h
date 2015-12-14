@@ -7,7 +7,9 @@
 // Copyright (c) 2015 Technical University of Kaiserslautern.
 
 #pragma once
+#include <capstone/capstone.h>
 #include "common.h"
+#include "ARMBranchData.h"
 
 struct cs_insn;
 
@@ -27,11 +29,6 @@ public:
     MCInstAnalyzer(MCInstAnalyzer &&src) = default;
 
     bool isBranch(const cs_insn *inst) const;
-    /*
-     * precondition: instruction is known to be a branch.
-     * if direct branch return immediate value, otherwise return 0.
-     */
-    int branchTarget(const cs_insn *inst) const;
 
     bool isValid(const cs_insn *inst) const;
 
@@ -39,6 +36,4 @@ private:
     ISAType m_isa;
 };
 }
-
-
 

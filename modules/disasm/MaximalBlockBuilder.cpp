@@ -11,6 +11,7 @@
 #include <cassert>
 #include <array>
 #include <cstring>
+#include <capstone/capstone.h>
 
 namespace disasm {
 
@@ -18,9 +19,7 @@ MaximalBlockBuilder::MaximalBlockBuilder() :
     m_buildable{false},
     m_bb_idx{0},
     m_max_block_idx{0},
-    m_last_addr{0},
-    m_br_type{BranchInstType::kUnknown},
-    m_br_target{0} {
+    m_last_addr{0} {
 }
 
 std::vector<unsigned int>
@@ -36,24 +35,23 @@ MaximalBlockBuilder::appendableBasicBlocksAt(const addr_t addr) const {
 }
 
 void
-MaximalBlockBuilder::createBasicBlockWith(const MCInstSmall &inst) {
+MaximalBlockBuilder::createBasicBlockWith(const cs_insn *inst) {
     m_bblocks.emplace_back(BasicBlock(m_bb_idx));
     // link basic block to fragment
     m_bblocks.back().append(inst);
-    m_insts.push_back(inst);
-    m_last_addr = inst.addr() + inst.size();
+    m_insts.emplace_back(MCInstSmall(inst));
+    m_last_addr = inst->address + inst->size;
     m_bb_idx++;
 }
 
 void
-MaximalBlockBuilder::createValidBasicBlockWith(const MCInstSmall &inst) {
-
+MaximalBlockBuilder::createValidBasicBlockWith(const cs_insn *inst) {
     createBasicBlockWith(inst);
-    m_bblocks.back().m_valid = true;
+    setBranch(inst);
 }
 
 MaximalBlock MaximalBlockBuilder::build() {
-    MaximalBlock result{m_max_block_idx};
+    MaximalBlock result{m_max_block_idx, m_branch};
     m_max_block_idx++;
 
     if (!m_buildable)
@@ -173,7 +171,7 @@ bool MaximalBlockBuilder::reset() {
     return false;
 }
 
-void MaximalBlockBuilder::append(const MCInstSmall &inst) {
+void MaximalBlockBuilder::append(const cs_insn *inst) {
 
     if (m_bblocks.size() == 0) {
         createBasicBlockWith(inst);
@@ -189,40 +187,52 @@ void MaximalBlockBuilder::append(const MCInstSmall &inst) {
     }
 
     if (appendable) {
-        m_insts.push_back(inst);
-        m_last_addr += inst.size();
+        m_insts.emplace_back(MCInstSmall(inst));
+        m_last_addr += inst->size;
     } else {
         createBasicBlockWith(inst);
     }
 }
 
-void MaximalBlockBuilder::append(const MCInstSmall &inst,
-                                 const BranchInstType br_type,
-                                 const addr_t br_target) {
+void MaximalBlockBuilder::appendBranch(const cs_insn *inst) {
     m_buildable = true;
-    m_br_type = br_type;
-    m_br_target = br_target;
 
     if (m_bblocks.size() == 0) {
         createValidBasicBlockWith(inst);
         return;
     }
+    bool found_appendable = false;
     // get all appendable BBs
-    bool appendable = false;
     for (auto &bblock : m_bblocks) {
         if (bblock.isAppendableBy(inst)) {
             bblock.append(inst);
-            bblock.m_valid = true;
-            appendable = true;
+            found_appendable = true;
         }
     }
 
-    if (appendable) {
-        m_insts.push_back(inst);
-        m_last_addr += inst.size();
-
+    if (found_appendable) {
+        m_insts.emplace_back(MCInstSmall(inst));
+        m_last_addr += inst->size;
     } else {
         createValidBasicBlockWith(inst);
+    }
+    setBranch(inst);
+}
+
+void MaximalBlockBuilder::setBranch(const cs_insn *inst) {
+    cs_detail *detail = inst->detail;
+    for (int i = 0; i < detail->arm.op_count; ++i) {
+        if (detail->arm.operands[i].type == ARM_OP_IMM) {
+            m_branch.m_direct = true;
+            m_branch.m_condition = detail->arm.cc;
+            m_branch.m_target = detail->arm.operands[i].imm;
+            break;
+        } else if (detail->arm.operands[i].type == ARM_OP_MEM) {
+            m_branch.m_direct = false;
+            m_branch.m_condition = detail->arm.cc;
+            m_branch.m_operand = detail->arm.operands[i].mem;
+            break;
+        }
     }
 }
 }

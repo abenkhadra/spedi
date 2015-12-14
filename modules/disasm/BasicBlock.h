@@ -38,7 +38,7 @@ public:
     bool valid() const ;
     const size_t &size() const;
 
-    bool isAppendableBy(const MCInstSmall &inst) const;
+    bool isAppendableBy(const cs_insn *inst) const;
     bool isAppendableAt(const addr_t addr) const;
     size_t instCount() const;
     addr_t startAddr() const;
@@ -48,10 +48,9 @@ public:
 
 
 private:
-    void append(const MCInstSmall& inst);
+    void append(const cs_insn *inst);
 
 private:
-    bool m_valid;
     unsigned int m_id;
     size_t m_mem_size;
     std::vector<addr_t> m_insts_addr;

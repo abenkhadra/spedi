@@ -34,23 +34,9 @@ bool MCInstAnalyzer::isBranch(const cs_insn *inst) const {
         }
         return true;
     }
-
     return false;
 }
 
-int MCInstAnalyzer::branchTarget(const cs_insn *inst) const {
-    cs_detail *detail = inst->detail;
-    for (int i = 0; i < detail->arm.op_count; ++i) {
-        if (detail->arm.operands[i].type == ARM_OP_IMM) {
-            return detail->arm.operands[i].imm;
-        } else if (detail->arm.operands[i].type == ARM_OP_MEM) {
-            return 0;
-        }
-    }
-    return 0;
-}
-
-//TODO: a function to get the absolute branch target based on current PC
 bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
     // restrictions on PC usage
     if (inst->detail->arm.operands[0].type == ARM_OP_REG
@@ -59,7 +45,11 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
         switch (inst->id) {
             case ARM_INS_ADD:
             case ARM_INS_MOV:
-            // in arm state only
+            case ARM_INS_STR:
+            case ARM_INS_BX:
+            case ARM_INS_BLX:
+            case ARM_INS_POP:
+                // in arm state only
             case ARM_INS_ADC:
             case ARM_INS_ADR:
             case ARM_INS_AND:
@@ -72,10 +62,6 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
             case ARM_INS_SUB:
             case ARM_INS_RRX:
             case ARM_INS_RSB:
-            case ARM_INS_STR:
-            case ARM_INS_BX:
-            case ARM_INS_BLX:
-            case ARM_INS_POP:
                 return true;
             default:
                 // we allow loads to use PC
