@@ -15,13 +15,14 @@
 namespace disasm{
 
 BasicBlock::BasicBlock(unsigned int id) :
+    m_valid{false},
     m_id{id},
     m_mem_size{0}
 { }
 
 
 bool BasicBlock::valid() const {
-    return (m_insts_addr.size() > 0) ;
+    return m_valid && (m_insts_addr.size() > 0) ;
 }
 
 unsigned int BasicBlock::id() const {

@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
                            true,
                            "");
     cmd_parser.add(config.kSpeculative, 's',
-                   "Show all 'valid' dissambly");
+                   "Show all 'valid' disassembly");
 
     cmd_parser.add(config.kText, 't',
                    "Disassemble .text section only");

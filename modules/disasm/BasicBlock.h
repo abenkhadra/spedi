@@ -51,6 +51,7 @@ private:
     void append(const cs_insn *inst);
 
 private:
+    bool m_valid;
     unsigned int m_id;
     size_t m_mem_size;
     std::vector<addr_t> m_insts_addr;

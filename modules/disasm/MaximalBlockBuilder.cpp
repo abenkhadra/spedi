@@ -47,6 +47,7 @@ MaximalBlockBuilder::createBasicBlockWith(const cs_insn *inst) {
 void
 MaximalBlockBuilder::createValidBasicBlockWith(const cs_insn *inst) {
     createBasicBlockWith(inst);
+    m_bblocks.back().m_valid = true;
     setBranch(inst);
 }
 
@@ -206,6 +207,8 @@ void MaximalBlockBuilder::appendBranch(const cs_insn *inst) {
     for (auto &bblock : m_bblocks) {
         if (bblock.isAppendableBy(inst)) {
             bblock.append(inst);
+            // a BB that ends with a branch is valid
+            bblock.m_valid = true;
             found_appendable = true;
         }
     }
