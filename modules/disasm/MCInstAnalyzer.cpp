@@ -38,68 +38,62 @@ bool MCInstAnalyzer::isBranch(const cs_insn *inst) const {
 }
 
 bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
-    // restrictions on PC usage
-    if (inst->detail->arm.operands[0].type == ARM_OP_REG
-        && inst->detail->arm.operands[0].reg == ARM_REG_PC) {
-        // based on manual A2-46
-        switch (inst->id) {
-            case ARM_INS_ADD:
-            case ARM_INS_MOV:
-            case ARM_INS_STR:
-            case ARM_INS_BX:
-            case ARM_INS_BLX:
-            case ARM_INS_POP:
-                // in arm state only
-            case ARM_INS_ADC:
-            case ARM_INS_ADR:
-            case ARM_INS_AND:
-            case ARM_INS_ASR:
-            case ARM_INS_BIC:
-            case ARM_INS_EOR:
-            case ARM_INS_MVN:
-            case ARM_INS_ORR:
-            case ARM_INS_ROR:
-            case ARM_INS_SUB:
-            case ARM_INS_RRX:
-            case ARM_INS_RSB:
-                return true;
-            default:
-                // we allow loads to use PC
-                if (ARM_INS_LDA <= inst->id && inst->id <= ARM_INS_LDR) {
-                    return true;
-                }
-                printf("Found invalid pc at 0x%lx, %s, %s\n", inst->address,
-                       inst->mnemonic,
-                       inst->op_str);
-                return false;
-        }
+
+    // We do no apply PC, SP restrictions to load instructions
+    if (ARM_INS_LDA <= inst->id && inst->id <= ARM_INS_LDR) {
+        return true;
     }
 
-    // restrictions on SP usage
     for (int i = 0; i < inst->detail->arm.op_count; ++i) {
-        if (inst->detail->arm.operands[i].type == ARM_OP_REG
-            && inst->detail->arm.operands[i].reg == ARM_REG_SP) {
-            switch (inst->id) {
-                case ARM_INS_MOV:
-                case ARM_INS_ADD:
-                case ARM_INS_ADDW:
-                case ARM_INS_SUB:
-                case ARM_INS_CMN:
-                case ARM_INS_CMP:
-                    return true;
-                default:
-                    // we allow loads to use SP
-                    if (ARM_INS_LDA <= inst->id && inst->id <= ARM_INS_LDR) {
-                        return true;
-                    }
-                    // we allow stores to use SP
-                    if (ARM_INS_STMDA <= inst->id && inst->id <= ARM_INS_STR) {
-                        return true;
-                    }
-                    printf("Found invalid sp at 0x%lx, %s, %s\n", inst->address,
-                           inst->mnemonic,
-                           inst->op_str);
-                    return false;
+        if (inst->detail->arm.operands[i].type == ARM_OP_REG) {
+            if (inst->detail->arm.operands[i].reg == ARM_REG_PC) {
+                // PC usage restrictions based on manual A2-46
+                // and Table D9.5 details.
+                switch (inst->id) {
+                    case ARM_INS_ADD:
+                    case ARM_INS_ADR:
+                    case ARM_INS_BX:
+                    case ARM_INS_BLX:
+                    case ARM_INS_MOV:
+                    case ARM_INS_SUB:
+                        // allowed as destination register only
+                        if (i != 0) return false;
+                    case ARM_INS_SUBS:
+                    case ARM_INS_MOVS:
+                        // XXX more restrictions can be applied here
+                        break;
+                    default:
+                        // Pop are allowed to use PC
+                        if (inst->id != ARM_INS_POP) {
+                            printf("Found invalid pc at 0x%lx, %s, %s\n",
+                                   inst->address,
+                                   inst->mnemonic,
+                                   inst->op_str);
+                            return false;
+                        }
+                }
+            } else if (inst->detail->arm.operands[i].reg == ARM_REG_SP) {
+                // restrictions on SP usage
+                switch (inst->id) {
+                    case ARM_INS_MOV:
+                    case ARM_INS_ADD:
+                    case ARM_INS_ADDW:
+                    case ARM_INS_SUB:
+                    case ARM_INS_CMN:
+                    case ARM_INS_CMP:
+                        break;
+                    default:
+                        // we allow stores to use SP
+                        if (!(ARM_INS_STMDA <= inst->id
+                            && inst->id <= ARM_INS_STR)) {
+                            printf("Found invalid sp at 0x%lx, %s, %s\n",
+                                   inst->address,
+                                   inst->mnemonic,
+                                   inst->op_str);
+                            return false;
+                        }
+                        break;
+                }
             }
         }
     }
