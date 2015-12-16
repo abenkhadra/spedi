@@ -12,7 +12,6 @@
 #include "MaximalBlock.h"
 #include "ARMBranchData.h"
 #include <vector>
-#include <capstone/capstone.h>
 
 namespace disasm {
 /**

@@ -41,14 +41,14 @@ public:
     bool valid() const { return m_valid; }
 
     bool disasm(const uint8_t *code,
-                size_t *size,
-                addr_t *address,
-                MCInst* inst);
+                size_t size,
+                addr_t address,
+                cs_insn *inst);
 
     bool disasm2(const uint8_t **code,
-                size_t *size,
-                addr_t *address,
-                MCInst* inst);
+                 size_t *size,
+                 addr_t *address,
+                 cs_insn *inst);
 
     const cs_arch& arch() const {
         return m_arch;

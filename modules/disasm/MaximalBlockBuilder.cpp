@@ -56,7 +56,7 @@ MaximalBlock MaximalBlockBuilder::build() {
     m_max_block_idx++;
 
     if (!m_buildable)
-        // return an invalid maximal block!
+        //  return an invalid maximal block!
         return result;
     // copy valid BBs to result
     unsigned idx = 0;

@@ -65,7 +65,7 @@ public:
      */
     ISAType getInitialISAType() const;
 
-    ISAInstWidth getISAMinWidth(ISAType isa) const;
+    ISAInstWidth getMinxInstWidth(ISAType isa) const;
 
 private:
 

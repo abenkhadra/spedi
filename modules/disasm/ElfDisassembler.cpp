@@ -24,7 +24,7 @@ ElfDisassembler::ElfDisassembler(const elf::elf &elf_file) :
     m_inst_width{ISAInstWidth::kHWord},
     m_elf_file{&elf_file},
     m_isa{getInitialISAType()} {
-//    m_inst_width = getISAMinWidth(m_isa);
+//    m_inst_width = getMinxInstWidth(m_isa);
 }
 
 void
@@ -158,7 +158,7 @@ ElfDisassembler::disassembleSectionUsingSymbols
             // either Data, ARM, or Thumb.
             parser.changeModeTo(CS_MODE_THUMB);
 
-        while (parser.disasm2(&code_ptr, &size, &address, &inst)) {
+        while (parser.disasm2(&code_ptr, &size, &address, inst_ptr)) {
             prettyPrintInst(parser.handle(), inst_ptr);
         }
     }
@@ -198,7 +198,6 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
 
     printf("Section Name: %s\n", sec.get_name().c_str());
     size_t current = sec.get_hdr().addr;
-    size_t temp_addr = 0;
     size_t last_addr = current + sec.get_hdr().size;
     size_t buf_size = 4;
     const uint8_t *code_ptr = (const uint8_t *) sec.data();
@@ -214,8 +213,7 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
     MCInstAnalyzer analyzer(ISAType::kThumb);
 
     while (current < last_addr) {
-        temp_addr = current;
-        if (parser.disasm(code_ptr, &buf_size, &temp_addr, &inst)) {
+        if (parser.disasm(code_ptr, buf_size, current, inst_ptr)) {
             if (analyzer.isValid(inst_ptr)) {
                 if (analyzer.isBranch(inst_ptr)) {
                     max_block_builder.appendBranch(inst_ptr);
@@ -226,7 +224,6 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
                 }
             }
         }
-        buf_size = 4; // code buf size should be reset after each read
         current += static_cast<unsigned>(m_inst_width);
         code_ptr += static_cast<unsigned>(m_inst_width);
     }
@@ -300,7 +297,7 @@ ElfDisassembler::getInitialISAType() const {
     else return ISAType::kARM;
 }
 
-ISAInstWidth ElfDisassembler::getISAMinWidth(ISAType isa) const {
+ISAInstWidth ElfDisassembler::getMinxInstWidth(ISAType isa) const {
     switch (isa) {
         case ISAType::kx86:
         case ISAType::kx86_64:
