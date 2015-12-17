@@ -4,7 +4,7 @@
 //
 //===----------------------------------------------------------------------===//
 // 
-// Copyright (c) 2015 Technical University of Kaiserslautern.
+// Copyright (c) 2015 University of Kaiserslautern.
 
 #include "DisassemblyResult.h"
 

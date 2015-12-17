@@ -4,7 +4,7 @@
 //
 //===----------------------------------------------------------------------===//
 // 
-// Copyright (c) 2015 Technical University of Kaiserslautern.
+// Copyright (c) 2015 University of Kaiserslautern.
 
 #pragma once
 
@@ -28,8 +28,6 @@ public:
     bool isDirect() const { return m_direct; }
     // precondition: valid only for direct branch
     int target() const { return m_target; }
-    //TODO: a function to get the absolute branch target based on current PC
-    addr_t absoluteTarget() const { return 0; }
     arm_cc condition() const { return m_condition; }
     const std::string conditionString() const;
     friend class MaximalBlockBuilder;

@@ -88,6 +88,9 @@ void prettyPrintMaximalBlock
            static_cast<unsigned int> (mblock.startAddr()),
            mblock.branch().isDirect(),
            mblock.branch().conditionString().c_str());
+    if (mblock.branch().isDirect()) {
+        printf(", Target: 0x%x", static_cast<unsigned>(mblock.branch().target()));
+    }
     printf(" / BB count. %u, Total inst count %u: \n",
            mblock.getBasicBlocksCount(), mblock.getInstructionCount());
     for (auto &block :mblock.getBasicBlocks()) {
