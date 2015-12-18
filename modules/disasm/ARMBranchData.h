@@ -18,6 +18,7 @@ namespace disasm {
  */
 class ARMBranchData {
 public:
+    ARMBranchData();
     virtual ~ARMBranchData() = default;
     ARMBranchData(const ARMBranchData &src);
     ARMBranchData &operator=(const ARMBranchData &src) = default;
@@ -37,7 +38,6 @@ private:
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
-    ARMBranchData();
     ARMBranchData(int target, arm_cc condition = ARM_CC_AL);
     ARMBranchData(arm_op_mem *mem_operand, arm_cc condition = ARM_CC_AL);
 

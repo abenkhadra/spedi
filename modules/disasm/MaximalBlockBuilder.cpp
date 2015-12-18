@@ -106,13 +106,13 @@ MaximalBlock MaximalBlockBuilder::build() {
     return result;
 }
 
-bool MaximalBlockBuilder::reset() {
+void MaximalBlockBuilder::reset() {
 
     m_buildable = false;
     m_bb_idx = 0;
     if (m_bblocks.size() == 0) {
         assert(m_insts.size() == 0 && "Instructions found without BB!!");
-        return true;
+        return;
     }
 
     int overlap_distance = 0;
@@ -134,14 +134,14 @@ bool MaximalBlockBuilder::reset() {
     if (overlap_blocks.size() == 0) {
         m_bblocks.clear();
         m_insts.clear();
-        return true;
+        return;
     }
 
     if (m_bblocks.size() == 1) {
         // there is only one basic block which happens to be also overlapping.
         m_bblocks.back().m_id = 0;
         m_last_addr = m_bblocks.back().startAddr() + m_bblocks.back().size();
-        return false;
+        return;
     }
     // there are multiple invalid basic blocks. Keep only insts of overlap block.
     std::vector<MCInstSmall> overlap_insts;
@@ -169,7 +169,6 @@ bool MaximalBlockBuilder::reset() {
     m_bblocks.swap(overlap_blocks);
     // all overlap block would end at the same address in Variable Length Risc
     m_last_addr = m_bblocks.back().startAddr() + m_bblocks.back().size();
-    return false;
 }
 
 void MaximalBlockBuilder::append(const cs_insn *inst) {
@@ -237,5 +236,8 @@ void MaximalBlockBuilder::setBranch(const cs_insn *inst) {
             break;
         }
     }
+}
+bool MaximalBlockBuilder::isCleanReset() {
+    return !m_buildable && m_bblocks.size() == 0;
 }
 }

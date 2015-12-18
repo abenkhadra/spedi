@@ -7,7 +7,7 @@
 // Copyright (c) 2015 University of Kaiserslautern.
 
 #pragma once
-#include "DisassemblyResult.h"
+#include "SectionDisassembly.h"
 #include "binutils/elf/elf++.hh"
 
 namespace disasm {
@@ -51,8 +51,9 @@ public:
     void disassembleCodeUsingSymbols() const;
     void disassembleSectionUsingSymbols(const elf::section &sec) const;
 
-    void disassembleSectionSpeculative(const elf::section &sec) const;
-    void disassembleCodeSpeculative() const;
+    SectionDisassembly
+        disassembleSectionSpeculative(const elf::section &sec) const;
+    std::vector<SectionDisassembly> disassembleCodeSpeculative() const;
 
     void disassembleSectionbyName(std::string sec_name) const;
     void disassembleSectionbyNameSpeculative(std::string sec_name) const;

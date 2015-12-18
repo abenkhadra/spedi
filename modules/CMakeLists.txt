@@ -34,7 +34,7 @@ add_library(
         disasm/BasicBlock.cpp disasm/BasicBlock.h
         disasm/MaximalBlock.cpp disasm/MaximalBlock.h
         disasm/common.h
-        disasm/DisassemblyResult.cpp disasm/DisassemblyResult.h
+        disasm/SectionDisassembly.cpp disasm/SectionDisassembly.h
         disasm/MCParser.cpp disasm/MCParser.h
         disasm/MaximalBlockBuilder.cpp disasm/MaximalBlockBuilder.h
         disasm/MCInstAnalyzer.cpp disasm/MCInstAnalyzer.h disasm/ARMBranchData.cpp disasm/ARMBranchData.h)

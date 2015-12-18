@@ -36,8 +36,7 @@ addr_t MaximalBlock::startAddr() const {
 void MaximalBlock::setType(const MaxBlockType type) {
     m_type = type;
     if (m_type == MaxBlockType::kData) {
-        m_frags.clear();
-        m_bblocks.clear();
+          m_bblocks.clear();
     }
 }
 
@@ -51,19 +50,9 @@ MaximalBlock::getBasicBlocksCount() const {
     return static_cast<unsigned int>(m_bblocks.size());
 }
 
-unsigned int
-MaximalBlock::getFragmentsCount() const {
-    return static_cast<unsigned int>(m_frags.size());
-}
-
 const std::vector<BasicBlock> &
 MaximalBlock::getBasicBlocks() const {
     return m_bblocks;
-}
-
-const std::vector<Fragment> &
-MaximalBlock::getFragments() const {
-    return m_frags;
 }
 
 MaximalBlock::MaximalBlock(unsigned id, const ARMBranchData &branch) :
@@ -96,5 +85,19 @@ MaximalBlock::getInstructions(BasicBlock &bblock) {
         }
     }
     return result;
+}
+const bool MaximalBlock::isCovered(addr_t addr) const {
+    return startAddr() <= addr && addr < startAddr() + m_bblocks[0].size();
+}
+
+const addr_t MaximalBlock::lastInstAddr() const {
+    return m_insts.back().addr();
+}
+const std::vector<MCInstSmall> &MaximalBlock::getInstructions() const {
+    return m_insts;
+}
+void MaximalBlock::setId(unsigned id) {
+    m_id = id;
+
 }
 }

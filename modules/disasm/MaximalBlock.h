@@ -28,6 +28,7 @@ class MaximalBlock {
 public:
     /**
      */
+    MaximalBlock() = default;
     virtual ~MaximalBlock() = default;
     MaximalBlock(const MaximalBlock &src) = default;
     MaximalBlock &operator=(const MaximalBlock &src) = default;
@@ -50,20 +51,27 @@ public:
     size_t getBasicBlockMemSize(const unsigned int bb_id) const;
 
     unsigned getBasicBlocksCount() const;
-    unsigned getFragmentsCount() const;
     unsigned getInstructionCount() const;
 
-    const std::vector<MCInstSmall*> getInstructions(BasicBlock& bblock);
-
     //XXX: access should be to an iterator instead of a collection?
-    const std::vector<Fragment>& getFragments() const;
-    const std::vector<MCInstSmall> &getInstructions() const {
-        return m_insts;
-    }
+    const std::vector<MCInstSmall> &getInstructions() const;
+    const std::vector< MCInstSmall*> getInstructions(BasicBlock& bblock);
+
     const ARMBranchData& branch() const{
         return m_branch;
     }
     const unsigned & id() const ;
+    void setId(unsigned id);
+    /*
+     * return true if the given address falls inside the address space
+     * covered by MB
+     */
+    const bool isCovered(addr_t addr) const;
+
+    /*
+     * return the address of last instruction
+     */
+    const addr_t lastInstAddr() const;
 
 private:
     explicit MaximalBlock(unsigned int id, const ARMBranchData &branch);
@@ -72,7 +80,6 @@ private:
     unsigned int m_id;
     MaxBlockType m_type;
     ARMBranchData m_branch;
-    std::vector<Fragment> m_frags;
     std::vector<MCInstSmall> m_insts;
     std::vector<BasicBlock> m_bblocks;
 };

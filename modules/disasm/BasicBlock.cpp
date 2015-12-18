@@ -29,7 +29,7 @@ unsigned int BasicBlock::id() const {
     return m_id;
 }
 
-const size_t &BasicBlock::size() const {
+const size_t BasicBlock::size() const {
     return m_mem_size;
 }
 

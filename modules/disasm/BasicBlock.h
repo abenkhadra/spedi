@@ -36,7 +36,7 @@ public:
 
     unsigned int id() const;
     bool valid() const ;
-    const size_t &size() const;
+    const size_t size() const;
 
     bool isAppendableBy(const cs_insn *inst) const;
     bool isAppendableAt(const addr_t addr) const;

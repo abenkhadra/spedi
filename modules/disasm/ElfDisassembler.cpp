@@ -196,7 +196,7 @@ ElfDisassembler::disassembleCodeUsingSymbols() const {
     }
 }
 
-void
+SectionDisassembly
 ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
 
     printf("Section Name: %s\n", sec.get_name().c_str());
@@ -212,16 +212,23 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
     cs_insn *inst_ptr = inst.rawPtr();
 
     MaximalBlockBuilder max_block_builder;
-
     MCInstAnalyzer analyzer(ISAType::kThumb);
 
+    SectionDisassembly result{&sec};
+    // we need to maintain the invariant that for whatever MB in the result
+    // its start address should be > than the start address of the next MB.
     while (current < last_addr) {
         if (parser.disasm(code_ptr, buf_size, current, inst_ptr)) {
             if (analyzer.isValid(inst_ptr)) {
                 if (analyzer.isBranch(inst_ptr)) {
                     max_block_builder.appendBranch(inst_ptr);
-                    prettyPrintMaximalBlock(max_block_builder.build());
+                    result.add(max_block_builder.build());
                     max_block_builder.reset();
+                    if (!max_block_builder.isCleanReset()) {
+                        printf("Overlap detected at MaxBlock %u \n",
+                               result.back().id());
+                    }
+                    prettyPrintMaximalBlock(result.back());
                 } else {
                     max_block_builder.append(inst_ptr);
                 }
@@ -230,15 +237,18 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
         current += static_cast<unsigned>(m_inst_width);
         code_ptr += static_cast<unsigned>(m_inst_width);
     }
+    return result;
 }
 
-void
+std::vector<SectionDisassembly>
 ElfDisassembler::disassembleCodeSpeculative() const {
+    std::vector<SectionDisassembly> result;
     for (auto &sec : m_elf_file->sections()) {
         if (sec.is_alloc() && sec.is_exec()) {
-            disassembleSectionSpeculative(sec);
+            result.emplace_back(disassembleSectionSpeculative(sec));
         }
     }
+    return result;
 }
 
 std::vector<std::pair<size_t, ARMCodeSymbolType>>
