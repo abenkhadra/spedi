@@ -17,18 +17,6 @@ ARMBranchData::ARMBranchData() :
     m_target{0} {
 
 }
-ARMBranchData::ARMBranchData(int target,
-                             arm_cc condition):
-    m_type{ARMBranchType::Direct},
-    m_condition{condition},
-    m_target{target} {
-}
-ARMBranchData::ARMBranchData(arm_op_mem *mem_operand,
-                             arm_cc condition) :
-    m_type{ARMBranchType::IndirectMem},
-    m_condition{condition} {
-    std::memcpy(&m_operand, mem_operand, sizeof(arm_op_mem));
-}
 bool ARMBranchData::valid() const {
     return m_condition != ARM_CC_INVALID;
 }
@@ -42,8 +30,10 @@ ARMBranchData::ARMBranchData(const ARMBranchData &src) {
         case ARMBranchType::Direct:
             m_target = src.m_target;
             break;
-        case ARMBranchType::IndirectMem:
+        case ARMBranchType::IndirectLoad:
             m_operand = src.m_operand;
+            break;
+        case ARMBranchType::IndirectPop:
             break;
         case ARMBranchType::IndirectReg:
             m_reg = src.m_reg;

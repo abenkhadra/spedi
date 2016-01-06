@@ -223,22 +223,37 @@ void MaximalBlockBuilder::appendBranch(const cs_insn *inst) {
 
 void MaximalBlockBuilder::setBranch(const cs_insn *inst) {
     cs_detail *detail = inst->detail;
-    for (int i = 0; i < detail->arm.op_count; ++i) {
-        if (detail->arm.operands[i].type == ARM_OP_IMM) {
+    switch (inst->id) {
+        case ARM_INS_CBZ:
             m_branch.m_type = ARMBranchType::Direct;
-            m_branch.m_condition = detail->arm.cc;
-            m_branch.m_target = detail->arm.operands[i].imm;
+            m_branch.m_reg = detail->arm.operands[0].reg;
+            m_branch.m_target = detail->arm.operands[1].imm;
+            m_branch.m_condition = ARM_CC_EQ;
             break;
-        } else if (detail->arm.operands[i].type == ARM_OP_MEM) {
-            m_branch.m_type = ARMBranchType::IndirectMem;
-            m_branch.m_condition = detail->arm.cc;
-            m_branch.m_operand = detail->arm.operands[i].mem;
+        case ARM_INS_CBNZ:
+            m_branch.m_type = ARMBranchType::Direct;
+            m_branch.m_reg = detail->arm.operands[0].reg;
+            m_branch.m_target = detail->arm.operands[1].imm;
+            m_branch.m_condition = ARM_CC_NE;
             break;
-        } else if (detail->arm.operands[i].type == ARM_OP_REG) {
-            m_branch.m_type = ARMBranchType::IndirectReg;
+        default:
             m_branch.m_condition = detail->arm.cc;
-            m_branch.m_reg = detail->arm.operands[i].reg;
-        }
+            if (detail->arm.op_count == 1) {
+                if (detail->arm.operands[0].type == ARM_OP_IMM) {
+                    m_branch.m_type = ARMBranchType::Direct;
+                    m_branch.m_target = detail->arm.operands[0].imm;
+                } else if (detail->arm.operands[0].type == ARM_OP_REG) {
+                    m_branch.m_type = ARMBranchType::IndirectReg;
+                    m_branch.m_reg = detail->arm.operands[0].reg;
+                }
+            } else {
+                if (inst->id == ARM_INS_POP) {
+                    m_branch.m_type = ARMBranchType::IndirectPop;
+                } else {
+                    m_branch.m_type = ARMBranchType::IndirectLoad;
+                    m_branch.m_operand = detail->arm.operands[0].mem;
+                }
+            }
     }
 }
 bool MaximalBlockBuilder::isCleanReset() {

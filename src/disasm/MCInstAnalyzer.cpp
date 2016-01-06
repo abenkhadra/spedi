@@ -126,6 +126,9 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
 }
 
 bool MCInstAnalyzer::isConditional(const cs_insn *inst) const {
+    if (inst->id == ARM_INS_CBNZ || inst->id == ARM_INS_CBZ) {
+        return true;
+    }
     return inst->detail->arm.cc != ARM_CC_AL;
 }
 }
