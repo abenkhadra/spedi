@@ -29,6 +29,7 @@ public:
     MCInstAnalyzer(MCInstAnalyzer &&src) = default;
 
     bool isBranch(const cs_insn *inst) const;
+    bool isConditional(const cs_insn *inst) const;
 
     bool isValid(const cs_insn *inst) const;
 

@@ -39,14 +39,13 @@ bool MCInstAnalyzer::isBranch(const cs_insn *inst) const {
 
 bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
 
-    // We do no apply PC, SP restrictions to load instructions
-    if (ARM_INS_LDA <= inst->id && inst->id <= ARM_INS_LDR) {
-        return true;
-    }
-
     for (int i = 0; i < inst->detail->arm.op_count; ++i) {
         if (inst->detail->arm.operands[i].type == ARM_OP_REG) {
             if (inst->detail->arm.operands[i].reg == ARM_REG_PC) {
+                // We do no apply PC, SP restrictions to load instructions
+                if (ARM_INS_LDA <= inst->id && inst->id <= ARM_INS_LDR) {
+                    continue;
+                }
                 // PC usage restrictions based on manual A2-46
                 // and Table D9.5 details.
                 switch (inst->id) {
@@ -63,6 +62,7 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
                         // XXX more restrictions can be applied here
                         break;
                     default:
+                        // TODO: make logging consistent and configurable
                         // Pop are allowed to use PC
                         if (inst->id != ARM_INS_POP) {
                             printf("Found invalid pc at 0x%lx, %s, %s\n",
@@ -73,6 +73,10 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
                         }
                 }
             } else if (inst->detail->arm.operands[i].reg == ARM_REG_SP) {
+                // We do no apply PC, SP restrictions to load instructions
+                if (ARM_INS_LDA <= inst->id && inst->id <= ARM_INS_LDR) {
+                    continue;
+                }
                 // restrictions on SP usage
                 switch (inst->id) {
                     case ARM_INS_MOV:
@@ -94,9 +98,27 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
                         }
                         break;
                 }
+            } else if (!(
+                ((ARM_REG_R0 <= inst->detail->arm.operands[i].reg) &&
+                    (inst->detail->arm.operands[i].reg <= ARM_REG_R12))
+                    || inst->detail->arm.operands[i].reg == ARM_REG_LR)) {
+                // XXX: using unusual registers such as co-processor registers
+                // is currently not allowed. For example, we do not allow access
+                // to registers of system control co-processor (CP15). Note that
+                // only some instructions like MRC, MCREQ & MCR can use
+                // co-processor registers
+                printf("Found invalid register at 0x%lx, %s, %s\n",
+                       inst->address,
+                       inst->mnemonic,
+                       inst->op_str);
+                return false;
             }
         }
     }
     return true;
+}
+
+bool MCInstAnalyzer::isConditional(const cs_insn *inst) const {
+    return inst->detail->arm.cc != ARM_CC_AL;
 }
 }

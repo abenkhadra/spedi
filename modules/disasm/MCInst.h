@@ -23,6 +23,7 @@ public:
     /**
      * Allocates memory for cs_insn and frees memory in destructor.
      */
+    // TODO: refactor this class to be just a wrapper from POD ptr.
     MCInst();
     /**
      * Owns a pointer to an already allocated cs_insn.

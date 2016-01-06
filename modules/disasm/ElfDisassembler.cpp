@@ -102,10 +102,8 @@ void prettyPrintMaximalBlock
         printf("\n");
     }
     for (auto &inst :mblock.getInstructions()) {
-        printf("0x%" PRIx64 ":\t%s\t\t%s // insn-ID: %u \n",
-               inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str(),
-               inst.id());
-
+        printf("0x%" PRIx64 ":\t%s\t\t%s \n",
+               inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str());
     }
 }
 
@@ -215,27 +213,36 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
     MCInstAnalyzer analyzer(ISAType::kThumb);
 
     SectionDisassembly result{&sec};
+    bool speculation_enabled = true;
     // we need to maintain the invariant that for whatever MB in the result
     // its start address should be > than the start address of the next MB.
     while (current < last_addr) {
         if (parser.disasm(code_ptr, buf_size, current, inst_ptr)) {
             if (analyzer.isValid(inst_ptr)) {
                 if (analyzer.isBranch(inst_ptr)) {
+                    // XXX: speculation is disabled after conditional branches
+                    // that assumption can be invalid in obfuscated binaries.
+                    speculation_enabled = !analyzer.isConditional(inst_ptr);
                     max_block_builder.appendBranch(inst_ptr);
                     result.add(max_block_builder.build());
                     max_block_builder.reset();
+                    prettyPrintMaximalBlock(result.back());
                     if (!max_block_builder.isCleanReset()) {
                         printf("Overlap detected at MaxBlock %u \n",
                                result.back().id());
                     }
-                    prettyPrintMaximalBlock(result.back());
                 } else {
                     max_block_builder.append(inst_ptr);
                 }
             }
         }
-        current += static_cast<unsigned>(m_inst_width);
-        code_ptr += static_cast<unsigned>(m_inst_width);
+        if (speculation_enabled) {
+            current += static_cast<unsigned>(m_inst_width);
+            code_ptr += static_cast<unsigned>(m_inst_width);
+        } else {
+            current += inst_ptr->size;
+            code_ptr += inst_ptr->size;
+        }
     }
     return result;
 }

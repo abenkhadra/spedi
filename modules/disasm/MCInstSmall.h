@@ -21,6 +21,8 @@ namespace disasm {
  */
 class MCInstSmall {
 public:
+    // TODO: this class should be refactored to MCInst. It should be the base of
+    // class hierarchy. Drived classes include MCInstARM and MCInstX86.
     MCInstSmall() = delete;
     explicit MCInstSmall(const cs_insn *inst);
     virtual ~MCInstSmall() = default;
@@ -28,13 +30,11 @@ public:
     MCInstSmall &operator=(const MCInstSmall &src) = default;
     MCInstSmall(MCInstSmall &&src) = default;
 
-    void reset(cs_insn *inst);
-
     const unsigned int & id() const;
 
-    const size_t size() const;
+    const size_t &size() const;
 
-    const addr_t addr() const;
+    const addr_t &addr() const;
 
     bool operator<(MCInstSmall other) const;
     bool operator==(MCInstSmall &other) const;

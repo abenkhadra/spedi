@@ -41,7 +41,7 @@ SectionDisassembly::dataAt(addr_t addr) const {
     return data() + (addr - startAddr());
 }
 
-void SectionDisassembly::add(MaximalBlock &max_block) {
+void SectionDisassembly::add(const MaximalBlock &max_block) {
     assert(m_max_blocks.size() == max_block.id()
                && "invalid index of maximal block");
     m_max_blocks.push_back(max_block);
@@ -50,7 +50,7 @@ void SectionDisassembly::add(MaximalBlock &max_block) {
 void SectionDisassembly::add(MaximalBlock &&max_block) {
     assert(m_max_blocks.size() == max_block.id()
                && "invalid index of maximal block");
-    m_max_blocks.push_back(max_block);
+    m_max_blocks.emplace_back(max_block);
 }
 const MaximalBlock &
 SectionDisassembly::back() {

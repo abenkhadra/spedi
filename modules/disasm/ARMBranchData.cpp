@@ -12,20 +12,20 @@
 namespace disasm {
 
 ARMBranchData::ARMBranchData() :
-    m_direct{false},
+    m_type{ARMBranchType::Invalid},
     m_condition{ARM_CC_INVALID},
     m_target{0} {
 
 }
 ARMBranchData::ARMBranchData(int target,
                              arm_cc condition):
-    m_direct{true},
+    m_type{ARMBranchType::Direct},
     m_condition{condition},
     m_target{target} {
 }
 ARMBranchData::ARMBranchData(arm_op_mem *mem_operand,
                              arm_cc condition) :
-    m_direct{false},
+    m_type{ARMBranchType::IndirectMem},
     m_condition{condition} {
     std::memcpy(&m_operand, mem_operand, sizeof(arm_op_mem));
 }
@@ -36,13 +36,20 @@ bool ARMBranchData::isConditional() const {
     return (m_condition != ARM_CC_INVALID) && (m_condition != ARM_CC_AL);
 }
 ARMBranchData::ARMBranchData(const ARMBranchData &src) {
+    m_type = src.m_type;
     m_condition = src.m_condition;
-    if (src.m_direct) {
-        m_direct = true;
-        m_target = src.m_target;
-    } else {
-        m_direct = false;
-        m_operand = src.m_operand;
+    switch (src.m_type) {
+        case ARMBranchType::Direct:
+            m_target = src.m_target;
+            break;
+        case ARMBranchType::IndirectMem:
+            m_operand = src.m_operand;
+            break;
+        case ARMBranchType::IndirectReg:
+            m_reg = src.m_reg;
+            break;
+        default:
+            m_type = ARMBranchType::Invalid;
     }
 }
 const std::string ARMBranchData::conditionString() const {

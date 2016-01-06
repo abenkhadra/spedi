@@ -27,7 +27,6 @@ public:
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
-
     explicit SectionDisassembly(const elf::section *section);
     virtual ~SectionDisassembly() = default;
     SectionDisassembly(const SectionDisassembly &src) = default;
@@ -54,8 +53,8 @@ public:
      */
     const uint8_t * dataAt(addr_t addr) const;
 
-    void add(MaximalBlock& max_block);
-    void add(MaximalBlock&& max_block);
+    void add(const MaximalBlock &max_block);
+    void add(MaximalBlock &&max_block);
     const MaximalBlock& back();
 
 

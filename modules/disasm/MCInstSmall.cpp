@@ -27,12 +27,12 @@ MCInstSmall::id() const {
     return m_id;
 }
 
-const size_t
+const size_t &
 MCInstSmall::size() const {
     return m_size;
 }
 
-const addr_t
+const addr_t &
 MCInstSmall::addr() const {
     return m_addr;
 }
@@ -47,10 +47,4 @@ MCInstSmall::operator==(MCInstSmall &other) const {
     return (m_addr == other.addr());
 }
 
-void
-MCInstSmall::reset(cs_insn *inst) {
-    m_id = inst->id;
-    m_addr = inst->address;
-    m_size = inst->size;
-}
 }

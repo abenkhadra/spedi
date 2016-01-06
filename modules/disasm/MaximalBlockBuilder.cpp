@@ -225,15 +225,19 @@ void MaximalBlockBuilder::setBranch(const cs_insn *inst) {
     cs_detail *detail = inst->detail;
     for (int i = 0; i < detail->arm.op_count; ++i) {
         if (detail->arm.operands[i].type == ARM_OP_IMM) {
-            m_branch.m_direct = true;
+            m_branch.m_type = ARMBranchType::Direct;
             m_branch.m_condition = detail->arm.cc;
             m_branch.m_target = detail->arm.operands[i].imm;
             break;
         } else if (detail->arm.operands[i].type == ARM_OP_MEM) {
-            m_branch.m_direct = false;
+            m_branch.m_type = ARMBranchType::IndirectMem;
             m_branch.m_condition = detail->arm.cc;
             m_branch.m_operand = detail->arm.operands[i].mem;
             break;
+        } else if (detail->arm.operands[i].type == ARM_OP_REG) {
+            m_branch.m_type = ARMBranchType::IndirectReg;
+            m_branch.m_condition = detail->arm.cc;
+            m_branch.m_reg = detail->arm.operands[i].reg;
         }
     }
 }
