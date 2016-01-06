@@ -113,6 +113,13 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
                        inst->op_str);
                 return false;
             }
+        } else if (inst->detail->arm.operands[i].type == ARM_OP_CIMM
+            || inst->detail->arm.operands[i].type == ARM_OP_PIMM) {
+            printf("Found invalid co-register at 0x%lx, %s, %s\n",
+                   inst->address,
+                   inst->mnemonic,
+                   inst->op_str);
+            return false;
         }
     }
     return true;

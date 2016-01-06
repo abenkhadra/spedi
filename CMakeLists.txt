@@ -9,13 +9,13 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
-include_directories(modules)
+include_directories(src)
 
-add_subdirectory(modules)
+add_subdirectory(src)
 
 add_library(capstone STATIC IMPORTED)
 
-set(SOURCE_FILES ${CMAKE_SOURCE_DIR}/modules/util/cmdline.h main.cpp)
+set(SOURCE_FILES ${CMAKE_SOURCE_DIR}/src/util/cmdline.h main.cpp)
 
 add_executable(spedi ${SOURCE_FILES} main.cpp)
 
