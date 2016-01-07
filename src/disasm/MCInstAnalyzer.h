@@ -9,7 +9,7 @@
 #pragma once
 #include <capstone/capstone.h>
 #include "common.h"
-#include "ARMBranchData.h"
+#include "BranchData.h"
 
 struct cs_insn;
 
@@ -32,6 +32,7 @@ public:
     bool isConditional(const cs_insn *inst) const;
 
     bool isValid(const cs_insn *inst) const;
+
     ISAInstWidth getMinxInstWidth(ISAType isa) const;
 
     const ISAType &getISA() const {
@@ -44,6 +45,8 @@ public:
     const ISAInstWidth &getInstWidth() const {
         return m_inst_width;
     }
+
+    const std::string conditionToString(const cs_insn *inst) const;
 private:
     ISAType m_isa;
     ISAInstWidth m_inst_width;

@@ -55,7 +55,7 @@ MaximalBlock::getBasicBlocks() const {
     return m_bblocks;
 }
 
-MaximalBlock::MaximalBlock(unsigned id, const ARMBranchData &branch) :
+MaximalBlock::MaximalBlock(unsigned id, const BranchData &branch) :
     m_id{id},
     m_type{MaxBlockType::kMaybe},
     m_branch{branch} {

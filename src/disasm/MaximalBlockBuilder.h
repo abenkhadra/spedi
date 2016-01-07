@@ -10,7 +10,7 @@
 
 #include "MCInstSmall.h"
 #include "MaximalBlock.h"
-#include "ARMBranchData.h"
+#include "BranchData.h"
 #include <vector>
 
 namespace disasm {
@@ -87,7 +87,7 @@ private:
     unsigned int m_bb_idx;
     unsigned int m_max_block_idx;
     addr_t m_last_addr;
-    ARMBranchData m_branch;
+    BranchData m_branch;
     std::vector<BasicBlock> m_bblocks;
     std::vector<MCInstSmall> m_insts;
 };

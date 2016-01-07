@@ -127,11 +127,9 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
 }
 
 bool MCInstAnalyzer::isConditional(const cs_insn *inst) const {
-    if (inst->id == ARM_INS_CBNZ || inst->id == ARM_INS_CBZ) {
-        return true;
-    }
     return inst->detail->arm.cc != ARM_CC_AL;
 }
+
 ISAInstWidth MCInstAnalyzer::getMinxInstWidth(ISAType isa) const {
     switch (isa) {
         case ISAType::kx86:
@@ -142,6 +140,45 @@ ISAInstWidth MCInstAnalyzer::getMinxInstWidth(ISAType isa) const {
             return ISAInstWidth::kHWord;
         default:
             return ISAInstWidth::kWord;
+    }
+}
+
+const std::string MCInstAnalyzer::conditionToString(const cs_insn *inst) const {
+    switch (inst->detail->arm.cc) {
+        case ARM_CC_INVALID:
+            return "Invalid";
+        case ARM_CC_EQ:
+            return "Equal";
+        case ARM_CC_NE:
+            return "Not equal";
+        case ARM_CC_HS:
+            return "Carry set";
+        case ARM_CC_LO:
+            return "Carry clear";
+        case ARM_CC_MI:
+            return "Minus";
+        case ARM_CC_PL:
+            return "Plus";
+        case ARM_CC_VS:
+            return "Overflow";
+        case ARM_CC_VC:
+            return "No overflow";
+        case ARM_CC_HI:
+            return "Unsigned higher";
+        case ARM_CC_LS:
+            return "Unsigned lower or same";
+        case ARM_CC_GE:
+            return "Greater than or equal";
+        case ARM_CC_LT:
+            return "Less than";
+        case ARM_CC_GT:
+            return "Greater than";
+        case ARM_CC_LE:
+            return "Less than or equal";
+        case ARM_CC_AL:
+            return "Always";
+        default:
+            return "Unknown";
     }
 }
 }

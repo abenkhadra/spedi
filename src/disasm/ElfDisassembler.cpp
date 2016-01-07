@@ -79,17 +79,12 @@ void prettyPrintInst(const csh &handle, cs_insn *inst) {
 void prettyPrintMaximalBlock
     (const MaximalBlock &mblock) {
     printf("**************************************\n");
-    printf("MB No. %u, starts at %#6x, Direct branch: %d, Condition: %s",
+    printf("MB No. %u, starts at %#6x",
            mblock.id(),
-           static_cast<unsigned int> (mblock.startAddr()),
-           mblock.branch().isDirect(),
-           mblock.branch().conditionToString().c_str());
-    if (mblock.branch().isDirect()) {
-        printf(", Target: 0x%x",
-               static_cast<unsigned>(mblock.branch().target()));
-    }
+           static_cast<unsigned int> (mblock.startAddr()));
     printf(" / BB count. %u, Total inst count %u: \n",
            mblock.getBasicBlocksCount(), mblock.getInstructionCount());
+
     for (auto &block :mblock.getBasicBlocks()) {
         printf("Basic Block Id %u, inst count %lu\n / ",
                block.id(), block.instCount());
@@ -102,6 +97,14 @@ void prettyPrintMaximalBlock
         printf("0x%" PRIx64 ":\t%s\t\t%s \n",
                inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str());
     }
+    printf("Direct branch: %d, Conditional: %d",
+           mblock.branch().isDirect(), mblock.branch().isConditional());
+    if (mblock.branch().isDirect()) {
+        printf(", Target: 0x%x",
+               static_cast<unsigned>(mblock.branch().getTarget()));
+    }
+    printf("\n");
+
 }
 
 void

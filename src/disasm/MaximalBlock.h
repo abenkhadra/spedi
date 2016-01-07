@@ -10,7 +10,7 @@
 
 #include "Fragment.h"
 #include "BasicBlock.h"
-#include "ARMBranchData.h"
+#include "BranchData.h"
 #include <vector>
 
 namespace disasm {
@@ -57,7 +57,7 @@ public:
     const std::vector<MCInstSmall> &getInstructions() const;
     const std::vector< MCInstSmall*> getInstructions(BasicBlock& bblock);
 
-    const ARMBranchData& branch() const{
+    const BranchData &branch() const {
         return m_branch;
     }
     const unsigned & id() const ;
@@ -74,12 +74,12 @@ public:
     const addr_t lastInstAddr() const;
 
 private:
-    explicit MaximalBlock(unsigned int id, const ARMBranchData &branch);
+    explicit MaximalBlock(unsigned int id, const BranchData &branch);
 
 private:
     unsigned int m_id;
     MaxBlockType m_type;
-    ARMBranchData m_branch;
+    BranchData m_branch;
     std::vector<MCInstSmall> m_insts;
     std::vector<BasicBlock> m_bblocks;
 };
