@@ -42,7 +42,7 @@ public:
     // precondition: valid only for direct branch
     int target() const { return m_target; }
     arm_cc condition() const { return m_condition; }
-    const std::string conditionString() const;
+    const std::string conditionToString() const;
     friend class MaximalBlockBuilder;
 
 private:

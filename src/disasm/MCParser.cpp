@@ -57,7 +57,19 @@ bool MCParser::disasm(const uint8_t *code,
                       addr_t address,
                       cs_insn *inst) {
     assert(address <= m_end_addr && "Address out of bound");
-    return cs_disasm_iter(m_handle, &code, &size, &address, inst);
+    // TODO: patch CBNZ, CBZ in capstone to be conditional branches
+    auto result = cs_disasm_iter(m_handle, &code, &size, &address, inst);
+    switch (inst->id) {
+        case ARM_INS_CBNZ:
+            inst->detail->arm.cc = ARM_CC_NE;
+            break;
+        case ARM_INS_CBZ:
+            inst->detail->arm.cc = ARM_CC_EQ;
+            break;
+        default:
+            break;
+    }
+    return result;
 }
 
 bool MCParser::disasm2(const uint8_t **code,
@@ -65,6 +77,17 @@ bool MCParser::disasm2(const uint8_t **code,
                        addr_t *address,
                        cs_insn *inst) {
     assert(*address <= m_end_addr && "Address out of bound");
-    return cs_disasm_iter(m_handle, code, size, address, inst);
+    auto result = cs_disasm_iter(m_handle, code, size, address, inst);
+    switch (inst->id) {
+        case ARM_INS_CBNZ:
+            inst->detail->arm.cc = ARM_CC_NE;
+            break;
+        case ARM_INS_CBZ:
+            inst->detail->arm.cc = ARM_CC_EQ;
+            break;
+        default:
+            break;
+    }
+    return result;
 }
 }

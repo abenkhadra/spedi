@@ -42,7 +42,7 @@ ARMBranchData::ARMBranchData(const ARMBranchData &src) {
             m_type = ARMBranchType::Invalid;
     }
 }
-const std::string ARMBranchData::conditionString() const {
+const std::string ARMBranchData::conditionToString() const {
     switch (m_condition) {
         case ARM_CC_INVALID:
             return "Invalid";

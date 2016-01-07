@@ -83,7 +83,7 @@ void prettyPrintMaximalBlock
            mblock.id(),
            static_cast<unsigned int> (mblock.startAddr()),
            mblock.branch().isDirect(),
-           mblock.branch().conditionString().c_str());
+           mblock.branch().conditionToString().c_str());
     if (mblock.branch().isDirect()) {
         printf(", Target: 0x%x",
                static_cast<unsigned>(mblock.branch().target()));
