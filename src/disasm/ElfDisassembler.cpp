@@ -9,7 +9,6 @@
 #include "ElfDisassembler.h"
 #include "MCInst.h"
 #include "MCParser.h"
-#include "MaximalBlock.h"
 #include "MCInstAnalyzer.h"
 #include "MaximalBlockBuilder.h"
 #include <inttypes.h>
@@ -21,10 +20,7 @@ ElfDisassembler::ElfDisassembler() : m_valid{false} { }
 
 ElfDisassembler::ElfDisassembler(const elf::elf &elf_file) :
     m_valid{true},
-    m_inst_width{ISAInstWidth::kHWord},
-    m_elf_file{&elf_file},
-    m_isa{getInitialISAType()} {
-//    m_inst_width = getMinxInstWidth(m_isa);
+    m_elf_file{&elf_file} {
 }
 
 void
@@ -89,7 +85,8 @@ void prettyPrintMaximalBlock
            mblock.branch().isDirect(),
            mblock.branch().conditionString().c_str());
     if (mblock.branch().isDirect()) {
-        printf(", Target: 0x%x", static_cast<unsigned>(mblock.branch().target()));
+        printf(", Target: 0x%x",
+               static_cast<unsigned>(mblock.branch().target()));
     }
     printf(" / BB count. %u, Total inst count %u: \n",
            mblock.getBasicBlocksCount(), mblock.getInstructionCount());
@@ -213,16 +210,12 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
     MCInstAnalyzer analyzer(ISAType::kThumb);
 
     SectionDisassembly result{&sec};
-    bool speculation_enabled = true;
     // we need to maintain the invariant that for whatever MB in the result
     // its start address should be > than the start address of the next MB.
     while (current < last_addr) {
         if (parser.disasm(code_ptr, buf_size, current, inst_ptr)) {
             if (analyzer.isValid(inst_ptr)) {
                 if (analyzer.isBranch(inst_ptr)) {
-                    // XXX: speculation is disabled after conditional branches
-                    // that assumption can be invalid in obfuscated binaries.
-                    speculation_enabled = !analyzer.isConditional(inst_ptr);
                     max_block_builder.appendBranch(inst_ptr);
                     result.add(max_block_builder.build());
                     max_block_builder.reset();
@@ -236,13 +229,8 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
                 }
             }
         }
-        if (speculation_enabled) {
-            current += static_cast<unsigned>(m_inst_width);
-            code_ptr += static_cast<unsigned>(m_inst_width);
-        } else {
-            current += inst_ptr->size;
-            code_ptr += inst_ptr->size;
-        }
+        current += static_cast<unsigned>(analyzer.getInstWidth());
+        code_ptr += static_cast<unsigned>(analyzer.getInstWidth());
     }
     return result;
 }
@@ -311,22 +299,8 @@ ElfDisassembler::isSymbolTableAvailable() {
     return sym_sec.valid();
 }
 
-ISAType
-ElfDisassembler::getInitialISAType() const {
+ISAType ElfDisassembler::getInitialISAType() const {
     if (m_elf_file->get_hdr().entry & 1) return ISAType::kThumb;
     else return ISAType::kARM;
-}
-
-ISAInstWidth ElfDisassembler::getMinxInstWidth(ISAType isa) const {
-    switch (isa) {
-        case ISAType::kx86:
-        case ISAType::kx86_64:
-            return ISAInstWidth::kByte;
-        case ISAType::kThumb:
-        case ISAType::kTriCore:
-            return ISAInstWidth::kHWord;
-        default:
-            return ISAInstWidth::kWord;
-    }
 }
 }

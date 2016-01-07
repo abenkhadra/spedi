@@ -7,11 +7,12 @@
 // Copyright (c) 2015 University of Kaiserslautern.
 
 #include "MCInstAnalyzer.h"
-#include <capstone/capstone.h>
 
 namespace disasm {
 
-MCInstAnalyzer::MCInstAnalyzer(ISAType isa) : m_isa{isa} { }
+MCInstAnalyzer::MCInstAnalyzer(ISAType isa) : m_isa{isa} {
+    m_inst_width = getMinxInstWidth(isa);
+}
 
 bool MCInstAnalyzer::isBranch(const cs_insn *inst) const {
     if (inst->detail == NULL) return false;
@@ -130,5 +131,17 @@ bool MCInstAnalyzer::isConditional(const cs_insn *inst) const {
         return true;
     }
     return inst->detail->arm.cc != ARM_CC_AL;
+}
+ISAInstWidth MCInstAnalyzer::getMinxInstWidth(ISAType isa) const {
+    switch (isa) {
+        case ISAType::kx86:
+        case ISAType::kx86_64:
+            return ISAInstWidth::kByte;
+        case ISAType::kThumb:
+        case ISAType::kTriCore:
+            return ISAInstWidth::kHWord;
+        default:
+            return ISAInstWidth::kWord;
+    }
 }
 }

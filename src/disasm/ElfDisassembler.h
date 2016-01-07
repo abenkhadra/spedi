@@ -66,8 +66,6 @@ public:
      */
     ISAType getInitialISAType() const;
 
-    ISAInstWidth getMinxInstWidth(ISAType isa) const;
-
 private:
 
     std::vector<std::pair<size_t, ARMCodeSymbolType>>
@@ -75,9 +73,6 @@ private:
 
 private:
     bool m_valid;
-    ISAInstWidth m_inst_width;
     const elf::elf* m_elf_file;
-    ISAType m_isa;
-
 };
 }

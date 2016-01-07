@@ -32,9 +32,21 @@ public:
     bool isConditional(const cs_insn *inst) const;
 
     bool isValid(const cs_insn *inst) const;
+    ISAInstWidth getMinxInstWidth(ISAType isa) const;
 
+    const ISAType &getISA() const {
+        return m_isa;
+    }
+    void setISA(const ISAType &isa) {
+        m_isa = isa;
+        m_inst_width = getMinxInstWidth(isa);
+    }
+    const ISAInstWidth &getInstWidth() const {
+        return m_inst_width;
+    }
 private:
     ISAType m_isa;
+    ISAInstWidth m_inst_width;
 };
 }
 

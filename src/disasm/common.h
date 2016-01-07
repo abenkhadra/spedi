@@ -12,7 +12,7 @@
 
 namespace disasm {
 // memory address type
-using addr_t = size_t ;
+using addr_t = size_t;
 
 enum class ARMCodeSymbolType: unsigned short {
     kThumb = 1,
@@ -32,7 +32,7 @@ enum class ISAType: unsigned short {
     kx86_64 = 8,
 };
 
-enum class ISAInstWidth: unsigned short{
+enum class ISAInstWidth: unsigned short {
     kByte = 1,
     kHWord = 2,  // half-word
     kWord = 4,
