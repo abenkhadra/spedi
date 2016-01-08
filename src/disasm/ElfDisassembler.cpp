@@ -35,7 +35,7 @@ printHex(unsigned char *str, size_t len) {
 }
 
 
-void prettyPrintInst(const csh &handle, cs_insn *inst) {
+void prettyPrintInst(const csh &handle, cs_insn *inst, bool details_enabled) {
 
     cs_detail *detail;
     int n;
@@ -44,9 +44,11 @@ void prettyPrintInst(const csh &handle, cs_insn *inst) {
            inst->address, inst->mnemonic, inst->op_str,
            inst->id, cs_insn_name(handle, inst->id));
 
+    if (!details_enabled) {
+        return;
+    }
     // print implicit registers used by this instruction
     detail = inst->detail;
-
     if (detail == NULL) return;
 
     if (detail->regs_read_count > 0) {
@@ -111,7 +113,8 @@ void
 ElfDisassembler::disassembleSectionUsingSymbols
     (const elf::section &sec) const {
 
-    // a type_mismatch exception would thrown in case symbol table was not found
+    // a type_mismatch exception would thrown in case symbol table was not found.
+    // We assume that symbols are ordered by their address.
     auto symbols = getCodeSymbolsForSection(sec);
 
 //    printf("Symbols size is %lu \n", symbols.size());
@@ -133,10 +136,10 @@ ElfDisassembler::disassembleSectionUsingSymbols
 
     printf("Section Name: %s\n", sec.get_name().c_str());
 
-    // We assume that symbols are ordered by their address.
     size_t index = 0;
     size_t address = 0;
     size_t size = 0;
+    MCInstAnalyzer analyzer;
 
     for (auto &symbol : symbols) {
         index++;
@@ -152,15 +155,24 @@ ElfDisassembler::disassembleSectionUsingSymbols
         else
             size = last_addr - symbol.first;
 
-        if (symbol.second == ARMCodeSymbolType::kARM)
+        if (symbol.second == ARMCodeSymbolType::kARM) {
             parser.changeModeTo(CS_MODE_ARM);
-        else
+            analyzer.setISA(ISAType::kARM);
+        } else {
             // We assume that the value of code symbol type is strictly
             // either Data, ARM, or Thumb.
             parser.changeModeTo(CS_MODE_THUMB);
+            analyzer.setISA(ISAType::kARM);
+        }
 
         while (parser.disasm2(&code_ptr, &size, &address, inst_ptr)) {
-            prettyPrintInst(parser.handle(), inst_ptr);
+            prettyPrintInst(parser.handle(), inst_ptr, false);
+            if (analyzer.isBranch(inst_ptr)) {
+                printf("Direct branch: %d, Conditional: %d  \n",
+                       analyzer.isDirectBranch(inst_ptr),
+                       analyzer.isConditional(inst_ptr));
+                printf("************************************\n");
+            }
         }
     }
 }

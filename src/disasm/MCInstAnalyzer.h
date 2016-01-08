@@ -22,14 +22,25 @@ public:
     /**
      * Construct a MCInstAnalyzer
      */
+    MCInstAnalyzer() = default;
     explicit MCInstAnalyzer(ISAType isa);
     virtual ~MCInstAnalyzer() = default;
     MCInstAnalyzer(const MCInstAnalyzer &src) = default;
     MCInstAnalyzer &operator=(const MCInstAnalyzer &src) = default;
     MCInstAnalyzer(MCInstAnalyzer &&src) = default;
 
+    /**
+     * return true if instruction is a branch
+     */
     bool isBranch(const cs_insn *inst) const;
+
+    /**
+     * return true if instruction is conditional, note that conditional
+     * instructions inside IT block context info that is not available here.
+     */
     bool isConditional(const cs_insn *inst) const;
+
+    bool isDirectBranch(const cs_insn *inst) const;
 
     bool isValid(const cs_insn *inst) const;
 
@@ -46,7 +57,7 @@ public:
         return m_inst_width;
     }
 
-    const std::string conditionToString(const cs_insn *inst) const;
+    const std::string conditionCodeToString(const cs_insn *inst) const;
 private:
     ISAType m_isa;
     ISAInstWidth m_inst_width;

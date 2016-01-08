@@ -143,7 +143,7 @@ ISAInstWidth MCInstAnalyzer::getMinxInstWidth(ISAType isa) const {
     }
 }
 
-const std::string MCInstAnalyzer::conditionToString(const cs_insn *inst) const {
+const std::string MCInstAnalyzer::conditionCodeToString(const cs_insn *inst) const {
     switch (inst->detail->arm.cc) {
         case ARM_CC_INVALID:
             return "Invalid";
@@ -180,5 +180,15 @@ const std::string MCInstAnalyzer::conditionToString(const cs_insn *inst) const {
         default:
             return "Unknown";
     }
+}
+bool MCInstAnalyzer::isDirectBranch(const cs_insn *inst) const {
+    if (inst->id == ARM_INS_CBZ || inst->id == ARM_INS_CBNZ) {
+        return true;
+    }
+    if (inst->detail->arm.op_count == 1
+        && inst->detail->arm.operands[0].type == ARM_OP_IMM) {
+        return true;
+    }
+    return false;
 }
 }
