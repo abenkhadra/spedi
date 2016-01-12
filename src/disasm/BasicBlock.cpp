@@ -17,10 +17,10 @@ namespace disasm {
 BasicBlock::BasicBlock(unsigned int id) :
     m_valid{false},
     m_id{id},
-    m_inst_count{0} { }
+    m_size{0} { }
 
 bool BasicBlock::isValid() const {
-    return m_valid && m_inst_count > 0;
+    return m_valid && m_inst_addrs.size() > 0;
 }
 
 unsigned BasicBlock::id() const {
@@ -28,32 +28,27 @@ unsigned BasicBlock::id() const {
 }
 
 const size_t BasicBlock::size() const {
-    return m_append_addr - m_start_addr;
+    return m_size;
 }
 
 bool BasicBlock::isAppendableBy(const cs_insn *inst) const {
-    return (inst->address == m_append_addr);
+    return (inst->address == startAddr() + m_size);
 }
 
 bool BasicBlock::isAppendableAt(const addr_t addr) const {
-    return (addr == m_append_addr);
+    return (addr == startAddr() + m_size);
 }
 
 size_t BasicBlock::instCount() const {
-    return m_inst_count;
+    return (m_inst_addrs.size());
 }
 
 addr_t BasicBlock::startAddr() const {
-    return m_start_addr;
+    return m_inst_addrs.front();
 }
 
 void BasicBlock::append(const cs_insn *inst) {
-    if (m_inst_count == 0) {
-        m_start_addr = inst->address;
-        m_append_addr = inst->address + inst->size;
-    } else {
-        m_append_addr += inst->size;
-    }
-    m_inst_count++;
+    m_inst_addrs.push_back(inst->address);
+    m_size += inst->size;
 }
 }

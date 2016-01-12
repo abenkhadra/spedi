@@ -57,7 +57,7 @@ public:
     const std::vector<MCInstSmall> &getInstructions() const;
     const std::vector<const MCInstSmall *>
         getInstructionsOf(BasicBlock &bblock);
-    const std::vector<addr_t>
+    const std::vector<addr_t> &
         getInstructionAddrsOf(const BasicBlock &bblock) const;
 
     const BranchData &branch() const {

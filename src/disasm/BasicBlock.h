@@ -49,8 +49,7 @@ private:
 private:
     bool m_valid;
     unsigned int m_id;
-    addr_t m_inst_count;
-    addr_t m_start_addr;
-    size_t m_append_addr;
+    std::vector<addr_t> m_inst_addrs;
+    size_t m_size;
 };
 }

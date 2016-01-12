@@ -243,15 +243,6 @@ bool MaximalBlockBuilder::isCleanReset() {
 }
 const std::vector<addr_t>
 MaximalBlockBuilder::getInstructionAddrsOf(const BasicBlock &bblock) const {
-    std::vector<addr_t> result;
-    auto current = bblock.startAddr();
-
-    for (auto iter = m_insts.begin(); iter < m_insts.end(); ++iter) {
-        if ((*iter).addr() == current) {
-            result.push_back(current);
-            current += (*iter).size();
-        }
-    }
-    return result;
+    return bblock.m_inst_addrs;
 }
 }

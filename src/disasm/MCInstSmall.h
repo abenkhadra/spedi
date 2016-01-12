@@ -49,7 +49,7 @@ public:
 private:
     unsigned int m_id;
     addr_t m_addr;
-    unsigned int m_size;
+    unsigned m_size;
     // Practically, we only need 4 bytes for RISC ISA. We can follow Capstone
     // to accommodate x86_64 which can reach 15 bytes.
 //    uint8_t m_bytes[4];

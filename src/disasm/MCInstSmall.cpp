@@ -12,7 +12,7 @@
 
 namespace disasm {
 
-MCInstSmall::MCInstSmall(const cs_insn *inst):
+MCInstSmall::MCInstSmall(const cs_insn *inst) :
     m_id{inst->id},
     m_addr{inst->address},
     m_size{inst->size},
@@ -28,14 +28,14 @@ MCInstSmall::id() const {
     return m_id;
 }
 
-const size_t &
-MCInstSmall::size() const {
-    return m_size;
-}
-
 const addr_t &
 MCInstSmall::addr() const {
     return m_addr;
+}
+
+const size_t &
+MCInstSmall::size() const {
+    return m_size;
 }
 
 bool
