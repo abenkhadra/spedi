@@ -9,10 +9,8 @@
 #pragma once
 
 #include "common.h"
+#include "capstone/capstone.h"
 #include <string>
-
-// Forward declaration to avoid including capstone.h as much as possible
-struct cs_insn;
 
 namespace disasm {
 
@@ -36,6 +34,8 @@ public:
 
     const addr_t &addr() const;
 
+    const arm_cc &condition() const;
+
     bool operator<(MCInstSmall other) const;
     bool operator==(MCInstSmall &other) const;
 
@@ -53,6 +53,7 @@ private:
     // Practically, we only need 4 bytes for RISC ISA. We can follow Capstone
     // to accommodate x86_64 which can reach 15 bytes.
 //    uint8_t m_bytes[4];
+    arm_cc m_condition;
     std::string m_mnemonic;
     std::string m_operands;
 };

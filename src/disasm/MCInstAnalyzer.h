@@ -57,7 +57,7 @@ public:
         return m_inst_width;
     }
 
-    const std::string conditionCodeToString(const cs_insn *inst) const;
+    const std::string conditionCodeToString(const arm_cc &condition) const;
 private:
     ISAType m_isa;
     ISAInstWidth m_inst_width;

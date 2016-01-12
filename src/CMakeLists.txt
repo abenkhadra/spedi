@@ -39,4 +39,5 @@ add_library(
         disasm/MaximalBlockBuilder.cpp disasm/MaximalBlockBuilder.h
         disasm/MCInstAnalyzer.cpp disasm/MCInstAnalyzer.h disasm/BranchData.cpp disasm/BranchData.h)
 
+#target_compile_options(disasm PRIVATE -fsanitize=address)
 add_dependencies(disasm elf++ dwarf++)

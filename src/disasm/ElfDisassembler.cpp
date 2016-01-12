@@ -79,7 +79,7 @@ void prettyPrintInst(const csh &handle, cs_insn *inst, bool details_enabled) {
 }
 
 void prettyPrintMaximalBlock
-    (const MaximalBlock &mblock) {
+    (const MaximalBlock &mblock, const MCInstAnalyzer &analyzer) {
     printf("**************************************\n");
     printf("MB No. %u, starts at %#6x",
            mblock.id(),
@@ -96,8 +96,13 @@ void prettyPrintMaximalBlock
         printf("\n");
     }
     for (auto &inst :mblock.getInstructions()) {
-        printf("0x%" PRIx64 ":\t%s\t\t%s \n",
+        printf("0x%" PRIx64 ":\t%s\t\t%s ",
                inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str());
+        if (inst.condition() != ARM_CC_AL) {
+            printf("/ condition: %s",
+                   analyzer.conditionCodeToString(inst.condition()).c_str());
+        }
+        printf("\n");
     }
     printf("Direct branch: %d, Conditional: %d",
            mblock.branch().isDirect(), mblock.branch().isConditional());
@@ -162,7 +167,7 @@ ElfDisassembler::disassembleSectionUsingSymbols
             // We assume that the value of code symbol type is strictly
             // either Data, ARM, or Thumb.
             parser.changeModeTo(CS_MODE_THUMB);
-            analyzer.setISA(ISAType::kARM);
+            analyzer.setISA(ISAType::kThumb);
         }
 
         while (parser.disasm2(&code_ptr, &size, &address, inst_ptr)) {
@@ -234,7 +239,7 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
                     max_block_builder.appendBranch(inst_ptr);
                     result.add(max_block_builder.build());
                     max_block_builder.reset();
-                    prettyPrintMaximalBlock(result.back());
+                    prettyPrintMaximalBlock(result.back(), analyzer);
                     if (!max_block_builder.isCleanReset()) {
                         printf("Overlap detected at MaxBlock %u \n",
                                result.back().id());

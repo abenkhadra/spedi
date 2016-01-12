@@ -16,6 +16,7 @@ MCInstSmall::MCInstSmall(const cs_insn *inst):
     m_id{inst->id},
     m_addr{inst->address},
     m_size{inst->size},
+    m_condition{inst->detail->arm.cc},
     m_mnemonic{inst->mnemonic},
     m_operands{inst->op_str} {
 
@@ -47,4 +48,7 @@ MCInstSmall::operator==(MCInstSmall &other) const {
     return (m_addr == other.addr());
 }
 
+const arm_cc &MCInstSmall::condition() const {
+    return m_condition;
+}
 }

@@ -143,8 +143,8 @@ ISAInstWidth MCInstAnalyzer::getMinxInstWidth(ISAType isa) const {
     }
 }
 
-const std::string MCInstAnalyzer::conditionCodeToString(const cs_insn *inst) const {
-    switch (inst->detail->arm.cc) {
+const std::string MCInstAnalyzer::conditionCodeToString(const arm_cc &condition) const {
+    switch (condition) {
         case ARM_CC_INVALID:
             return "Invalid";
         case ARM_CC_EQ:
