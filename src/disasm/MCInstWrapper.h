@@ -8,35 +8,37 @@
 
 #pragma once
 
+#include "common.h"
 #include <capstone/capstone.h>
 #include <memory>
 
 namespace disasm {
 
 /**
- * MCInst
+ * MCInstWrapper
  * A wrapper around capstone's cs_insn, composition was used instead of
  * inheritance to ensure compatiblity with C API.
  */
-class MCInst final{
+class MCInstWrapper final {
 public:
     /**
      * Allocates memory for cs_insn and frees memory in destructor.
      */
-    // TODO: refactor this class to be just a wrapper from POD ptr.
-    MCInst();
+    MCInstWrapper();
     /**
      * Owns a pointer to an already allocated cs_insn.
      */
-    explicit MCInst(cs_insn * instruction);
-    ~MCInst() = default;
-    MCInst(const MCInst &src) = delete;
-    MCInst &operator=(const MCInst &src) = delete;
-    MCInst(MCInst &&src) = default;
-    cs_insn*rawPtr();
+    explicit MCInstWrapper(cs_insn *instruction);
+    ~MCInstWrapper() = default;
+    MCInstWrapper(const MCInstWrapper &src) = delete;
+    MCInstWrapper &operator=(const MCInstWrapper &src) = delete;
+    MCInstWrapper(MCInstWrapper &&src) = default;
+    cs_insn *rawPtr();
+
+    bool isValid() const;
 
 private:
-    class MCInstDefaultDeleter {
+    class DefaultDeleter {
     public:
         void operator()(cs_insn *inst) {
             if (inst->detail != NULL) {
@@ -47,7 +49,6 @@ private:
             free(inst);
         }
     };
-    std::unique_ptr <cs_insn, MCInst::MCInstDefaultDeleter> m_inst;
+    std::unique_ptr<cs_insn, MCInstWrapper::DefaultDeleter> m_inst;
 };
-
 }

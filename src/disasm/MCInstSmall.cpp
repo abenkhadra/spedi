@@ -23,7 +23,7 @@ MCInstSmall::MCInstSmall(const cs_insn *inst):
 //    std::memcpy(m_bytes, inst->bytes, inst->size);
 }
 
-const unsigned int &
+const unsigned &
 MCInstSmall::id() const {
     return m_id;
 }

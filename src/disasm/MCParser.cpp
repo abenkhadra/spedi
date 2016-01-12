@@ -7,7 +7,7 @@
 // Copyright (c) 2015 University of Kaiserslautern.
 
 #include "MCParser.h"
-#include "MCInst.h"
+#include "MCInstWrapper.h"
 #include <cassert>
 
 namespace disasm {

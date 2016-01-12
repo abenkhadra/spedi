@@ -83,7 +83,7 @@ MaximalBlock MaximalBlockBuilder::build() {
         for (auto &bblock : m_bblocks) {
             if (!bblock.valid()) continue;
             if (valid_insts[i]) break;
-            for (auto addr : bblock.m_insts_addr) {
+            for (auto &addr : getInstructionAddrsOf(bblock)) {
                 if (m_insts[i].addr() == addr) {
                     valid_insts[i] = true;
                     break;
@@ -155,7 +155,7 @@ void MaximalBlockBuilder::reset() {
     for (unsigned i = 0; i < inst_count; ++i) {
         for (auto &bblock : overlap_blocks) {
             if (valid_insts[i]) break;
-            for (auto addr : bblock.m_insts_addr) {
+            for (auto &addr : getInstructionAddrsOf(bblock)) {
                 if (m_insts[i].addr() == addr) {
                     valid_insts[i] = true;
                     overlap_insts.push_back(m_insts[i]);
@@ -240,5 +240,18 @@ void MaximalBlockBuilder::setBranch(const cs_insn *inst) {
 }
 bool MaximalBlockBuilder::isCleanReset() {
     return !m_buildable && m_bblocks.size() == 0;
+}
+const std::vector<addr_t>
+MaximalBlockBuilder::getInstructionAddrsOf(const BasicBlock &bblock) const {
+    std::vector<addr_t> result;
+    auto current = bblock.startAddr();
+
+    for (auto iter = m_insts.begin(); iter < m_insts.end(); ++iter) {
+        if ((*iter).addr() == current) {
+            result.push_back(current);
+            current += (*iter).size();
+        }
+    }
+    return result;
 }
 }

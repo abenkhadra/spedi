@@ -12,45 +12,48 @@
 #include <cassert>
 #include <capstone/capstone.h>
 
-namespace disasm{
+namespace disasm {
 
 BasicBlock::BasicBlock(unsigned int id) :
     m_valid{false},
     m_id{id},
-    m_mem_size{0}
-{ }
-
+    m_inst_count{0} { }
 
 bool BasicBlock::valid() const {
-    return m_valid && (m_insts_addr.size() > 0) ;
+    return m_valid && m_inst_count > 0;
 }
 
-unsigned int BasicBlock::id() const {
+unsigned BasicBlock::id() const {
     return m_id;
 }
 
 const size_t BasicBlock::size() const {
-    return m_mem_size;
+    return m_append_addr - m_start_addr;
 }
 
 bool BasicBlock::isAppendableBy(const cs_insn *inst) const {
-    return (inst->address == startAddr() + m_mem_size);
+    return (inst->address == m_append_addr);
 }
 
 bool BasicBlock::isAppendableAt(const addr_t addr) const {
-    return (addr == startAddr() + m_mem_size);
+    return (addr == m_append_addr);
 }
 
 size_t BasicBlock::instCount() const {
-    return m_insts_addr.size();
+    return m_inst_count;
 }
 
 addr_t BasicBlock::startAddr() const {
-    return m_insts_addr[0];
+    return m_start_addr;
 }
 
 void BasicBlock::append(const cs_insn *inst) {
-    m_insts_addr.push_back(inst->address);
-    m_mem_size += inst->size;
+    if (m_inst_count == 0) {
+        m_start_addr = inst->address;
+        m_append_addr = inst->address + inst->size;
+    } else {
+        m_append_addr += inst->size;
+    }
+    m_inst_count++;
 }
 }

@@ -7,7 +7,7 @@
 // Copyright (c) 2015 University of Kaiserslautern.
 
 #include "ElfDisassembler.h"
-#include "MCInst.h"
+#include "MCInstWrapper.h"
 #include "MCParser.h"
 #include "MCInstAnalyzer.h"
 #include "MaximalBlockBuilder.h"
@@ -90,7 +90,7 @@ void prettyPrintMaximalBlock
     for (auto &block :mblock.getBasicBlocks()) {
         printf("Basic Block Id %u, inst count %lu\n / ",
                block.id(), block.instCount());
-        for (auto addr : block.getInstAddresses()) {
+        for (auto addr : mblock.getInstructionAddrsOf(block)) {
             printf(" Inst Addr: %#6x", static_cast<unsigned>(addr));
         }
         printf("\n");
@@ -136,7 +136,7 @@ ElfDisassembler::disassembleSectionUsingSymbols
 
     const uint8_t *code_ptr = (const uint8_t *) sec.data();
 
-    MCInst inst;
+    MCInstWrapper inst;
     cs_insn *inst_ptr = inst.rawPtr();
 
     printf("Section Name: %s\n", sec.get_name().c_str());
@@ -223,7 +223,7 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
     MCParser parser;
     parser.initialize(CS_ARCH_ARM, CS_MODE_THUMB, last_addr);
 
-    MCInst inst;
+    MCInstWrapper inst;
     cs_insn *inst_ptr = inst.rawPtr();
 
     MaximalBlockBuilder max_block_builder;

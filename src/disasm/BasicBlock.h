@@ -42,10 +42,6 @@ public:
     bool isAppendableAt(const addr_t addr) const;
     size_t instCount() const;
     addr_t startAddr() const;
-    const std::vector<addr_t> &getInstAddresses() const {
-        return m_insts_addr;
-    }
-
 
 private:
     void append(const cs_insn *inst);
@@ -53,7 +49,8 @@ private:
 private:
     bool m_valid;
     unsigned int m_id;
-    size_t m_mem_size;
-    std::vector<addr_t> m_insts_addr;
+    addr_t m_inst_count;
+    addr_t m_start_addr;
+    size_t m_append_addr;
 };
 }

@@ -55,7 +55,9 @@ public:
 
     //XXX: access should be to an iterator instead of a collection?
     const std::vector<MCInstSmall> &getInstructions() const;
-    const std::vector< MCInstSmall*> getInstructions(BasicBlock& bblock);
+    const std::vector<MCInstSmall *> getInstructionsOf(BasicBlock &bblock);
+    const std::vector<addr_t>
+        getInstructionAddrsOf(const BasicBlock &bblock) const;
 
     const BranchData &branch() const {
         return m_branch;

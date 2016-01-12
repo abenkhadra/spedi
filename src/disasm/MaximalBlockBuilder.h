@@ -79,6 +79,9 @@ public:
      */
     bool isCleanReset();
 
+    const std::vector<addr_t>
+        getInstructionAddrsOf(const BasicBlock &bblock) const;
+
 private:
     void setBranch(const cs_insn* inst);
 

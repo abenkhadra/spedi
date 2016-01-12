@@ -29,6 +29,36 @@ bool MaximalBlock::valid() const {
     return true;
 }
 
+const std::vector<MCInstSmall *>
+MaximalBlock::getInstructionsOf(BasicBlock &bblock) {
+    std::vector<MCInstSmall *> result;
+
+    auto current = bblock.startAddr();
+    for (auto iter = m_insts.begin(); iter < m_insts.end(); ++iter) {
+        if ((*iter).addr() == current) {
+            result.push_back(&(*iter));
+            current += (*iter).size();
+        }
+    }
+    return result;
+}
+
+const std::vector<addr_t>
+MaximalBlock::getInstructionAddrsOf(const BasicBlock &bblock) const {
+    std::vector<addr_t> result;
+
+    auto current = bblock.startAddr();
+
+    for (auto iter = m_insts.begin(); iter < m_insts.end(); ++iter) {
+        if ((*iter).addr() == current) {
+            result.push_back(current);
+            current += (*iter).size();
+        }
+    }
+    return result;
+}
+
+
 addr_t MaximalBlock::startAddr() const {
     return m_insts[0].addr();
 }
@@ -69,23 +99,7 @@ unsigned MaximalBlock::getInstructionCount() const {
     return static_cast<unsigned> (m_insts.size());
 }
 
-const std::vector<MCInstSmall *>
-MaximalBlock::getInstructions(BasicBlock &bblock) {
-    std::vector<MCInstSmall *> result;
-    std::vector<MCInstSmall>::iterator iter;
-    std::vector<MCInstSmall>::iterator current = m_insts.begin();
 
-    for (auto addr : bblock.m_insts_addr) {
-        for (iter = current; iter < m_insts.end(); ++iter) {
-            if ((*iter).addr() == addr) {
-                result.push_back(&(*iter));
-                current = iter;
-                break;
-            }
-        }
-    }
-    return result;
-}
 const bool MaximalBlock::isCovered(addr_t addr) const {
     return startAddr() <= addr && addr < startAddr() + m_bblocks[0].size();
 }

@@ -27,7 +27,7 @@ add_library(
 add_library(
         disasm STATIC
         disasm/ElfDisassembler.cpp disasm/ElfDisassembler.h
-        disasm/MCInst.cpp disasm/MCInst.h
+        disasm/MCInstWrapper.cpp disasm/MCInstWrapper.h
         disasm/ElfData.h
         disasm/MCInstSmall.cpp disasm/MCInstSmall.h
         disasm/Fragment.cpp disasm/Fragment.h
