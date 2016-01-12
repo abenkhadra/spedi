@@ -49,7 +49,8 @@ public:
 
     bool valid() const { return m_valid; }
     void disassembleCodeUsingSymbols() const;
-    void disassembleSectionUsingSymbols(const elf::section &sec) const;
+    SectionDisassembly
+        disassembleSectionUsingSymbols(const elf::section &sec) const;
 
     SectionDisassembly
         disassembleSectionSpeculative(const elf::section &sec) const;

@@ -114,7 +114,7 @@ void prettyPrintMaximalBlock
 
 }
 
-void
+SectionDisassembly
 ElfDisassembler::disassembleSectionUsingSymbols
     (const elf::section &sec) const {
 
@@ -145,6 +145,8 @@ ElfDisassembler::disassembleSectionUsingSymbols
     size_t address = 0;
     size_t size = 0;
     MCInstAnalyzer analyzer;
+    MaximalBlockBuilder max_block_builder;
+    SectionDisassembly result{&sec};
 
     for (auto &symbol : symbols) {
         index++;
@@ -171,15 +173,27 @@ ElfDisassembler::disassembleSectionUsingSymbols
         }
 
         while (parser.disasm2(&code_ptr, &size, &address, inst_ptr)) {
-            prettyPrintInst(parser.handle(), inst_ptr, false);
+
+//            prettyPrintInst(parser.handle(), inst_ptr, false);
             if (analyzer.isBranch(inst_ptr)) {
-                printf("Direct branch: %d, Conditional: %d  \n",
-                       analyzer.isDirectBranch(inst_ptr),
-                       analyzer.isConditional(inst_ptr));
-                printf("************************************\n");
+                max_block_builder.appendBranch(inst_ptr);
+                result.add(max_block_builder.build());
+                max_block_builder.reset();
+                prettyPrintMaximalBlock(result.back(), analyzer);
+                if (!max_block_builder.isCleanReset()) {
+                    printf("Overlap detected at MaxBlock %u \n",
+                           result.back().id());
+                }
+//                printf("Direct branch: %d, Conditional: %d  \n",
+//                       analyzer.isDirectBranch(inst_ptr),
+//                       analyzer.isConditional(inst_ptr));
+//                printf("************************************\n");
+            } else {
+                max_block_builder.append(inst_ptr);
             }
         }
     }
+    return result;
 }
 
 void

@@ -35,7 +35,7 @@ public:
     friend class MaximalBlockBuilder;
 
     unsigned int id() const;
-    bool valid() const ;
+    bool isValid() const;
     const size_t size() const;
 
     bool isAppendableBy(const cs_insn *inst) const;

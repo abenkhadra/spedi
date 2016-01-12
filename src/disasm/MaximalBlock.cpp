@@ -18,20 +18,19 @@ MaximalBlock::getBasicBlockMemSize(const unsigned int bb_id) const {
     return m_bblocks[bb_id].size();
 }
 
-bool MaximalBlock::valid() const {
+bool MaximalBlock::isValid() const {
     if (m_bblocks.size() == 0)
         return false;
 
     for (const BasicBlock &block: m_bblocks)
-        if (!block.valid())
+        if (!block.isValid())
             return false;
-
     return true;
 }
 
-const std::vector<MCInstSmall *>
+const std::vector<const MCInstSmall *>
 MaximalBlock::getInstructionsOf(BasicBlock &bblock) {
-    std::vector<MCInstSmall *> result;
+    std::vector<const MCInstSmall *> result;
 
     auto current = bblock.startAddr();
     for (auto iter = m_insts.begin(); iter < m_insts.end(); ++iter) {

@@ -64,7 +64,7 @@ MaximalBlock MaximalBlockBuilder::build() {
     std::vector<MCInstSmall> invalid_insts;
 
     for (const BasicBlock &bblock : m_bblocks) {
-        if (bblock.valid()) {
+        if (bblock.isValid()) {
             result.m_bblocks.push_back(bblock);
             result.m_bblocks.back().m_id = idx;
             idx++;
@@ -81,7 +81,7 @@ MaximalBlock MaximalBlockBuilder::build() {
     // an instruction is valid if it belongs to at least one valid block.
     for (unsigned i = 0; i < inst_count; ++i) {
         for (auto &bblock : m_bblocks) {
-            if (!bblock.valid()) continue;
+            if (!bblock.isValid()) continue;
             if (valid_insts[i]) break;
             for (auto &addr : getInstructionAddrsOf(bblock)) {
                 if (m_insts[i].addr() == addr) {

@@ -40,7 +40,7 @@ public:
      * MB is valid when all of its BBs are valid. A BB is valid when it
      * has a branch as last instruction.
      */
-    bool valid() const;
+    bool isValid() const;
     addr_t startAddr() const;
     void setType(const MaxBlockType type);
 
@@ -55,7 +55,8 @@ public:
 
     //XXX: access should be to an iterator instead of a collection?
     const std::vector<MCInstSmall> &getInstructions() const;
-    const std::vector<MCInstSmall *> getInstructionsOf(BasicBlock &bblock);
+    const std::vector<const MCInstSmall *>
+        getInstructionsOf(BasicBlock &bblock);
     const std::vector<addr_t>
         getInstructionAddrsOf(const BasicBlock &bblock) const;
 

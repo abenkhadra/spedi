@@ -19,7 +19,7 @@ BasicBlock::BasicBlock(unsigned int id) :
     m_id{id},
     m_inst_count{0} { }
 
-bool BasicBlock::valid() const {
+bool BasicBlock::isValid() const {
     return m_valid && m_inst_count > 0;
 }
 
