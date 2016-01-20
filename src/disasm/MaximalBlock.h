@@ -15,10 +15,10 @@
 
 namespace disasm {
 
-enum class MaxBlockType{
-    kData,
-    kMaybe,
-    kCode
+enum class MaximalBlockType: unsigned {
+    kData = 1,
+    kMaybe = 2,
+    kCode = 4
 };
 
 /**
@@ -28,7 +28,7 @@ class MaximalBlock {
 public:
     /**
      */
-    MaximalBlock() = default;
+    MaximalBlock();
     virtual ~MaximalBlock() = default;
     MaximalBlock(const MaximalBlock &src) = default;
     MaximalBlock &operator=(const MaximalBlock &src) = default;
@@ -41,47 +41,69 @@ public:
      * has a branch as last instruction.
      */
     bool isValid() const;
-    addr_t startAddr() const;
-    void setType(const MaxBlockType type);
+    void setType(const MaximalBlockType type);
+    const MaximalBlockType &getType() const;
 
-    const BasicBlock& getBasicBlockById(const unsigned bb_id) const;
-    const std::vector<BasicBlock>& getBasicBlocks() const;
+    const BasicBlock &getBasicBlockById(const unsigned bb_id) const;
+    const std::vector<BasicBlock> &getBasicBlocks() const;
     // getting size and memsize of getFragments are provided by the fragment itself.
     // providing the same for BBs, however, requires MB intervention!
     size_t getBasicBlockMemSize(const unsigned int bb_id) const;
 
     unsigned getBasicBlocksCount() const;
-    unsigned getInstructionCount() const;
+    unsigned instructionsCount() const;
 
     //XXX: access should be to an iterator instead of a collection?
-    const std::vector<MCInstSmall> &getInstructions() const;
+    /*
+     * return all instructions contained in the MB
+     */
+    const std::vector<MCInstSmall>
+        &getAllInstructions() const;
+    /*
+     * return the sequence of instructions starting from the known start address,
+     * If address is invalid then return an empty vector
+     */
+    std::vector<MCInstSmall>
+        getKnownInstructions() const;
+
     const std::vector<const MCInstSmall *>
         getInstructionsOf(BasicBlock &bblock);
     const std::vector<addr_t> &
-        getInstructionAddrsOf(const BasicBlock &bblock) const;
+        getInstructionAddressesOf(const BasicBlock &bblock) const;
 
-    const BranchData &branch() const {
-        return m_branch;
-    }
-    const unsigned & id() const ;
-    void setId(unsigned id);
+    const BranchData &getBranch() const;
+    const unsigned &getId() const;
+
     /*
      * return true if the given address falls inside the address space
      * covered by MB
      */
-    const bool isCovered(addr_t addr) const;
+    const bool isWithinAddressSpace(addr_t addr) const;
 
     /*
      * return the address of last instruction
      */
-    const addr_t lastInstAddr() const;
+    addr_t getAddrOfLastInst() const;
+
+    addr_t getAddrOfFirstInst() const;
+
+    addr_t getEndAddr() const;
+    bool isInstructionAddress(const addr_t &&inst_addr) const;
+    bool isInstructionAddress(const addr_t &inst_addr) const;
+    const addr_t &getKnownStartAddr() const;
+
+    bool startOverlapsWith(const MaximalBlock &prev_block) const;
+    bool startOverlapsWith(const MaximalBlock *prev_block) const;
+    bool coversAddressSpaceOf(const MaximalBlock &block) const;
+    bool coversAddressSpaceOf(const MaximalBlock *block) const;
 
 private:
     explicit MaximalBlock(unsigned int id, const BranchData &branch);
 
 private:
     unsigned int m_id;
-    MaxBlockType m_type;
+    MaximalBlockType m_type;
+    addr_t m_start_addr;
     BranchData m_branch;
     std::vector<MCInstSmall> m_insts;
     std::vector<BasicBlock> m_bblocks;

@@ -1,8 +1,10 @@
 #include "binutils/elf/elf++.hh"
 #include "disasm/ElfDisassembler.h"
 #include "disasm/ElfData.h"
+#include <disasm/analysis/SectionDisassemblyAnalyzer.h>
 #include <fcntl.h>
 #include <util/cmdline.h>
+
 
 struct ConfigConsts {
     const std::string kFile;
@@ -13,7 +15,7 @@ struct ConfigConsts {
     ConfigConsts() : kFile{"file"},
                      kNoSymbols{"no-symbols"},
                      kSpeculative{"speculative"},
-                     kText{"text"}{ }
+                     kText{"text"} { }
 };
 
 int main(int argc, char **argv) {
@@ -21,10 +23,10 @@ int main(int argc, char **argv) {
 
     cmdline::parser cmd_parser;
     cmd_parser.add<std::string>(config.kFile,
-                           'f',
-                           "Path to an ARM ELF file to be disassembled",
-                           true,
-                           "");
+                                'f',
+                                "Path to an ARM ELF file to be disassembled",
+                                true,
+                                "");
     cmd_parser.add(config.kSpeculative, 's',
                    "Show all 'valid' disassembly");
 
@@ -54,16 +56,23 @@ int main(int argc, char **argv) {
     if (cmd_parser.exist(config.kSpeculative)) {
         std::cout << "Speculative disassembly of file: "
             << file_path << "\n";
-        if (cmd_parser.exist(config.kText))
-            disassembler.disassembleSectionbyNameSpeculative(".text");
-        else
+        if (cmd_parser.exist(config.kText)) {
+            auto result =
+                disassembler.disassembleSectionbyNameSpeculative(".text");
+            disasm::SectionDisassemblyAnalyzer
+                analyzer{&result, disassembler.getExecutableRegion()};
+            analyzer.BuildCFG();
+            disassembler.prettyPrintSectionDisassembly(result);
+        } else {
             disassembler.disassembleCodeSpeculative();
+        }
 
     } else if (disassembler.isSymbolTableAvailable()) {
         std::cout << "Disassembly using symbol table of file: "
             << file_path << "\n";
         if (cmd_parser.exist(config.kText)) {
-            disassembler.disassembleSectionbyName(".text");
+            auto result = disassembler.disassembleSectionbyName(".text");
+            disassembler.prettyPrintSectionDisassembly(result);
         } else
             disassembler.disassembleCodeUsingSymbols();
     } else

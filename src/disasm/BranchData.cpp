@@ -17,7 +17,7 @@ BranchData::BranchData() :
     m_target{0} {
 }
 
-bool BranchData::isValid() const {
-    return m_target != 0;
-}
+//bool BranchData::isValid() const {
+//    return m_target != 0;
+//}
 }

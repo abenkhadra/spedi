@@ -29,17 +29,17 @@ public:
     BranchData &operator=(const BranchData &src) = default;
     BranchData(BranchData &&src) = default;
 
-    bool isValid() const;
-    bool isConditional() const { return m_conditional_branch; }
-    bool isDirect() const { return m_direct_branch; }
+//    bool isValid() const;
+    const bool &isConditional() const { return m_conditional_branch; }
+    const bool &isDirect() const { return m_direct_branch; }
     // precondition: valid only for direct branch
-    int getTarget() const { return m_target; }
+    const addr_t &getTarget() const { return m_target; }
     friend class MaximalBlockBuilder;
 
 private:
     bool m_direct_branch;
     bool m_conditional_branch;
-    int m_target;
+    size_t m_target;
 };
 }
 

@@ -10,8 +10,9 @@
 
 namespace disasm {
 
-MCInstAnalyzer::MCInstAnalyzer(ISAType isa) : m_isa{isa} {
-    m_inst_width = getMinxInstWidth(isa);
+MCInstAnalyzer::MCInstAnalyzer(ISAType isa) :
+    m_isa{isa},
+    m_inst_width{getMinxInstWidth(isa)} {
 }
 
 bool MCInstAnalyzer::isBranch(const cs_insn *inst) const {
@@ -190,5 +191,16 @@ bool MCInstAnalyzer::isDirectBranch(const cs_insn *inst) const {
         return true;
     }
     return false;
+}
+void MCInstAnalyzer::setISA(const ISAType isa) {
+    m_isa = isa;
+    m_inst_width = getMinxInstWidth(isa);
+}
+void MCInstAnalyzer::changeModeTo(const ISAType &isa) {
+    if (isa == ISAType::kARM) {
+        m_isa = ISAType::kARM;
+    } else {
+        m_isa = ISAType::kThumb;
+    }
 }
 }

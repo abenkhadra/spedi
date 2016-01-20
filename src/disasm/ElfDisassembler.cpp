@@ -11,6 +11,7 @@
 #include "MCParser.h"
 #include "MCInstAnalyzer.h"
 #include "MaximalBlockBuilder.h"
+#include "ElfData.h"
 #include <inttypes.h>
 #include <algorithm>
 
@@ -21,6 +22,7 @@ ElfDisassembler::ElfDisassembler() : m_valid{false} { }
 ElfDisassembler::ElfDisassembler(const elf::elf &elf_file) :
     m_valid{true},
     m_elf_file{&elf_file} {
+    m_analyzer.setISA(getElfMachineArch());
 }
 
 void
@@ -34,84 +36,38 @@ printHex(unsigned char *str, size_t len) {
     printf("\n");
 }
 
-
-void prettyPrintInst(const csh &handle, cs_insn *inst, bool details_enabled) {
-
-    cs_detail *detail;
-    int n;
-
-    printf("0x%" PRIx64 ":\t%s\t\t%s // insn-ID: %u, insn-mnem: %s\n",
-           inst->address, inst->mnemonic, inst->op_str,
-           inst->id, cs_insn_name(handle, inst->id));
-
-    if (!details_enabled) {
-        return;
-    }
-    // print implicit registers used by this instruction
-    detail = inst->detail;
-    if (detail == NULL) return;
-
-    if (detail->regs_read_count > 0) {
-        printf("\tImplicit registers read: ");
-        for (n = 0; n < detail->regs_read_count; n++) {
-            printf("%s ", cs_reg_name(handle, detail->regs_read[n]));
-        }
-        printf("\n");
-    }
-
-    // print implicit registers modified by this instruction
-    if (detail->regs_write_count > 0) {
-        printf("\tImplicit registers modified: ");
-        for (n = 0; n < detail->regs_write_count; n++) {
-            printf("%s ", cs_reg_name(handle, detail->regs_write[n]));
-        }
-        printf("\n");
-    }
-
-    // print the groups this instruction belong to
-    if (detail->groups_count > 0) {
-        printf("\tThis instruction belongs to groups: ");
-        for (n = 0; n < detail->groups_count; n++) {
-            printf("%s ", cs_group_name(handle, detail->groups[n]));
-        }
-        printf("\n");
-    }
-}
-
-void prettyPrintMaximalBlock
-    (const MaximalBlock &mblock, const MCInstAnalyzer &analyzer) {
+void ElfDisassembler::prettyPrintMaximalBlock(const MaximalBlock &mblock) const {
     printf("**************************************\n");
-    printf("MB No. %u, starts at %#6x",
-           mblock.id(),
-           static_cast<unsigned int> (mblock.startAddr()));
+    printf("MB No. %u, Type: %u. Starts at %#6x",
+           mblock.getId(), mblock.getType(),
+           static_cast<unsigned int> (mblock.getAddrOfFirstInst()));
     printf(" / BB count. %u, Total inst count %u: \n",
-           mblock.getBasicBlocksCount(), mblock.getInstructionCount());
+           mblock.getBasicBlocksCount(), mblock.instructionsCount());
 
     for (auto &block :mblock.getBasicBlocks()) {
         printf("Basic Block Id %u, inst count %lu\n / ",
                block.id(), block.instCount());
-        for (auto addr : mblock.getInstructionAddrsOf(block)) {
+        for (auto addr : mblock.getInstructionAddressesOf(block)) {
             printf(" Inst Addr: %#6x", static_cast<unsigned>(addr));
         }
         printf("\n");
     }
-    for (auto &inst :mblock.getInstructions()) {
+    for (auto &inst :mblock.getAllInstructions()) {
         printf("0x%" PRIx64 ":\t%s\t\t%s ",
                inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str());
         if (inst.condition() != ARM_CC_AL) {
             printf("/ condition: %s",
-                   analyzer.conditionCodeToString(inst.condition()).c_str());
+                   m_analyzer.conditionCodeToString(inst.condition()).c_str());
         }
         printf("\n");
     }
     printf("Direct branch: %d, Conditional: %d",
-           mblock.branch().isDirect(), mblock.branch().isConditional());
-    if (mblock.branch().isDirect()) {
+           mblock.getBranch().isDirect(), mblock.getBranch().isConditional());
+    if (mblock.getBranch().isDirect()) {
         printf(", Target: 0x%x",
-               static_cast<unsigned>(mblock.branch().getTarget()));
+               static_cast<unsigned>(mblock.getBranch().getTarget()));
     }
     printf("\n");
-
 }
 
 SectionDisassembly
@@ -120,7 +76,7 @@ ElfDisassembler::disassembleSectionUsingSymbols
 
     // a type_mismatch exception would thrown in case symbol table was not found.
     // We assume that symbols are ordered by their address.
-    auto symbols = getCodeSymbolsForSection(sec);
+    auto symbols = getCodeSymbolsOfSection(sec);
 
 //    printf("Symbols size is %lu \n", symbols.size());
 //
@@ -144,7 +100,6 @@ ElfDisassembler::disassembleSectionUsingSymbols
     size_t index = 0;
     size_t address = 0;
     size_t size = 0;
-    MCInstAnalyzer analyzer;
     MaximalBlockBuilder max_block_builder;
     SectionDisassembly result{&sec};
 
@@ -164,25 +119,25 @@ ElfDisassembler::disassembleSectionUsingSymbols
 
         if (symbol.second == ARMCodeSymbolType::kARM) {
             parser.changeModeTo(CS_MODE_ARM);
-            analyzer.setISA(ISAType::kARM);
+            m_analyzer.changeModeTo(ISAType::kARM);
         } else {
             // We assume that the value of code symbol type is strictly
             // either Data, ARM, or Thumb.
             parser.changeModeTo(CS_MODE_THUMB);
-            analyzer.setISA(ISAType::kThumb);
+            m_analyzer.changeModeTo(ISAType::kThumb);
         }
 
         while (parser.disasm2(&code_ptr, &size, &address, inst_ptr)) {
 
 //            prettyPrintInst(parser.handle(), inst_ptr, false);
-            if (analyzer.isBranch(inst_ptr)) {
+            if (m_analyzer.isBranch(inst_ptr)) {
                 max_block_builder.appendBranch(inst_ptr);
                 result.add(max_block_builder.build());
                 max_block_builder.reset();
-                prettyPrintMaximalBlock(result.back(), analyzer);
+//                prettyPrintMaximalBlock(result.back());
                 if (!max_block_builder.isCleanReset()) {
                     printf("Overlap detected at MaxBlock %u \n",
-                           result.back().id());
+                           result.back().getId());
                 }
 //                printf("Direct branch: %d, Conditional: %d  \n",
 //                       analyzer.isDirectBranch(inst_ptr),
@@ -196,22 +151,21 @@ ElfDisassembler::disassembleSectionUsingSymbols
     return result;
 }
 
-void
+SectionDisassembly
 ElfDisassembler::disassembleSectionbyName(std::string sec_name) const {
     for (auto &sec : m_elf_file->sections()) {
         if (sec.get_name() == sec_name) {
-            disassembleSectionUsingSymbols(sec);
-            break;
+            return disassembleSectionUsingSymbols(sec);
         }
     }
 }
 
-void
+SectionDisassembly
 ElfDisassembler::disassembleSectionbyNameSpeculative(std::string sec_name) const {
     for (auto &sec : m_elf_file->sections()) {
         if (sec.get_name() == sec_name) {
-            disassembleSectionSpeculative(sec);
-            break;
+            return disassembleSectionSpeculative(sec);
+
         }
     }
 }
@@ -241,30 +195,29 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
     cs_insn *inst_ptr = inst.rawPtr();
 
     MaximalBlockBuilder max_block_builder;
-    MCInstAnalyzer analyzer(ISAType::kThumb);
 
     SectionDisassembly result{&sec};
     // we need to maintain the invariant that for whatever MB in the result
     // its start address should be > than the start address of the next MB.
     while (current < last_addr) {
         if (parser.disasm(code_ptr, buf_size, current, inst_ptr)) {
-            if (analyzer.isValid(inst_ptr)) {
-                if (analyzer.isBranch(inst_ptr)) {
+            if (m_analyzer.isValid(inst_ptr)) {
+                if (m_analyzer.isBranch(inst_ptr)) {
                     max_block_builder.appendBranch(inst_ptr);
                     result.add(max_block_builder.build());
                     max_block_builder.reset();
-                    prettyPrintMaximalBlock(result.back(), analyzer);
+//                    prettyPrintMaximalBlock(result.back());
                     if (!max_block_builder.isCleanReset()) {
                         printf("Overlap detected at MaxBlock %u \n",
-                               result.back().id());
+                               result.back().getId());
                     }
                 } else {
                     max_block_builder.append(inst_ptr);
                 }
             }
         }
-        current += static_cast<unsigned>(analyzer.getInstWidth());
-        code_ptr += static_cast<unsigned>(analyzer.getInstWidth());
+        current += static_cast<unsigned>(m_analyzer.getInstWidth());
+        code_ptr += static_cast<unsigned>(m_analyzer.getInstWidth());
     }
     return result;
 }
@@ -281,7 +234,7 @@ ElfDisassembler::disassembleCodeSpeculative() const {
 }
 
 std::vector<std::pair<size_t, ARMCodeSymbolType>>
-ElfDisassembler::getCodeSymbolsForSection(const elf::section &sec) const {
+ElfDisassembler::getCodeSymbolsOfSection(const elf::section &sec) const {
 
     std::vector<std::pair<size_t, ARMCodeSymbolType>> result;
     // Check for symbol table, if none was found then
@@ -333,8 +286,85 @@ ElfDisassembler::isSymbolTableAvailable() {
     return sym_sec.valid();
 }
 
-ISAType ElfDisassembler::getInitialISAType() const {
+ISAType ElfDisassembler::getInitialMode() const {
     if (m_elf_file->get_hdr().entry & 1) return ISAType::kThumb;
     else return ISAType::kARM;
+}
+
+const std::pair<addr_t, addr_t>
+ElfDisassembler::getExecutableRegion() {
+    addr_t start_addr = UINT64_MAX;
+    addr_t end_addr = 0;
+    for (auto &sec : m_elf_file->sections()) {
+        if (sec.is_alloc() && sec.is_exec()) {
+            if (sec.get_hdr().addr < start_addr) {
+                start_addr = sec.get_hdr().addr;
+            }
+            if (end_addr < sec.get_hdr().addr + sec.get_hdr().size) {
+                end_addr = sec.get_hdr().addr + sec.get_hdr().size;
+            }
+        }
+    }
+    return std::pair<disasm::addr_t, disasm::addr_t>(start_addr, end_addr);
+}
+
+ISAType
+ElfDisassembler::getElfMachineArch() const {
+    switch (static_cast<elf::ElfISA>(m_elf_file->get_hdr().machine)) {
+        case elf::ElfISA::kARM :
+            return getInitialMode();
+
+        default:
+            return ISAType::kUnknown;
+    }
+}
+void ElfDisassembler::prettyPrintCapstoneInst(const csh &handle,
+                                              cs_insn *inst,
+                                              bool details_enabled) const {
+    cs_detail *detail;
+    int n;
+
+    printf("0x%" PRIx64 ":\t%s\t\t%s // insn-ID: %u, insn-mnem: %s\n",
+           inst->address, inst->mnemonic, inst->op_str,
+           inst->id, cs_insn_name(handle, inst->id));
+
+    if (!details_enabled) {
+        return;
+    }
+    // print implicit registers used by this instruction
+    detail = inst->detail;
+    if (detail == NULL) return;
+
+    if (detail->regs_read_count > 0) {
+        printf("\tImplicit registers read: ");
+        for (n = 0; n < detail->regs_read_count; n++) {
+            printf("%s ", cs_reg_name(handle, detail->regs_read[n]));
+        }
+        printf("\n");
+    }
+
+    // print implicit registers modified by this instruction
+    if (detail->regs_write_count > 0) {
+        printf("\tImplicit registers modified: ");
+        for (n = 0; n < detail->regs_write_count; n++) {
+            printf("%s ", cs_reg_name(handle, detail->regs_write[n]));
+        }
+        printf("\n");
+    }
+
+    // print the groups this instruction belong to
+    if (detail->groups_count > 0) {
+        printf("\tThis instruction belongs to groups: ");
+        for (n = 0; n < detail->groups_count; n++) {
+            printf("%s ", cs_group_name(handle, detail->groups[n]));
+        }
+        printf("\n");
+    }
+}
+void ElfDisassembler::prettyPrintSectionDisassembly
+    (const SectionDisassembly &sec_disasm) const {
+    for (auto it = sec_disasm.cbegin(); it < sec_disasm.cend(); ++it) {
+        prettyPrintMaximalBlock(*it);
+    }
 }
 }

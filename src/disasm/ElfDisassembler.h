@@ -9,6 +9,7 @@
 #pragma once
 #include "SectionDisassembly.h"
 #include "binutils/elf/elf++.hh"
+#include "MCInstAnalyzer.h"
 
 namespace disasm {
 
@@ -41,7 +42,7 @@ public:
      * Prepares input file for disassembly.
      * Precondition: file is a valid ELF file.
      */
-    explicit ElfDisassembler(const elf::elf& elf_file);
+    explicit ElfDisassembler(const elf::elf &elf_file);
     virtual ~ElfDisassembler() = default;
     ElfDisassembler(const ElfDisassembler &src) = delete;
     ElfDisassembler &operator=(const ElfDisassembler &src) = delete;
@@ -56,8 +57,10 @@ public:
         disassembleSectionSpeculative(const elf::section &sec) const;
     std::vector<SectionDisassembly> disassembleCodeSpeculative() const;
 
-    void disassembleSectionbyName(std::string sec_name) const;
-    void disassembleSectionbyNameSpeculative(std::string sec_name) const;
+    SectionDisassembly disassembleSectionbyName(std::string sec_name) const;
+    SectionDisassembly
+        disassembleSectionbyNameSpeculative(std::string sec_name) const;
+    const std::pair<addr_t, addr_t> getExecutableRegion();
 
     bool isSymbolTableAvailable();
 
@@ -65,15 +68,24 @@ public:
      * Return the type of code at the initial address of executable.
      * needed to distinguish ARM/Thumb.
      */
-    ISAType getInitialISAType() const;
+    ISAType getInitialMode() const;
+
+    ISAType getElfMachineArch() const;
+
+    void prettyPrintMaximalBlock
+        (const MaximalBlock &mblock) const;
+    void prettyPrintSectionDisassembly
+        (const SectionDisassembly &sec_disasm) const;
 
 private:
-
+    void prettyPrintCapstoneInst
+        (const csh &handle, cs_insn *inst, bool details_enabled) const;
     std::vector<std::pair<size_t, ARMCodeSymbolType>>
-        getCodeSymbolsForSection(const elf::section &sec) const;
+        getCodeSymbolsOfSection(const elf::section &sec) const;
 
 private:
     bool m_valid;
-    const elf::elf* m_elf_file;
+    mutable MCInstAnalyzer m_analyzer;
+    const elf::elf *m_elf_file;
 };
 }

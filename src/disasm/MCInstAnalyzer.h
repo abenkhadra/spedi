@@ -49,10 +49,11 @@ public:
     const ISAType &getISA() const {
         return m_isa;
     }
-    void setISA(const ISAType &isa) {
-        m_isa = isa;
-        m_inst_width = getMinxInstWidth(isa);
-    }
+
+    void setISA(const ISAType isa);
+
+    // valid only for ARM architecture which has two modes Thumb & ARM
+    void changeModeTo(const ISAType &isa);
     const ISAInstWidth &getInstWidth() const {
         return m_inst_width;
     }
