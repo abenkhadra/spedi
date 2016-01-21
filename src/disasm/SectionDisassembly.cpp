@@ -28,7 +28,7 @@ SectionDisassembly::startAddr() const {
 }
 
 const size_t
-SectionDisassembly::size() const {
+SectionDisassembly::sectionSize() const {
     return m_section->size();
 }
 
@@ -48,6 +48,7 @@ void SectionDisassembly::add(MaximalBlock &&max_block) {
                && "invalid index of maximal block");
     m_max_blocks.emplace_back(max_block);
 }
+
 const MaximalBlock &
 SectionDisassembly::back() const {
     return m_max_blocks.back();
@@ -55,7 +56,7 @@ SectionDisassembly::back() const {
 addr_t
 SectionDisassembly::virtualAddrOf(const uint8_t *ptr) const {
     assert(data() <= ptr
-               && ptr < data() + size()
+               && ptr < data() + sectionSize()
                && "Invalid pointer !!!");
     return startAddr() + (ptr - data());
 }
@@ -63,7 +64,7 @@ SectionDisassembly::virtualAddrOf(const uint8_t *ptr) const {
 const uint8_t *
 SectionDisassembly::physicalAddrOf(const addr_t virtual_addr) const {
     assert(startAddr() <= virtual_addr
-               && virtual_addr < startAddr() + size()
+               && virtual_addr < startAddr() + sectionSize()
                && "Invalid virtual address !!!");
     return data() + (virtual_addr - startAddr());
 }
@@ -90,5 +91,12 @@ std::vector<MaximalBlock>::const_iterator SectionDisassembly::cbegin() const {
 }
 std::vector<MaximalBlock>::const_iterator SectionDisassembly::cend() const {
     return m_max_blocks.cend();
+}
+bool SectionDisassembly::isWithinSectionAddressSpace(const addr_t &addr) const {
+    return m_section->get_hdr().addr <= addr &&
+        addr < m_section->get_hdr().addr + m_section->get_hdr().size;
+}
+size_t SectionDisassembly::maximalBlockCount() const {
+    return m_max_blocks.size();
 }
 }

@@ -47,12 +47,13 @@ public:
     /*
      * size of section in bytes
      */
-    const size_t size() const;
+    const size_t sectionSize() const;
     /*
      * return a pointer to the beginning of bytes of the section
      */
     const uint8_t *data() const;
 
+    size_t maximalBlockCount() const;
     void add(const MaximalBlock &max_block);
     void add(MaximalBlock &&max_block);
     const MaximalBlock &back() const;
@@ -62,6 +63,7 @@ public:
 
     bool isLast(const MaximalBlock &max_block) const;
     bool isFirst(const MaximalBlock &max_block) const;
+    bool isWithinSectionAddressSpace(const addr_t & addr) const;
 
 private:
     bool m_valid;

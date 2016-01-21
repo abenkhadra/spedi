@@ -16,10 +16,10 @@ namespace disasm {
  */
 class SectionDisassemblyAnalyzer {
 public:
+    SectionDisassemblyAnalyzer() = delete;
     explicit SectionDisassemblyAnalyzer
         (SectionDisassembly *sec_disasm,
          const std::pair<addr_t, addr_t> &exec_region);
-    SectionDisassemblyAnalyzer() = delete;
     virtual ~SectionDisassemblyAnalyzer() = default;
     SectionDisassemblyAnalyzer(const SectionDisassemblyAnalyzer &src) = default;
     SectionDisassemblyAnalyzer
@@ -31,7 +31,7 @@ public:
     MaximalBlock *getRemoteSuccessor(const MaximalBlock &block,
                                      const addr_t &target) const;
     void RefineMaximalBlocks(std::vector<addr_t> &known_code_addrs) const;
-    bool isValidCodeAddr(const addr_t &addr) const;
+    bool isValidCodeAddr(addr_t addr) const;
     /*
      * valid only after building analysis facts;
      */

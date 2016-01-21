@@ -30,10 +30,10 @@ public:
     BranchData(BranchData &&src) = default;
 
 //    bool isValid() const;
-    const bool &isConditional() const { return m_conditional_branch; }
-    const bool &isDirect() const { return m_direct_branch; }
+    bool isConditional() const { return m_conditional_branch; }
+    bool isDirect() const { return m_direct_branch; }
     // precondition: valid only for direct branch
-    const addr_t &getTarget() const { return m_target; }
+    addr_t getTarget() const { return m_target; }
     friend class MaximalBlockBuilder;
 
 private:

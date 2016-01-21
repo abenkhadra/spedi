@@ -28,11 +28,11 @@ public:
     MCInstSmall &operator=(const MCInstSmall &src) = default;
     MCInstSmall(MCInstSmall &&src) = default;
 
-    const unsigned &id() const;
+    unsigned id() const;
 
-    const size_t &size() const;
+    size_t size() const;
 
-    const addr_t &addr() const;
+    addr_t addr() const;
 
     const arm_cc &condition() const;
 

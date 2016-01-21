@@ -88,8 +88,7 @@ public:
     addr_t getAddrOfFirstInst() const;
 
     addr_t getEndAddr() const;
-    bool isInstructionAddress(const addr_t &&inst_addr) const;
-    bool isInstructionAddress(const addr_t &inst_addr) const;
+    bool isInstructionAddress(const addr_t inst_addr) const;
     const addr_t &getKnownStartAddr() const;
 
     bool startOverlapsWith(const MaximalBlock &prev_block) const;

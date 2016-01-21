@@ -23,17 +23,17 @@ MCInstSmall::MCInstSmall(const cs_insn *inst) :
 //    std::memcpy(m_bytes, inst->bytes, inst->size);
 }
 
-const unsigned &
+unsigned
 MCInstSmall::id() const {
     return m_id;
 }
 
-const addr_t &
+addr_t
 MCInstSmall::addr() const {
     return m_addr;
 }
 
-const size_t &
+size_t
 MCInstSmall::size() const {
     return m_size;
 }

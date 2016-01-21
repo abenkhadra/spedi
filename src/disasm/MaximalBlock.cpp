@@ -131,7 +131,7 @@ std::vector<MCInstSmall> MaximalBlock::getKnownInstructions() const {
 }
 
 addr_t MaximalBlock::getEndAddr() const {
-    return m_insts.back().addr() + m_insts.back().size();
+    return (m_insts.back().addr() + m_insts.back().size());
 }
 
 bool MaximalBlock::startOverlapsWith(const MaximalBlock &prev_block) const {
@@ -152,23 +152,12 @@ bool MaximalBlock::coversAddressSpaceOf(const MaximalBlock *block) const {
         && getEndAddr() > block->getEndAddr();
 }
 
-bool MaximalBlock::isInstructionAddress(const addr_t &inst_addr) const {
+bool MaximalBlock::isInstructionAddress(const addr_t inst_addr) const {
     if (inst_addr < getAddrOfFirstInst()) {
         return false;
     }
-    for (auto &inst: m_insts) {
-        if (inst.addr() == inst_addr) {
-            return true;
-        }
-    }
-    return false;
-}
-bool MaximalBlock::isInstructionAddress(const addr_t &&inst_addr) const {
-    if (inst_addr < getAddrOfFirstInst()) {
-        return false;
-    }
-    for (auto &inst: m_insts) {
-        if (inst.addr() == inst_addr) {
+    for (auto it = m_insts.cbegin(); it < m_insts.cend(); ++it) {
+        if ((*it).addr() == inst_addr) {
             return true;
         }
     }
