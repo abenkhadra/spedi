@@ -32,11 +32,11 @@ const size_t BasicBlock::size() const {
 }
 
 bool BasicBlock::isAppendableBy(const cs_insn *inst) const {
-    return (inst->address == startAddr() + m_size);
+    return (inst->address == endAddr());
 }
 
 bool BasicBlock::isAppendableAt(const addr_t addr) const {
-    return (addr == startAddr() + m_size);
+    return (addr == endAddr());
 }
 
 size_t BasicBlock::instCount() const {
@@ -50,5 +50,8 @@ addr_t BasicBlock::startAddr() const {
 void BasicBlock::append(const cs_insn *inst) {
     m_inst_addrs.push_back(inst->address);
     m_size += inst->size;
+}
+addr_t BasicBlock::endAddr() const {
+    return m_inst_addrs.front() + m_size;
 }
 }

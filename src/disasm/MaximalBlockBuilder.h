@@ -78,6 +78,11 @@ public:
      * Return true on clean (no overlap) reset, false otherwise.
      */
     bool isCleanReset();
+    /*
+     * First address after the end of maximal block. Valid only if there are is
+     * at least one instruction in the MaximalBlock.
+     */
+    addr_t endAddr() const;
 
     const std::vector<addr_t>
         getInstructionAddrsOf(const BasicBlock &bblock) const;

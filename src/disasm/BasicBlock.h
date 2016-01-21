@@ -42,7 +42,7 @@ public:
     bool isAppendableAt(const addr_t addr) const;
     size_t instCount() const;
     addr_t startAddr() const;
-
+    addr_t endAddr() const;
 private:
     void append(const cs_insn *inst);
 

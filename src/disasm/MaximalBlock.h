@@ -83,11 +83,11 @@ public:
     /*
      * return the address of last instruction
      */
-    addr_t getAddrOfLastInst() const;
+    addr_t addrOfLastInst() const;
 
-    addr_t getAddrOfFirstInst() const;
+    addr_t addrOfFirstInst() const;
 
-    addr_t getEndAddr() const;
+    addr_t endAddr() const;
     bool isInstructionAddress(const addr_t inst_addr) const;
     const addr_t &getKnownStartAddr() const;
 

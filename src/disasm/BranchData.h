@@ -39,7 +39,7 @@ public:
 private:
     bool m_direct_branch;
     bool m_conditional_branch;
-    size_t m_target;
+    addr_t m_target;
 };
 }
 

@@ -72,7 +72,7 @@ SectionDisassemblyAnalyzer::getDirectSuccessor(const MaximalBlock &block) const 
     }
     auto direct_succ =
         m_sec_disassembly->ptrToMaximalBlockAt(block.getId() + 1);
-    if (direct_succ->isInstructionAddress(block.getEndAddr())) {
+    if (direct_succ->isInstructionAddress(block.endAddr())) {
         return direct_succ;
     }
     // ideally, a direct successor should be the next MaximalBlock but that
@@ -82,7 +82,7 @@ SectionDisassemblyAnalyzer::getDirectSuccessor(const MaximalBlock &block) const 
     }
     auto direct_succ2 =
         m_sec_disassembly->ptrToMaximalBlockAt(block.getId() + 2);
-    if (direct_succ2->isInstructionAddress(block.getEndAddr())) {
+    if (direct_succ2->isInstructionAddress(block.endAddr())) {
         return direct_succ2;
     }
     printf("ERROR10: Direct successor was not found\n");
@@ -101,7 +101,7 @@ SectionDisassemblyAnalyzer::getRemoteSuccessor(const MaximalBlock &block,
     size_t last = m_sec_disassembly->maximalBlockCount() - 1;
     size_t middle = (first + last)/2;
 //    // direct branches usually happen to a nearby address
-//    if (block.getAddrOfLastInst() < target) {
+//    if (block.addrOfLastInst() < target) {
 //        middle = block.getId() + 100;
 //        if (middle > last) {
 //            middle = last - 50;
@@ -115,7 +115,7 @@ SectionDisassemblyAnalyzer::getRemoteSuccessor(const MaximalBlock &block,
 //    }
     // classical binary search
     while (first <= last) {
-        if (m_sec_disassembly->maximalBlockAt(middle).getAddrOfLastInst()
+        if (m_sec_disassembly->maximalBlockAt(middle).addrOfLastInst()
             < target) {
             first = middle + 1;
         } else {

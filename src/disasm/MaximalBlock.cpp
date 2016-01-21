@@ -48,7 +48,7 @@ MaximalBlock::getInstructionAddressesOf(const BasicBlock &bblock) const {
 }
 
 
-addr_t MaximalBlock::getAddrOfFirstInst() const {
+addr_t MaximalBlock::addrOfFirstInst() const {
     return m_insts[0].addr();
 }
 
@@ -90,11 +90,11 @@ unsigned MaximalBlock::instructionsCount() const {
 
 
 const bool MaximalBlock::isWithinAddressSpace(addr_t addr) const {
-    return getAddrOfFirstInst() <= addr
-        && addr < getEndAddr();
+    return addrOfFirstInst() <= addr
+        && addr < endAddr();
 }
 
-addr_t MaximalBlock::getAddrOfLastInst() const {
+addr_t MaximalBlock::addrOfLastInst() const {
     return m_insts.back().addr();
 }
 const std::vector<MCInstSmall> &MaximalBlock::getAllInstructions() const {
@@ -130,30 +130,30 @@ std::vector<MCInstSmall> MaximalBlock::getKnownInstructions() const {
     return result;
 }
 
-addr_t MaximalBlock::getEndAddr() const {
+addr_t MaximalBlock::endAddr() const {
     return (m_insts.back().addr() + m_insts.back().size());
 }
 
 bool MaximalBlock::startOverlapsWith(const MaximalBlock &prev_block) const {
-    return getAddrOfFirstInst() < prev_block.getEndAddr();
+    return addrOfFirstInst() < prev_block.endAddr();
 }
 
 bool MaximalBlock::startOverlapsWith(const MaximalBlock *prev_block) const {
-    return getAddrOfFirstInst() < prev_block->getEndAddr();;
+    return addrOfFirstInst() < prev_block->endAddr();;
 }
 
 bool MaximalBlock::coversAddressSpaceOf(const MaximalBlock &block) const {
-    return getAddrOfFirstInst() < block.getAddrOfFirstInst()
-        && getEndAddr() > block.getEndAddr();
+    return addrOfFirstInst() < block.addrOfFirstInst()
+        && endAddr() > block.endAddr();
 }
 
 bool MaximalBlock::coversAddressSpaceOf(const MaximalBlock *block) const {
-    return getAddrOfFirstInst() < block->getAddrOfFirstInst()
-        && getEndAddr() > block->getEndAddr();
+    return addrOfFirstInst() < block->addrOfFirstInst()
+        && endAddr() > block->endAddr();
 }
 
 bool MaximalBlock::isInstructionAddress(const addr_t inst_addr) const {
-    if (inst_addr < getAddrOfFirstInst()) {
+    if (inst_addr < addrOfFirstInst()) {
         return false;
     }
     for (auto it = m_insts.cbegin(); it < m_insts.cend(); ++it) {

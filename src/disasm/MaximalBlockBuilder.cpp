@@ -60,115 +60,59 @@ MaximalBlock MaximalBlockBuilder::build() {
         return result;
     // copy valid BBs to result
     unsigned idx = 0;
-    std::vector<BasicBlock> invalid_blocks;
-    std::vector<MCInstSmall> invalid_insts;
-
-    for (const BasicBlock &bblock : m_bblocks) {
-        if (bblock.isValid()) {
-            result.m_bblocks.push_back(bblock);
+    std::vector<BasicBlock> overlap_blocks;
+    auto bblock_iter = m_bblocks.cbegin();
+    for (;bblock_iter < m_bblocks.cend(); ++bblock_iter) {
+        if ((*bblock_iter).isValid()) {
+            result.m_bblocks.push_back((*bblock_iter));
             result.m_bblocks.back().m_id = idx;
             idx++;
         } else {
-            invalid_blocks.push_back(bblock);
-        }
-    }
-
-    auto inst_count = m_insts.size();
-    bool valid_insts[inst_count];
-    std::memset(valid_insts, 0, inst_count * sizeof(bool));
-
-    // check all valid instruction in the maximal block.
-    // an instruction is valid if it belongs to at least one valid block.
-    for (unsigned i = 0; i < inst_count; ++i) {
-        for (auto &bblock : m_bblocks) {
-            if (!bblock.isValid()) continue;
-            if (valid_insts[i]) break;
-            for (auto &addr : getInstructionAddrsOf(bblock)) {
-                if (m_insts[i].addr() == addr) {
-                    valid_insts[i] = true;
-                    break;
-                }
+            // we keep only potential overlapping BBs
+            if ( m_last_addr - (*bblock_iter).endAddr() < 2) {
+                overlap_blocks.push_back((*bblock_iter));
             }
         }
     }
-    // we do a second iteration in order to maintain the invariant that
-    //  m_inst should remain sorted by instruction address.
-    for (unsigned j = 0; j < inst_count; ++j) {
-        if (valid_insts[j]) {
-            result.m_insts.push_back(m_insts[j]);
-        } else {
-            invalid_insts.push_back(m_insts[j]);
-        }
+    // case of no overlap results clean reset
+    if (overlap_blocks.size() == 0) {
+        m_buildable = false;
+        m_bb_idx = 0;
+        m_last_addr = 0;
+        result.m_insts.swap(m_insts);
+        m_bblocks.clear();
+        return result;
     }
-    // MB should maintain invalid basic blocks and their instructions.
-    m_insts.swap(invalid_insts);
-    m_bblocks.swap(invalid_blocks);
-    return result;
-}
+    // MB should maintain overlap basic blocks and their instructions.
+    if (overlap_blocks.size() > 1) {
+        // case of a spurious valid BB overlapping in the middle.
+        result.m_insts.push_back(m_insts.back());
+        m_insts.pop_back();
+        m_last_addr = m_insts.back().addr() + m_insts.back().size();
+        m_bblocks.swap(overlap_blocks);
+    }else {
+        // case of an invalid BB overlapping at the end.
+        std::vector<MCInstSmall> overlap_insts;
 
-void MaximalBlockBuilder::reset() {
+        auto overlap_inst_iter = overlap_blocks.back().m_inst_addrs.cbegin();
+        // Instructions that belong to the overlap BB should be separated from the rest
+        for (const auto &inst : m_insts) {
+            if (inst.addr() == (*overlap_inst_iter)) {
+                overlap_insts.push_back(inst);
+                ++overlap_inst_iter;
+            } else {
+                result.m_insts.push_back(inst);
+            }
+        }
+        m_last_addr = overlap_blocks.back().startAddr()
+            + overlap_blocks.back().size();
+        m_insts.swap(overlap_insts);
+        m_bblocks.swap(overlap_blocks);
+    }
 
     m_buildable = false;
-    m_bb_idx = 0;
-    if (m_bblocks.size() == 0) {
-        assert(m_insts.size() == 0 && "Instructions found without BB!!");
-        return;
-    }
-
-    int overlap_distance = 0;
-    std::vector<BasicBlock> overlap_blocks;
-    for (auto &bblock : m_bblocks) {
-        // XXX for variable length RISC an overlap can happen only at last
-        //  two bytes.
-        overlap_distance = abs(static_cast<int>(bblock.startAddr()
-            + bblock.size() - m_last_addr));
-        if (overlap_distance == 2 || overlap_distance == 0) {
-            // XXX There can be multiple overlap blocks that but all of them
-            // should end with the same instruction
-            overlap_blocks.push_back(bblock);
-            overlap_blocks.back().m_id = m_bb_idx;
-            m_bb_idx++;
-        }
-    }
-
-    if (overlap_blocks.size() == 0) {
-        m_bblocks.clear();
-        m_insts.clear();
-        return;
-    }
-
-    if (m_bblocks.size() == 1) {
-        // there is only one basic block which happens to be also overlapping.
-        m_bblocks.back().m_id = 0;
-        m_last_addr = m_bblocks.back().startAddr() + m_bblocks.back().size();
-        return;
-    }
-    // there are multiple invalid basic blocks. Keep only insts of overlap block.
-    std::vector<MCInstSmall> overlap_insts;
-
-    auto inst_count = m_insts.size();
-    bool valid_insts[inst_count];
-    std::memset(valid_insts, 0, inst_count * sizeof(bool));
-
-    // check all valid instruction in the maximal block.
-    // an instruction is valid if it belongs to at least one valid block.
-    for (unsigned i = 0; i < inst_count; ++i) {
-        for (auto &bblock : overlap_blocks) {
-            if (valid_insts[i]) break;
-            for (auto &addr : getInstructionAddrsOf(bblock)) {
-                if (m_insts[i].addr() == addr) {
-                    valid_insts[i] = true;
-                    overlap_insts.push_back(m_insts[i]);
-                    break;
-                }
-            }
-        }
-    }
-    assert(overlap_insts.size() > 0 && "Empty overlap instructions detected!!");
-    m_insts.swap(overlap_insts);
-    m_bblocks.swap(overlap_blocks);
-    // all overlap block would end at the same address in Variable Length Risc
-    m_last_addr = m_bblocks.back().startAddr() + m_bblocks.back().size();
+    m_bb_idx = static_cast<unsigned>(overlap_blocks.size());
+    return result;
 }
 
 void MaximalBlockBuilder::append(const cs_insn *inst) {
@@ -226,14 +170,14 @@ void MaximalBlockBuilder::setBranch(const cs_insn *inst) {
     m_branch.m_conditional_branch = (inst->detail->arm.cc != ARM_CC_AL);
     if (inst->id == ARM_INS_CBZ || inst->id == ARM_INS_CBNZ) {
         m_branch.m_direct_branch = true;
-        m_branch.m_target = detail->arm.operands[1].imm;
+        m_branch.m_target = static_cast<addr_t>(detail->arm.operands[1].imm);
         return;
     }
 
     if (inst->detail->arm.op_count == 1
         && inst->detail->arm.operands[0].type == ARM_OP_IMM) {
         m_branch.m_direct_branch = true;
-        m_branch.m_target = detail->arm.operands[0].imm;
+        m_branch.m_target = static_cast<addr_t>(detail->arm.operands[0].imm);
         return;
     }
     m_branch.m_direct_branch = false;
@@ -244,5 +188,9 @@ bool MaximalBlockBuilder::isCleanReset() {
 const std::vector<addr_t>
 MaximalBlockBuilder::getInstructionAddrsOf(const BasicBlock &bblock) const {
     return bblock.m_inst_addrs;
+}
+
+addr_t MaximalBlockBuilder::endAddr() const {
+    return m_last_addr;
 }
 }
