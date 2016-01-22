@@ -62,12 +62,12 @@ MaximalBlock MaximalBlockBuilder::build() {
     std::vector<BasicBlock *> valid_blocks;
     std::vector<BasicBlock *> overlap_blocks;
     auto bblock_iter = m_bblocks.begin();
-    for (;bblock_iter < m_bblocks.end(); ++bblock_iter) {
+    for (; bblock_iter < m_bblocks.end(); ++bblock_iter) {
         if ((*bblock_iter).isValid()) {
             valid_blocks.push_back(&(*bblock_iter));
         } else {
             // we keep only potential overlapping BBs
-            if ( m_last_addr - (*bblock_iter).endAddr() < 2) {
+            if (m_last_addr - (*bblock_iter).endAddr() <= 2) {
                 overlap_blocks.push_back(&(*bblock_iter));
             }
         }
@@ -93,7 +93,7 @@ MaximalBlock MaximalBlockBuilder::build() {
         m_insts.pop_back();
         m_bblocks.pop_back();
         m_last_addr = m_insts.back().addr() + m_insts.back().size();
-    }else {
+    } else {
         // case of an invalid BB overlapping at the end.
         std::vector<MCInstSmall> overlap_insts;
 

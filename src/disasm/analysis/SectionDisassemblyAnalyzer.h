@@ -29,7 +29,7 @@ public:
     void BuildCFG();
     MaximalBlock *getDirectSuccessor(const MaximalBlock &block) const;
     MaximalBlock *getRemoteSuccessor(const MaximalBlock &block,
-                                     const addr_t &target) const;
+                                     addr_t target) const;
     void RefineMaximalBlocks(std::vector<addr_t> &known_code_addrs) const;
     bool isValidCodeAddr(addr_t addr) const;
     /*

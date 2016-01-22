@@ -40,8 +40,8 @@ void ElfDisassembler::prettyPrintMaximalBlock(const MaximalBlock &mblock) const 
     printf("**************************************\n");
     printf("MB No. %u, Type: %u. Starts at %#6x",
            mblock.getId(), mblock.getType(),
-           static_cast<unsigned int> (mblock.addrOfFirstInst()));
-    printf(" / BB count. %u, Total inst count %u: \n",
+           static_cast<unsigned> (mblock.addrOfFirstInst()));
+    printf(" / BB count. %lu, Total inst count %u: \n",
            mblock.getBasicBlocksCount(), mblock.instructionsCount());
 
     for (auto &block :mblock.getBasicBlocks()) {
@@ -204,11 +204,11 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
                 if (m_analyzer.isBranch(inst_ptr)) {
                     max_block_builder.appendBranch(inst_ptr);
                     result.add(max_block_builder.build());
-                    prettyPrintMaximalBlock(result.back());
-                    if (!max_block_builder.isCleanReset()) {
-                        printf("Overlap detected at MaxBlock %u \n",
-                               result.back().getId());
-                    }
+//                    prettyPrintMaximalBlock(result.back());
+//                    if (!max_block_builder.isCleanReset()) {
+//                        printf("Overlap detected at MaxBlock %u \n",
+//                               result.back().getId());
+//                    }
                 } else {
                     max_block_builder.append(inst_ptr);
                 }

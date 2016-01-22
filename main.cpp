@@ -59,10 +59,10 @@ int main(int argc, char **argv) {
         if (cmd_parser.exist(config.kText)) {
             auto result =
                 disassembler.disassembleSectionbyNameSpeculative(".text");
-//            disasm::SectionDisassemblyAnalyzer
-//                analyzer{&result, disassembler.getExecutableRegion()};
-//            analyzer.BuildCFG();
-//            disassembler.prettyPrintSectionDisassembly(result);
+            disasm::SectionDisassemblyAnalyzer
+                analyzer{&result, disassembler.getExecutableRegion()};
+            analyzer.BuildCFG();
+            disassembler.prettyPrintSectionDisassembly(result);
         } else {
             disassembler.disassembleCodeSpeculative();
         }

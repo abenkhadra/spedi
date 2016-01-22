@@ -3,7 +3,7 @@
 // This file is distributed under BSD License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-// 
+//
 // Copyright (c) 2016 University of Kaiserslautern.
 
 #include "SectionDisassemblyAnalyzer.h"
@@ -21,39 +21,40 @@ SectionDisassemblyAnalyzer::SectionDisassemblyAnalyzer
 
 void SectionDisassemblyAnalyzer::BuildCFG() {
     m_cfg.reserve(m_sec_disassembly->maximalBlockCount());
-    auto block_it = m_sec_disassembly->getMaximalBlocks().begin();
-    for (; block_it < m_sec_disassembly->getMaximalBlocks().end(); ++block_it) {
+    auto block_iter = m_sec_disassembly->getMaximalBlocks().begin();
+    for (; block_iter < m_sec_disassembly->getMaximalBlocks().end();
+           ++block_iter) {
 
-        m_cfg.emplace_back(MaximalBlockCFGNode(&(*block_it)));
-        if ((*block_it).getBranch().isDirect()
-            && !isValidCodeAddr((*block_it).getBranch().getTarget())) {
+        m_cfg.emplace_back(MaximalBlockCFGNode(&(*block_iter)));
+        if ((*block_iter).getBranch().isDirect()
+            && !isValidCodeAddr((*block_iter).getBranch().getTarget())) {
             // a branch to an address outside of executable code
-            (*block_it).setType(MaximalBlockType::kData);
+            (*block_iter).setType(MaximalBlockType::kData);
             continue;
         }
-        if ((*block_it).getBranch().isConditional()) {
-            auto succ = getDirectSuccessor((*block_it));
+        if ((*block_iter).getBranch().isConditional()) {
+            auto succ = getDirectSuccessor((*block_iter));
             if (succ != nullptr) {
                 m_cfg.back().setDirectSuccessor(succ);
             } else {
                 // a conditional branch without a direct successor is data
-                (*block_it).setType(MaximalBlockType::kData);
+                (*block_iter).setType(MaximalBlockType::kData);
             }
         }
-        if ((*block_it).getBranch().isDirect()) {
-            auto branch_target = (*block_it).getBranch().getTarget();
+        if ((*block_iter).getBranch().isDirect()) {
+            auto branch_target = (*block_iter).getBranch().getTarget();
             if (!m_sec_disassembly->isWithinSectionAddressSpace(branch_target)) {
                 // a valid direct branch can happen to an executable section
                 // other than this section.
                 continue;
             }
             auto succ =
-                getRemoteSuccessor((*block_it), branch_target);
+                getRemoteSuccessor((*block_iter), branch_target);
             if (succ != nullptr) {
                 m_cfg.back().setRemoteSuccessor(succ);
             } else {
                 // a direct branch that doesn't target an MB is data
-                (*block_it).setType(MaximalBlockType::kData);
+                (*block_iter).setType(MaximalBlockType::kData);
             }
         }
     }
@@ -91,7 +92,7 @@ SectionDisassemblyAnalyzer::getDirectSuccessor(const MaximalBlock &block) const 
 
 MaximalBlock *
 SectionDisassemblyAnalyzer::getRemoteSuccessor(const MaximalBlock &block,
-                                               const addr_t &target) const {
+                                               addr_t target) const {
     // binary search to find the remote MB that is targeted.
     // assuming that MBs are sorted in an associative container.
     if (target < m_exec_start || target > m_exec_end) {
@@ -99,33 +100,21 @@ SectionDisassemblyAnalyzer::getRemoteSuccessor(const MaximalBlock &block,
     }
     size_t first = 0;
     size_t last = m_sec_disassembly->maximalBlockCount() - 1;
-    size_t middle = (first + last)/2;
-//    // direct branches usually happen to a nearby address
-//    if (block.addrOfLastInst() < target) {
-//        middle = block.getId() + 100;
-//        if (middle > last) {
-//            middle = last - 50;
-//        }
-//    } else {
-//        if (block.getId() > 100) {
-//            middle = block.getId() - 100;
-//        } else {
-//            middle = first + 50;
-//        }
-//    }
-    // classical binary search
-    while (first <= last) {
-        if (m_sec_disassembly->maximalBlockAt(middle).addrOfLastInst()
-            < target) {
-            first = middle + 1;
+    size_t middle = (first + last) / 2;
+    while (last - middle > 2) {
+        if (target >
+            m_sec_disassembly->maximalBlockAt(middle).addrOfFirstInst()) {
+            first = middle;
         } else {
-            if (m_sec_disassembly->
-                maximalBlockAt(middle).isInstructionAddress(target)) {
-                return m_sec_disassembly->ptrToMaximalBlockAt(middle);
-            }
-            last = middle - 1;
+            last = middle;
         }
         middle = (first + last) / 2;
+    }
+    // We do a linear search here since its more resilient to overlap
+    for (size_t i = first; i <= last; ++i) {
+        if (m_sec_disassembly->maximalBlockAt(i).isInstructionAddress(target)) {
+            return m_sec_disassembly->ptrToMaximalBlockAt(i);
+        }
     }
     return nullptr;
 }

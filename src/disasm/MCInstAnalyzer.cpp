@@ -98,20 +98,6 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
                         }
                         break;
                 }
-            } else if (!(
-                ((ARM_REG_R0 <= inst->detail->arm.operands[i].reg) &&
-                    (inst->detail->arm.operands[i].reg <= ARM_REG_R12))
-                    || inst->detail->arm.operands[i].reg == ARM_REG_LR)) {
-                // XXX: using unusual registers such as co-processor registers
-                // is currently not allowed. For example, we do not allow access
-                // to registers of system control co-processor (CP15). Note that
-                // only some instructions like MRC, MCREQ & MCR can use
-                // co-processor registers
-                printf("Found invalid register at 0x%lx, %s, %s\n",
-                       inst->address,
-                       inst->mnemonic,
-                       inst->op_str);
-                return false;
             }
         } else if (inst->detail->arm.operands[i].type == ARM_OP_CIMM
             || inst->detail->arm.operands[i].type == ARM_OP_PIMM) {
@@ -121,6 +107,21 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
                    inst->op_str);
             return false;
         }
+//        else if (!(
+//            ((ARM_REG_R0 <= inst->detail->arm.operands[i].reg) &&
+//                (inst->detail->arm.operands[i].reg <= ARM_REG_R12))
+//                || inst->detail->arm.operands[i].reg == ARM_REG_LR)) {
+//            // XXX: using unusual registers such as co-processor registers
+//            // is currently allowed. For example, we do not allow access
+//            // to registers of system control co-processor (CP15). Note that
+//            // only some instructions like MRC, MCREQ & MCR can use
+//            // co-processor registers
+//            printf("Found invalid register at 0x%lx, %s, %s\n",
+//                   inst->address,
+//                   inst->mnemonic,
+//                   inst->op_str);
+//            return false;
+//        }
     }
     return true;
 }

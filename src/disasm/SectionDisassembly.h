@@ -32,8 +32,8 @@ public:
     SectionDisassembly(const SectionDisassembly &src) = default;
     SectionDisassembly &operator=(const SectionDisassembly &src) = default;
     SectionDisassembly(SectionDisassembly &&src) = default;
-    const MaximalBlock &maximalBlockAt(const size_t &index) const;
-    MaximalBlock *ptrToMaximalBlockAt(const size_t &index);
+    const MaximalBlock &maximalBlockAt(size_t index) const;
+    MaximalBlock *ptrToMaximalBlockAt(size_t index);
     std::vector<MaximalBlock>::const_iterator cbegin() const;
     std::vector<MaximalBlock>::const_iterator cend() const;
 

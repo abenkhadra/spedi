@@ -54,9 +54,6 @@ addr_t MaximalBlock::addrOfFirstInst() const {
 
 void MaximalBlock::setType(const MaximalBlockType type) {
     m_type = type;
-    if (m_type == MaximalBlockType::kData) {
-        m_bblocks.clear();
-    }
 }
 
 const BasicBlock &
@@ -64,9 +61,9 @@ MaximalBlock::getBasicBlockById(const unsigned int bb_id) const {
     return m_bblocks[bb_id];
 }
 
-unsigned int
+size_t
 MaximalBlock::getBasicBlocksCount() const {
-    return static_cast<unsigned int>(m_bblocks.size());
+    return m_bblocks.size();
 }
 
 const std::vector<BasicBlock> &
@@ -153,7 +150,7 @@ bool MaximalBlock::coversAddressSpaceOf(const MaximalBlock *block) const {
 }
 
 bool MaximalBlock::isInstructionAddress(const addr_t inst_addr) const {
-    if (inst_addr < addrOfFirstInst()) {
+    if (inst_addr < addrOfFirstInst() || inst_addr > addrOfLastInst()) {
         return false;
     }
     for (auto it = m_insts.cbegin(); it < m_insts.cend(); ++it) {

@@ -80,10 +80,10 @@ bool SectionDisassembly::isFirst(const MaximalBlock &max_block) const {
     return max_block.getId() == 0;
 }
 
-const MaximalBlock &SectionDisassembly::maximalBlockAt(const size_t &index) const {
+const MaximalBlock &SectionDisassembly::maximalBlockAt(size_t index) const {
     return m_max_blocks[index];
 }
-MaximalBlock *SectionDisassembly::ptrToMaximalBlockAt(const size_t &index) {
+MaximalBlock *SectionDisassembly::ptrToMaximalBlockAt(size_t index) {
     return &(*(m_max_blocks.begin() + index));
 }
 std::vector<MaximalBlock>::const_iterator SectionDisassembly::cbegin() const {

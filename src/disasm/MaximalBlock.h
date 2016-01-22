@@ -50,7 +50,7 @@ public:
     // providing the same for BBs, however, requires MB intervention!
     size_t getBasicBlockMemSize(const unsigned int bb_id) const;
 
-    unsigned getBasicBlocksCount() const;
+    size_t getBasicBlocksCount() const;
     unsigned instructionsCount() const;
 
     //XXX: access should be to an iterator instead of a collection?
