@@ -50,6 +50,8 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
                 }
                 // PC usage restrictions based on manual A2-46
                 // and Table D9.5 details.
+
+                // use of pc in 16 bit add is deprecated D9.5
                 switch (inst->id) {
                     case ARM_INS_ADD:
                     case ARM_INS_ADR:
@@ -57,25 +59,21 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
                     case ARM_INS_BLX:
                     case ARM_INS_MOV:
                     case ARM_INS_SUB:
-                        // allowed as destination register only
-                        if (i != 0) return false;
                     case ARM_INS_SUBS:
                     case ARM_INS_MOVS:
+                    case ARM_INS_POP:
                         // XXX more restrictions can be applied here
                         break;
                     default:
                         // TODO: make logging consistent and configurable
-                        // Pop are allowed to use PC
-                        if (inst->id != ARM_INS_POP) {
-                            printf("Found invalid pc at 0x%lx, %s, %s\n",
-                                   inst->address,
-                                   inst->mnemonic,
-                                   inst->op_str);
-                            return false;
-                        }
+                        printf("Found invalid pc at 0x%lx, %s, %s\n",
+                               inst->address,
+                               inst->mnemonic,
+                               inst->op_str);
+                        return false;
                 }
             } else if (inst->detail->arm.operands[i].reg == ARM_REG_SP) {
-                // We do no apply PC, SP restrictions to load instructions
+                // We do not apply PC, SP restrictions to load instructions
                 if (ARM_INS_LDA <= inst->id && inst->id <= ARM_INS_LDR) {
                     continue;
                 }

@@ -69,12 +69,6 @@ public:
     MaximalBlock build();
 
     /*
-     * Reset the builder to its original clean state except in the case of
-     * Maximal Block overlap. There, partial results will be kept to build
-     * the next MB.
-     */
-    void reset();
-    /*
      * Return true on clean (no overlap) reset, false otherwise.
      */
     bool isCleanReset();

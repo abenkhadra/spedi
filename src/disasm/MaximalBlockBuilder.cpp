@@ -59,18 +59,16 @@ MaximalBlock MaximalBlockBuilder::build() {
         //  return an invalid maximal block!
         return result;
     // copy valid BBs to result
-    unsigned idx = 0;
-    std::vector<BasicBlock> overlap_blocks;
-    auto bblock_iter = m_bblocks.cbegin();
-    for (;bblock_iter < m_bblocks.cend(); ++bblock_iter) {
+    std::vector<BasicBlock *> valid_blocks;
+    std::vector<BasicBlock *> overlap_blocks;
+    auto bblock_iter = m_bblocks.begin();
+    for (;bblock_iter < m_bblocks.end(); ++bblock_iter) {
         if ((*bblock_iter).isValid()) {
-            result.m_bblocks.push_back((*bblock_iter));
-            result.m_bblocks.back().m_id = idx;
-            idx++;
+            valid_blocks.push_back(&(*bblock_iter));
         } else {
             // we keep only potential overlapping BBs
             if ( m_last_addr - (*bblock_iter).endAddr() < 2) {
-                overlap_blocks.push_back((*bblock_iter));
+                overlap_blocks.push_back(&(*bblock_iter));
             }
         }
     }
@@ -79,22 +77,27 @@ MaximalBlock MaximalBlockBuilder::build() {
         m_buildable = false;
         m_bb_idx = 0;
         m_last_addr = 0;
+        result.m_bblocks.swap(m_bblocks);
         result.m_insts.swap(m_insts);
-        m_bblocks.clear();
         return result;
     }
     // MB should maintain overlap basic blocks and their instructions.
     if (overlap_blocks.size() > 1) {
         // case of a spurious valid BB overlapping in the middle.
+        assert(valid_blocks.size() == 1
+                   && "Too many spurious valid blocks");
+        assert(valid_blocks.back()->m_inst_addrs.size() == 1
+                   && "Too many spurious instructions");
         result.m_insts.push_back(m_insts.back());
+        result.m_bblocks.push_back(*(valid_blocks.back()));
         m_insts.pop_back();
+        m_bblocks.pop_back();
         m_last_addr = m_insts.back().addr() + m_insts.back().size();
-        m_bblocks.swap(overlap_blocks);
     }else {
         // case of an invalid BB overlapping at the end.
         std::vector<MCInstSmall> overlap_insts;
 
-        auto overlap_inst_iter = overlap_blocks.back().m_inst_addrs.cbegin();
+        auto overlap_inst_iter = overlap_blocks.back()->m_inst_addrs.cbegin();
         // Instructions that belong to the overlap BB should be separated from the rest
         for (const auto &inst : m_insts) {
             if (inst.addr() == (*overlap_inst_iter)) {
@@ -104,10 +107,12 @@ MaximalBlock MaximalBlockBuilder::build() {
                 result.m_insts.push_back(inst);
             }
         }
-        m_last_addr = overlap_blocks.back().startAddr()
-            + overlap_blocks.back().size();
+        m_last_addr = overlap_blocks.back()->startAddr()
+            + overlap_blocks.back()->size();
         m_insts.swap(overlap_insts);
-        m_bblocks.swap(overlap_blocks);
+        BasicBlock block = *(overlap_blocks.back());
+        m_bblocks.clear();
+        m_bblocks.push_back(block);
     }
 
     m_buildable = false;
