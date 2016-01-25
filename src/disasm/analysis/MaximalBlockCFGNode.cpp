@@ -10,7 +10,7 @@
 #include <cassert>
 namespace disasm {
 MaximalBlockCFGNode::MaximalBlockCFGNode(MaximalBlock *current_block) :
-    m_overlap_block{nullptr},
+    m_overlap_mblock{nullptr},
     m_direct_successor{nullptr},
     m_remote_successor{nullptr},
     m_current{current_block} {
@@ -29,4 +29,14 @@ void MaximalBlockCFGNode::setRemoteSuccessor(MaximalBlock *successor) {
     m_remote_successor = successor;
 }
 
+void MaximalBlockCFGNode::setOverlapMaximalBlock(MaximalBlock *overlap_block) {
+    m_overlap_mblock = overlap_block;
+}
+const MaximalBlock *MaximalBlockCFGNode::getMaximalBlock() const {
+    return m_current;
+}
+
+MaximalBlock * MaximalBlockCFGNode::getOverlapMaximalBlock() const {
+    return m_overlap_mblock;
+}
 }

@@ -27,13 +27,18 @@ public:
     MaximalBlockCFGNode &operator=(const MaximalBlockCFGNode &src) = default;
     MaximalBlockCFGNode(MaximalBlockCFGNode &&src) = default;
 
+    void setOverlapMaximalBlock(MaximalBlock * overlap_block);
+    MaximalBlock * getOverlapMaximalBlock() const;
+
     void addPredecessor(MaximalBlock *predecessor, addr_t target_addr);
 
     void setDirectSuccessor(MaximalBlock *successor);
 
     void setRemoteSuccessor(MaximalBlock *successor);
+
+    const MaximalBlock * getMaximalBlock() const;
 private:
-    MaximalBlock *m_overlap_block;
+    MaximalBlock *m_overlap_mblock;
     /// valid only in case of conditional branch
     MaximalBlock *m_direct_successor;
     MaximalBlock *m_remote_successor;

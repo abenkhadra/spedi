@@ -32,6 +32,7 @@ const size_t BasicBlock::size() const {
 }
 
 bool BasicBlock::isAppendableBy(const cs_insn *inst) const {
+
     return (inst->address == endAddr());
 }
 

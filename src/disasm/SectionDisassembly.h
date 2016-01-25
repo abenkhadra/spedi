@@ -43,11 +43,11 @@ public:
     /*
      * start virtual address of section
      */
-    const addr_t &startAddr() const;
+    addr_t startAddr() const;
     /*
      * size of section in bytes
      */
-    const size_t sectionSize() const;
+    size_t sectionSize() const;
     /*
      * return a pointer to the beginning of bytes of the section
      */
@@ -62,6 +62,7 @@ public:
     std::vector<MaximalBlock> &getMaximalBlocks();
 
     bool isLast(const MaximalBlock &max_block) const;
+    bool isLast(const MaximalBlock *max_block) const;
     bool isFirst(const MaximalBlock &max_block) const;
     bool isWithinSectionAddressSpace(const addr_t & addr) const;
 

@@ -22,12 +22,12 @@ SectionDisassembly::sectionName() const {
     return m_section->get_name();
 }
 
-const addr_t &
+addr_t
 SectionDisassembly::startAddr() const {
     return m_section->get_hdr().addr;
 }
 
-const size_t
+size_t
 SectionDisassembly::sectionSize() const {
     return m_section->size();
 }
@@ -75,6 +75,9 @@ SectionDisassembly::getMaximalBlocks() {
 }
 bool SectionDisassembly::isLast(const MaximalBlock &max_block) const {
     return max_block.getId() == m_max_blocks.size() - 1;
+}
+bool SectionDisassembly::isLast(const MaximalBlock *max_block) const {
+    return max_block->getId() == m_max_blocks.size() - 1;;
 }
 bool SectionDisassembly::isFirst(const MaximalBlock &max_block) const {
     return max_block.getId() == 0;

@@ -88,7 +88,7 @@ private:
     bool m_buildable;
     unsigned int m_bb_idx;
     unsigned int m_max_block_idx;
-    addr_t m_last_addr;
+    addr_t m_end_addr;
     BranchData m_branch;
     std::vector<BasicBlock> m_bblocks;
     std::vector<MCInstSmall> m_insts;

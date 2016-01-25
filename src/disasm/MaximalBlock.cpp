@@ -49,7 +49,11 @@ MaximalBlock::getInstructionAddressesOf(const BasicBlock &bblock) const {
 
 
 addr_t MaximalBlock::addrOfFirstInst() const {
-    return m_insts[0].addr();
+    return m_insts.front().addr();
+}
+
+addr_t MaximalBlock::addrOfLastInst() const {
+    return m_insts.back().addr();
 }
 
 void MaximalBlock::setType(const MaximalBlockType type) {
@@ -77,7 +81,7 @@ MaximalBlock::MaximalBlock(unsigned id, const BranchData &branch) :
     m_branch{branch} {
 }
 
-const unsigned &MaximalBlock::getId() const {
+unsigned MaximalBlock::getId() const {
     return m_id;
 }
 
@@ -86,14 +90,11 @@ unsigned MaximalBlock::instructionsCount() const {
 }
 
 
-const bool MaximalBlock::isWithinAddressSpace(addr_t addr) const {
+bool MaximalBlock::isWithinAddressSpace(addr_t addr) const {
     return addrOfFirstInst() <= addr
         && addr < endAddr();
 }
 
-addr_t MaximalBlock::addrOfLastInst() const {
-    return m_insts.back().addr();
-}
 const std::vector<MCInstSmall> &MaximalBlock::getAllInstructions() const {
     return m_insts;
 }
@@ -106,10 +107,10 @@ MaximalBlock::MaximalBlock() :
     m_start_addr{0} {
 
 }
-const addr_t &MaximalBlock::getKnownStartAddr() const {
+addr_t MaximalBlock::getKnownStartAddr() const {
     return m_start_addr;
 }
-const MaximalBlockType &MaximalBlock::getType() const {
+MaximalBlockType MaximalBlock::getType() const {
     return m_type;
 }
 std::vector<MCInstSmall> MaximalBlock::getKnownInstructions() const {
@@ -128,7 +129,7 @@ std::vector<MCInstSmall> MaximalBlock::getKnownInstructions() const {
 }
 
 addr_t MaximalBlock::endAddr() const {
-    return (m_insts.back().addr() + m_insts.back().size());
+    return (m_end_addr);
 }
 
 bool MaximalBlock::startOverlapsWith(const MaximalBlock &prev_block) const {
@@ -159,5 +160,8 @@ bool MaximalBlock::isInstructionAddress(const addr_t inst_addr) const {
         }
     }
     return false;
+}
+bool MaximalBlock::isData() const {
+    return m_type == MaximalBlockType::kData;
 }
 }

@@ -19,7 +19,7 @@ MaximalBlockBuilder::MaximalBlockBuilder() :
     m_buildable{false},
     m_bb_idx{0},
     m_max_block_idx{0},
-    m_last_addr{0} {
+    m_end_addr{0} {
 }
 
 std::vector<unsigned int>
@@ -40,7 +40,7 @@ MaximalBlockBuilder::createBasicBlockWith(const cs_insn *inst) {
     // link basic block to fragment
     m_bblocks.back().append(inst);
     m_insts.emplace_back(MCInstSmall(inst));
-    m_last_addr = inst->address + inst->size;
+    m_end_addr = inst->address + inst->size;
     m_bb_idx++;
 }
 
@@ -61,27 +61,30 @@ MaximalBlock MaximalBlockBuilder::build() {
     // copy valid BBs to result
     std::vector<BasicBlock *> valid_blocks;
     std::vector<BasicBlock *> overlap_blocks;
-    auto bblock_iter = m_bblocks.begin();
-    for (; bblock_iter < m_bblocks.end(); ++bblock_iter) {
+
+    for (auto bblock_iter = m_bblocks.begin();
+         bblock_iter < m_bblocks.end(); ++bblock_iter) {
         if ((*bblock_iter).isValid()) {
             valid_blocks.push_back(&(*bblock_iter));
         } else {
             // we keep only potential overlapping BBs
-            if (m_last_addr - (*bblock_iter).endAddr() <= 2) {
+            if (m_end_addr - (*bblock_iter).endAddr() <= 2) {
                 overlap_blocks.push_back(&(*bblock_iter));
             }
         }
     }
-    // case of no overlap results clean reset
+    // Case of no overlap
     if (overlap_blocks.size() == 0) {
         m_buildable = false;
         m_bb_idx = 0;
-        m_last_addr = 0;
+        m_end_addr = 0;
         result.m_bblocks.swap(m_bblocks);
         result.m_insts.swap(m_insts);
+        result.m_end_addr = result.m_insts.back().addr()
+            + result.m_insts.back().size();
         return result;
     }
-    // MB should maintain overlap basic blocks and their instructions.
+    // Case of BB overlap then MB should maintain overlap BBs and their instructions.
     if (overlap_blocks.size() > 1) {
         // case of a spurious valid BB overlapping in the middle.
         assert(valid_blocks.size() == 1
@@ -92,23 +95,26 @@ MaximalBlock MaximalBlockBuilder::build() {
         result.m_bblocks.push_back(*(valid_blocks.back()));
         m_insts.pop_back();
         m_bblocks.pop_back();
-        m_last_addr = m_insts.back().addr() + m_insts.back().size();
+        m_end_addr = m_insts.back().addr() + m_insts.back().size();
     } else {
-        // case of an invalid BB overlapping at the end.
         std::vector<MCInstSmall> overlap_insts;
-
         auto overlap_inst_iter = overlap_blocks.back()->m_inst_addrs.cbegin();
         // Instructions that belong to the overlap BB should be separated from the rest
         for (const auto &inst : m_insts) {
-            if (inst.addr() == (*overlap_inst_iter)) {
+            if (overlap_inst_iter < overlap_blocks.back()->m_inst_addrs.cend() &&
+                inst.addr() == (*overlap_inst_iter)) {
                 overlap_insts.push_back(inst);
                 ++overlap_inst_iter;
             } else {
                 result.m_insts.push_back(inst);
             }
         }
-        m_last_addr = overlap_blocks.back()->startAddr()
-            + overlap_blocks.back()->size();
+        // copy valid BBs to result
+        for (auto block_iter = valid_blocks.cbegin();
+            block_iter < valid_blocks.cend(); ++block_iter) {
+            result.m_bblocks.push_back(*(*block_iter));
+        }
+        m_end_addr = overlap_blocks.back()->endAddr();
         m_insts.swap(overlap_insts);
         BasicBlock block = *(overlap_blocks.back());
         m_bblocks.clear();
@@ -117,6 +123,10 @@ MaximalBlock MaximalBlockBuilder::build() {
 
     m_buildable = false;
     m_bb_idx = static_cast<unsigned>(overlap_blocks.size());
+    result.m_end_addr = result.m_insts.back().addr()
+        + result.m_insts.back().size();
+    assert(result.m_bblocks.size() > 0 && "No Basic Blocks in Maximal Block!!");
+    assert(result.m_insts.size() > 0 && "No Instructions in Maximal Block!!");
     return result;
 }
 
@@ -137,7 +147,7 @@ void MaximalBlockBuilder::append(const cs_insn *inst) {
 
     if (appendable) {
         m_insts.emplace_back(MCInstSmall(inst));
-        m_last_addr += inst->size;
+        m_end_addr += inst->size;
     } else {
         createBasicBlockWith(inst);
     }
@@ -163,7 +173,7 @@ void MaximalBlockBuilder::appendBranch(const cs_insn *inst) {
 
     if (found_appendable) {
         m_insts.emplace_back(MCInstSmall(inst));
-        m_last_addr += inst->size;
+        m_end_addr += inst->size;
     } else {
         createValidBasicBlockWith(inst);
     }
@@ -196,6 +206,6 @@ MaximalBlockBuilder::getInstructionAddrsOf(const BasicBlock &bblock) const {
 }
 
 addr_t MaximalBlockBuilder::endAddr() const {
-    return m_last_addr;
+    return m_end_addr;
 }
 }

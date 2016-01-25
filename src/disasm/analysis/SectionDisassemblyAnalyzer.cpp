@@ -6,6 +6,7 @@
 //
 // Copyright (c) 2016 University of Kaiserslautern.
 
+#include <iostream>
 #include "SectionDisassemblyAnalyzer.h"
 
 namespace disasm {
@@ -20,22 +21,65 @@ SectionDisassemblyAnalyzer::SectionDisassemblyAnalyzer
 }
 
 void SectionDisassemblyAnalyzer::BuildCFG() {
+
     m_cfg.reserve(m_sec_disassembly->maximalBlockCount());
+
     auto block_iter = m_sec_disassembly->getMaximalBlocks().begin();
-    for (; block_iter < m_sec_disassembly->getMaximalBlocks().end();
-           ++block_iter) {
+    // handle first MB
+    m_cfg.emplace_back(MaximalBlockCFGNode(&(*block_iter)));
+    if ((*block_iter).getBranch().isDirect()
+        && !isValidCodeAddr((*block_iter).getBranch().getTarget())) {
+        // a branch to an address outside of executable code
+        (*block_iter).setType(MaximalBlockType::kData);
+    }
+
+    std::vector<MaximalBlockCFGNode>::iterator rev_cfg_node_iter;
+    // first pass over MBs to mark overlap and invalid targets
+    for (++block_iter; // skip the first MB
+         block_iter < m_sec_disassembly->getMaximalBlocks().end();
+         ++block_iter) {
 
         m_cfg.emplace_back(MaximalBlockCFGNode(&(*block_iter)));
+
         if ((*block_iter).getBranch().isDirect()
             && !isValidCodeAddr((*block_iter).getBranch().getTarget())) {
             // a branch to an address outside of executable code
             (*block_iter).setType(MaximalBlockType::kData);
             continue;
         }
+        rev_cfg_node_iter = m_cfg.end() - 2;
+        // check for overlap MB
+        for (auto rev_block_iter = block_iter - 1;
+             rev_block_iter
+                 > m_sec_disassembly->getMaximalBlocks().begin() - 1;
+             --rev_block_iter, --rev_cfg_node_iter) {
+
+            if ((*rev_block_iter).endAddr() <=
+                (*block_iter).addrOfFirstInst()) {
+                // there is no MB overlap
+                break;
+            }
+//            std::cout << "MaximalBlock: " << (*rev_block_iter).getId()
+//                << " Points to: " << (*block_iter).getId() << "\n";
+            // set pointer to the overlap block
+            (*rev_cfg_node_iter).setOverlapMaximalBlock(&(*block_iter));
+        }
+    }
+
+
+    std::vector<MaximalBlockCFGNode>::iterator cfg_node_iter = m_cfg.begin();
+    // second pass for setting successors and predecessors to each MB
+    for (block_iter = m_sec_disassembly->getMaximalBlocks().begin();
+         block_iter < m_sec_disassembly->getMaximalBlocks().end();
+         ++block_iter, ++cfg_node_iter) {
+
+        if ((*block_iter).isData()) {
+            continue;
+        }
         if ((*block_iter).getBranch().isConditional()) {
-            auto succ = getDirectSuccessor((*block_iter));
+            auto succ = getDirectSuccessor((*cfg_node_iter));
             if (succ != nullptr) {
-                m_cfg.back().setDirectSuccessor(succ);
+                (*cfg_node_iter).setDirectSuccessor(succ);
             } else {
                 // a conditional branch without a direct successor is data
                 (*block_iter).setType(MaximalBlockType::kData);
@@ -49,9 +93,9 @@ void SectionDisassemblyAnalyzer::BuildCFG() {
                 continue;
             }
             auto succ =
-                getRemoteSuccessor((*block_iter), branch_target);
+                getRemoteSuccessor((*cfg_node_iter), branch_target);
             if (succ != nullptr) {
-                m_cfg.back().setRemoteSuccessor(succ);
+                (*cfg_node_iter).setRemoteSuccessor(succ);
             } else {
                 // a direct branch that doesn't target an MB is data
                 (*block_iter).setType(MaximalBlockType::kData);
@@ -66,55 +110,58 @@ bool SectionDisassemblyAnalyzer::isValidCodeAddr(addr_t addr) const {
     return (m_exec_start <= addr) && (addr < m_exec_end);
 }
 
-MaximalBlock *
-SectionDisassemblyAnalyzer::getDirectSuccessor(const MaximalBlock &block) const {
-    if (m_sec_disassembly->isLast(block)) {
+MaximalBlock *SectionDisassemblyAnalyzer::getDirectSuccessor
+    (const MaximalBlockCFGNode &block_node) const {
+
+    auto current_block = block_node.getMaximalBlock();
+    if (m_sec_disassembly->isLast(current_block)) {
         return nullptr;
     }
     auto direct_succ =
-        m_sec_disassembly->ptrToMaximalBlockAt(block.getId() + 1);
-    if (direct_succ->isInstructionAddress(block.endAddr())) {
+        m_sec_disassembly->ptrToMaximalBlockAt(current_block->getId() + 1);
+    if (direct_succ->isInstructionAddress(current_block->endAddr())) {
         return direct_succ;
     }
-    // ideally, a direct successor should be the next MaximalBlock but that
-    // might not hold in the case of overlap
-    if (m_sec_disassembly->isLast(*direct_succ)) {
-        return nullptr;
+    auto overlap_block = m_cfg[current_block->getId() + 1].getOverlapMaximalBlock();
+    if (overlap_block != nullptr &&
+        overlap_block->isInstructionAddress(current_block->endAddr())) {
+        return overlap_block;
     }
-    auto direct_succ2 =
-        m_sec_disassembly->ptrToMaximalBlockAt(block.getId() + 2);
-    if (direct_succ2->isInstructionAddress(block.endAddr())) {
-        return direct_succ2;
-    }
-    printf("ERROR10: Direct successor was not found\n");
     return nullptr;
 }
 
-MaximalBlock *
-SectionDisassemblyAnalyzer::getRemoteSuccessor(const MaximalBlock &block,
-                                               addr_t target) const {
+MaximalBlock *SectionDisassemblyAnalyzer::getRemoteSuccessor
+    (const MaximalBlockCFGNode &block, addr_t target) const {
+
     // binary search to find the remote MB that is targeted.
-    // assuming that MBs are sorted in an associative container.
     if (target < m_exec_start || target > m_exec_end) {
         return nullptr;
     }
     size_t first = 0;
     size_t last = m_sec_disassembly->maximalBlockCount() - 1;
     size_t middle = (first + last) / 2;
-    while (last - middle > 2) {
-        if (target >
-            m_sec_disassembly->maximalBlockAt(middle).addrOfFirstInst()) {
-            first = middle;
-        } else {
+    while (middle > first) {
+        if (target <
+            m_sec_disassembly->maximalBlockAt(middle).addrOfLastInst()) {
             last = middle;
+        } else {
+            first = middle;
         }
         middle = (first + last) / 2;
     }
-    // We do a linear search here since its more resilient to overlap
-    for (size_t i = first; i <= last; ++i) {
-        if (m_sec_disassembly->maximalBlockAt(i).isInstructionAddress(target)) {
-            return m_sec_disassembly->ptrToMaximalBlockAt(i);
-        }
+
+    if (m_sec_disassembly->maximalBlockAt(last).isInstructionAddress(target)) {
+        return m_sec_disassembly->ptrToMaximalBlockAt(last);
+    }
+    if (m_sec_disassembly->maximalBlockAt(first).isInstructionAddress(target)) {
+        return m_sec_disassembly->ptrToMaximalBlockAt(first);
+    }
+
+    // Handle overlap MBs.
+    auto overlap_block = m_cfg[last].getOverlapMaximalBlock();
+    if (overlap_block != nullptr &&
+        overlap_block->isInstructionAddress(target)) {
+        return overlap_block;
     }
     return nullptr;
 }
