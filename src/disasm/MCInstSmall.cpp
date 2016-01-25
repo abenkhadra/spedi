@@ -4,7 +4,7 @@
 //
 //===----------------------------------------------------------------------===//
 // 
-// Copyright (c) 2015 University of Kaiserslautern.
+// Copyright (c) 2015-2016 University of Kaiserslautern.
 
 #include "MCInstSmall.h"
 #include <capstone/capstone.h>

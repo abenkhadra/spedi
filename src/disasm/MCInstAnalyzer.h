@@ -4,7 +4,7 @@
 //
 //===----------------------------------------------------------------------===//
 // 
-// Copyright (c) 2015 University of Kaiserslautern.
+// Copyright (c) 2015-2016 University of Kaiserslautern.
 
 #pragma once
 #include <capstone/capstone.h>
@@ -46,7 +46,7 @@ public:
 
     ISAInstWidth getMinxInstWidth(ISAType isa) const;
 
-    const ISAType &getISA() const {
+    ISAType getISA() const {
         return m_isa;
     }
 
