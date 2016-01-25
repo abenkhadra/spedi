@@ -66,7 +66,6 @@ void SectionDisassemblyAnalyzer::BuildCFG() {
         }
     }
 
-
     std::vector<MaximalBlockCFGNode>::iterator cfg_node_iter = m_cfg.begin();
     // second pass for setting successors and predecessors to each MB
     for (block_iter = m_sec_disassembly->getMaximalBlocks().begin();
@@ -80,6 +79,8 @@ void SectionDisassemblyAnalyzer::BuildCFG() {
             auto succ = getDirectSuccessor((*cfg_node_iter));
             if (succ != nullptr) {
                 (*cfg_node_iter).setDirectSuccessor(succ);
+                getCFGNodeOf(succ)->addPredecessor(&(*block_iter),
+                                                   (*block_iter).endAddr());
             } else {
                 // a conditional branch without a direct successor is data
                 (*block_iter).setType(MaximalBlockType::kData);
@@ -96,6 +97,8 @@ void SectionDisassemblyAnalyzer::BuildCFG() {
                 getRemoteSuccessor((*cfg_node_iter), branch_target);
             if (succ != nullptr) {
                 (*cfg_node_iter).setRemoteSuccessor(succ);
+                getCFGNodeOf(succ)->addPredecessor(&(*block_iter),
+                                                   branch_target);
             } else {
                 // a direct branch that doesn't target an MB is data
                 (*block_iter).setType(MaximalBlockType::kData);
@@ -122,7 +125,8 @@ MaximalBlock *SectionDisassemblyAnalyzer::getDirectSuccessor
     if (direct_succ->isInstructionAddress(current_block->endAddr())) {
         return direct_succ;
     }
-    auto overlap_block = m_cfg[current_block->getId() + 1].getOverlapMaximalBlock();
+    auto overlap_block =
+        m_cfg[current_block->getId() + 1].getOverlapMaximalBlock();
     if (overlap_block != nullptr &&
         overlap_block->isInstructionAddress(current_block->endAddr())) {
         return overlap_block;
@@ -164,5 +168,10 @@ MaximalBlock *SectionDisassemblyAnalyzer::getRemoteSuccessor
         return overlap_block;
     }
     return nullptr;
+}
+
+MaximalBlockCFGNode *SectionDisassemblyAnalyzer::getCFGNodeOf
+    (const MaximalBlock *max_block) {
+    return &(*(m_cfg.begin() + max_block->getId()));
 }
 }

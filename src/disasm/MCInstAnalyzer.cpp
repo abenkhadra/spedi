@@ -66,10 +66,10 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
                         break;
                     default:
                         // TODO: make logging consistent and configurable
-                        printf("Found invalid pc at 0x%lx, %s, %s\n",
-                               inst->address,
-                               inst->mnemonic,
-                               inst->op_str);
+//                        printf("Found invalid pc at 0x%lx, %s, %s\n",
+//                               inst->address,
+//                               inst->mnemonic,
+//                               inst->op_str);
                         return false;
                 }
             } else if (inst->detail->arm.operands[i].reg == ARM_REG_SP) {
@@ -90,10 +90,10 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
                         // we allow stores to use SP
                         if (!(ARM_INS_STMDA <= inst->id
                             && inst->id <= ARM_INS_STR)) {
-                            printf("Found invalid sp at 0x%lx, %s, %s\n",
-                                   inst->address,
-                                   inst->mnemonic,
-                                   inst->op_str);
+//                            printf("Found invalid sp at 0x%lx, %s, %s\n",
+//                                   inst->address,
+//                                   inst->mnemonic,
+//                                   inst->op_str);
                             return false;
                         }
                         break;
@@ -101,10 +101,10 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
             }
         } else if (inst->detail->arm.operands[i].type == ARM_OP_CIMM
             || inst->detail->arm.operands[i].type == ARM_OP_PIMM) {
-            printf("Found invalid co-register at 0x%lx, %s, %s\n",
-                   inst->address,
-                   inst->mnemonic,
-                   inst->op_str);
+//            printf("Found invalid co-register at 0x%lx, %s, %s\n",
+//                   inst->address,
+//                   inst->mnemonic,
+//                   inst->op_str);
             return false;
         }
 //        else if (!(

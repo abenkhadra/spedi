@@ -27,10 +27,12 @@ public:
     SectionDisassemblyAnalyzer(SectionDisassemblyAnalyzer &&src) = default;
 
     void BuildCFG();
-    MaximalBlock *getDirectSuccessor(const MaximalBlockCFGNode &block_node) const;
-    MaximalBlock *getRemoteSuccessor(const MaximalBlockCFGNode &block,
-                                     addr_t target) const;
-    void RefineMaximalBlocks(std::vector<addr_t> &known_code_addrs) const;
+    MaximalBlock *getDirectSuccessor
+        (const MaximalBlockCFGNode &block_node) const;
+    MaximalBlock *getRemoteSuccessor
+        (const MaximalBlockCFGNode &block, addr_t target) const;
+    MaximalBlockCFGNode *getCFGNodeOf(const MaximalBlock *max_block);
+    void RefineMaximalBlocks(const std::vector<addr_t> &known_code_addrs) const;
     bool isValidCodeAddr(addr_t addr) const;
     /*
      * valid only after building analysis facts;

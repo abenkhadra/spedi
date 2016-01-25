@@ -91,6 +91,7 @@ public:
     bool coversAddressSpaceOf(const MaximalBlock &block) const;
     bool coversAddressSpaceOf(const MaximalBlock *block) const;
     bool isData() const;
+    bool isCode() const;
 
 private:
     explicit MaximalBlock(unsigned int id, const BranchData &branch);

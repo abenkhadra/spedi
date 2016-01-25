@@ -164,4 +164,7 @@ bool MaximalBlock::isInstructionAddress(const addr_t inst_addr) const {
 bool MaximalBlock::isData() const {
     return m_type == MaximalBlockType::kData;
 }
+bool MaximalBlock::isCode() const {
+    return m_type == MaximalBlockType::kCode;
+}
 }
