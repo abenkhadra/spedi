@@ -36,9 +36,7 @@ MaximalBlockBuilder::appendableBasicBlocksAt(const addr_t addr) const {
 
 void
 MaximalBlockBuilder::createBasicBlockWith(const cs_insn *inst) {
-    m_bblocks.emplace_back(BasicBlock(m_bb_idx));
-    // link basic block to fragment
-    m_bblocks.back().append(inst);
+    m_bblocks.emplace_back(BasicBlock(m_bb_idx, inst));
     m_insts.emplace_back(MCInstSmall(inst));
     m_end_addr = inst->address + inst->size;
     m_bb_idx++;

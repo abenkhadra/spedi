@@ -14,10 +14,12 @@
 
 namespace disasm {
 
-BasicBlock::BasicBlock(unsigned int id) :
+BasicBlock::BasicBlock(unsigned id, const cs_insn *inst) :
     m_valid{false},
     m_id{id},
-    m_size{0} { }
+    m_size{0} {
+    append(inst);
+}
 
 bool BasicBlock::isValid() const {
     return m_valid && m_inst_addrs.size() > 0;
@@ -52,6 +54,7 @@ void BasicBlock::append(const cs_insn *inst) {
     m_inst_addrs.push_back(inst->address);
     m_size += inst->size;
 }
+
 addr_t BasicBlock::endAddr() const {
     return m_inst_addrs.front() + m_size;
 }

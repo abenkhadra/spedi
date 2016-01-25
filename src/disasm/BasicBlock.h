@@ -25,7 +25,7 @@ public:
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
-    explicit BasicBlock(unsigned int id);
+    BasicBlock(unsigned id, const cs_insn *inst);
     virtual ~BasicBlock() = default;
     BasicBlock(const BasicBlock &src) = default;
     BasicBlock &operator=(const BasicBlock &src) = default;
@@ -48,8 +48,8 @@ private:
 
 private:
     bool m_valid;
-    unsigned int m_id;
-    std::vector<addr_t> m_inst_addrs;
+    unsigned m_id;
     size_t m_size;
+    std::vector<addr_t> m_inst_addrs;
 };
 }

@@ -81,6 +81,8 @@ void SectionDisassemblyAnalyzer::BuildCFG() {
                 (*cfg_node_iter).setDirectSuccessor(succ);
                 getCFGNodeOf(succ)->addPredecessor(&(*block_iter),
                                                    (*block_iter).endAddr());
+//                std::cout << "MaximalBlock: " << (*block_iter).getId()
+//                    << " Points to: " << (*succ).getId() << "\n";
             } else {
                 // a conditional branch without a direct successor is data
                 (*block_iter).setType(MaximalBlockType::kData);
@@ -94,11 +96,13 @@ void SectionDisassemblyAnalyzer::BuildCFG() {
                 continue;
             }
             auto succ =
-                getRemoteSuccessor((*cfg_node_iter), branch_target);
+                getRemoteSuccessor(branch_target);
             if (succ != nullptr) {
                 (*cfg_node_iter).setRemoteSuccessor(succ);
                 getCFGNodeOf(succ)->addPredecessor(&(*block_iter),
                                                    branch_target);
+//                std::cout << "MaximalBlock: " << (*block_iter).getId()
+//                    << " Points to: " << (*succ).getId() << "\n";
             } else {
                 // a direct branch that doesn't target an MB is data
                 (*block_iter).setType(MaximalBlockType::kData);
@@ -135,7 +139,7 @@ MaximalBlock *SectionDisassemblyAnalyzer::getDirectSuccessor
 }
 
 MaximalBlock *SectionDisassemblyAnalyzer::getRemoteSuccessor
-    (const MaximalBlockCFGNode &block, addr_t target) const {
+    (addr_t target) const {
 
     // binary search to find the remote MB that is targeted.
     if (target < m_exec_start || target > m_exec_end) {
@@ -144,6 +148,7 @@ MaximalBlock *SectionDisassemblyAnalyzer::getRemoteSuccessor
     size_t first = 0;
     size_t last = m_sec_disassembly->maximalBlockCount() - 1;
     size_t middle = (first + last) / 2;
+
     while (middle > first) {
         if (target <
             m_sec_disassembly->maximalBlockAt(middle).addrOfLastInst()) {
