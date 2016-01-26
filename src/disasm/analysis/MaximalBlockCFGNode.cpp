@@ -10,6 +10,8 @@
 #include <cassert>
 namespace disasm {
 MaximalBlockCFGNode::MaximalBlockCFGNode(MaximalBlock *current_block) :
+    m_type{MaximalBlockType::kMaybe},
+    m_known_start_addr{0},
     m_overlap_mblock{nullptr},
     m_direct_successor{nullptr},
     m_remote_successor{nullptr},
@@ -36,7 +38,36 @@ const MaximalBlock *MaximalBlockCFGNode::getMaximalBlock() const {
     return m_current;
 }
 
-MaximalBlock * MaximalBlockCFGNode::getOverlapMaximalBlock() const {
+MaximalBlock *MaximalBlockCFGNode::getOverlapMaximalBlock() const {
     return m_overlap_mblock;
+}
+bool MaximalBlockCFGNode::isData() const {
+    return m_type == MaximalBlockType::kData;
+}
+bool MaximalBlockCFGNode::isCode() const {
+    return m_type == MaximalBlockType::kCode;
+}
+void MaximalBlockCFGNode::setType(const MaximalBlockType type) {
+    m_type = type;
+}
+MaximalBlockType MaximalBlockCFGNode::getType() const {
+    return m_type;
+}
+std::vector<MCInstSmall> MaximalBlockCFGNode::getKnownInstructions() const {
+    std::vector<MCInstSmall> result;
+    if (m_known_start_addr == 0) {
+        return result;
+    }
+    addr_t current = m_known_start_addr;
+    for (auto &inst : m_current->getAllInstructions()) {
+        if (inst.addr() == current) {
+            result.push_back(inst);
+            current += inst.size();
+        }
+    }
+    return result;
+}
+addr_t MaximalBlockCFGNode::getKnownStartAddr() const {
+    return m_known_start_addr;
 }
 }

@@ -73,14 +73,11 @@ std::vector<MaximalBlock> &
 SectionDisassembly::getMaximalBlocks() {
     return m_max_blocks;
 }
-bool SectionDisassembly::isLast(const MaximalBlock &max_block) const {
-    return max_block.getId() == m_max_blocks.size() - 1;
-}
 bool SectionDisassembly::isLast(const MaximalBlock *max_block) const {
     return max_block->getId() == m_max_blocks.size() - 1;;
 }
-bool SectionDisassembly::isFirst(const MaximalBlock &max_block) const {
-    return max_block.getId() == 0;
+bool SectionDisassembly::isFirst(const MaximalBlock *max_block) const {
+    return max_block->getId() == 0;
 }
 
 const MaximalBlock &SectionDisassembly::maximalBlockAt(size_t index) const {

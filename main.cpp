@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
             disasm::SectionDisassemblyAnalyzer
                 analyzer{&result, disassembler.getExecutableRegion()};
             analyzer.BuildCFG();
-            disassembler.prettyPrintSectionDisassembly(result);
+            disassembler.prettyPrintSectionCFG(&analyzer.getCFG());
         } else {
             disassembler.disassembleCodeSpeculative();
         }
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
             << file_path << "\n";
         if (cmd_parser.exist(config.kText)) {
             auto result = disassembler.disassembleSectionbyName(".text");
-            disassembler.prettyPrintSectionDisassembly(result);
+            disassembler.prettyPrintSectionDisassembly(&result);
         } else
             disassembler.disassembleCodeUsingSymbols();
     } else

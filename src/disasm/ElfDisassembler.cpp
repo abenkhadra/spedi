@@ -6,10 +6,10 @@
 // 
 // Copyright (c) 2015-2016 University of Kaiserslautern.
 
+#include "./analysis/SectionDisassemblyCFG.h"
 #include "ElfDisassembler.h"
 #include "MCInstWrapper.h"
 #include "MCParser.h"
-#include "MCInstAnalyzer.h"
 #include "MaximalBlockBuilder.h"
 #include "ElfData.h"
 #include <inttypes.h>
@@ -36,42 +36,7 @@ printHex(unsigned char *str, size_t len) {
     printf("\n");
 }
 
-void ElfDisassembler::prettyPrintMaximalBlock(const MaximalBlock &mblock) const {
-    printf("**************************************\n");
-    printf("MB No. %u, Type: %u. Starts at %#6x",
-           mblock.getId(), mblock.getType(),
-           static_cast<unsigned> (mblock.addrOfFirstInst()));
-    printf(" / BB count. %lu, Total inst count %u: \n",
-           mblock.getBasicBlocksCount(), mblock.instructionsCount());
-
-    for (auto &block :mblock.getBasicBlocks()) {
-        printf("Basic Block Id %u, inst count %lu\n / ",
-               block.id(), block.instCount());
-        for (auto addr : mblock.getInstructionAddressesOf(block)) {
-            printf(" Inst Addr: %#6x", static_cast<unsigned>(addr));
-        }
-        printf("\n");
-    }
-    for (auto &inst :mblock.getAllInstructions()) {
-        printf("0x%" PRIx64 ":\t%s\t\t%s ",
-               inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str());
-        if (inst.condition() != ARM_CC_AL) {
-            printf("/ condition: %s",
-                   m_analyzer.conditionCodeToString(inst.condition()).c_str());
-        }
-        printf("\n");
-    }
-    printf("Direct branch: %d, Conditional: %d",
-           mblock.getBranch().isDirect(), mblock.getBranch().isConditional());
-    if (mblock.getBranch().isDirect()) {
-        printf(", Target: 0x%x",
-               static_cast<unsigned>(mblock.getBranch().getTarget()));
-    }
-    printf("\n");
-}
-
-SectionDisassembly
-ElfDisassembler::disassembleSectionUsingSymbols
+SectionDisassembly ElfDisassembler::disassembleSectionUsingSymbols
     (const elf::section &sec) const {
 
     // a type_mismatch exception would thrown in case symbol table was not found.
@@ -316,12 +281,11 @@ ElfDisassembler::getElfMachineArch() const {
             return ISAType::kUnknown;
     }
 }
-void ElfDisassembler::prettyPrintCapstoneInst(const csh &handle,
-                                              cs_insn *inst,
-                                              bool details_enabled) const {
+void ElfDisassembler::prettyPrintCapstoneInst
+    (const csh &handle, cs_insn *inst, bool details_enabled) const {
+
     cs_detail *detail;
     int n;
-
     printf("0x%" PRIx64 ":\t%s\t\t%s // insn-ID: %u, insn-mnem: %s\n",
            inst->address, inst->mnemonic, inst->op_str,
            inst->id, cs_insn_name(handle, inst->id));
@@ -359,10 +323,89 @@ void ElfDisassembler::prettyPrintCapstoneInst(const csh &handle,
         printf("\n");
     }
 }
+
+void ElfDisassembler::prettyPrintMaximalBlock
+    (const MaximalBlock *mblock) const {
+    printf("**************************************\n");
+    printf("MB No. %u. Starts at %#6x",
+           mblock->getId(),
+           static_cast<unsigned> (mblock->addrOfFirstInst()));
+    printf(" / BB count. %lu, Total inst count %u: \n",
+           mblock->getBasicBlocksCount(), mblock->instructionsCount());
+
+    for (auto &block :mblock->getBasicBlocks()) {
+        printf("Basic Block Id %u, inst count %lu\n / ",
+               block.id(), block.instCount());
+        for (auto addr : mblock->getInstructionAddressesOf(block)) {
+            printf(" Inst Addr: %#6x", static_cast<unsigned>(addr));
+        }
+        printf("\n");
+    }
+    for (auto &inst :mblock->getAllInstructions()) {
+        printf("0x%" PRIx64 ":\t%s\t\t%s ",
+               inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str());
+        if (inst.condition() != ARM_CC_AL) {
+            printf("/ condition: %s",
+                   m_analyzer.conditionCodeToString(inst.condition()).c_str());
+        }
+        printf("\n");
+    }
+    printf("Direct branch: %d, Conditional: %d",
+           mblock->getBranch().isDirect(), mblock->getBranch().isConditional());
+    if (mblock->getBranch().isDirect()) {
+        printf(", Target: 0x%x",
+               static_cast<unsigned>(mblock->getBranch().target()));
+    }
+    printf("\n");
+}
+
+void ElfDisassembler::prettyPrintCFGNode
+    (const MaximalBlockCFGNode *cfg_node) const {
+    auto mblock = cfg_node->getMaximalBlock();
+    printf("**************************************\n");
+    printf("MB No. %u, Type: %u. Starts at %#6x",
+           mblock->getId(), cfg_node->getType(),
+           static_cast<unsigned> (mblock->addrOfFirstInst()));
+    printf(" / BB count. %lu, Total inst count %u: \n",
+           mblock->getBasicBlocksCount(), mblock->instructionsCount());
+
+    for (auto &block :mblock->getBasicBlocks()) {
+        printf("Basic Block Id %u, inst count %lu\n / ",
+               block.id(), block.instCount());
+        for (auto addr : mblock->getInstructionAddressesOf(block)) {
+            printf(" Inst Addr: %#6x", static_cast<unsigned>(addr));
+        }
+        printf("\n");
+    }
+    for (auto &inst :mblock->getAllInstructions()) {
+        printf("0x%" PRIx64 ":\t%s\t\t%s ",
+               inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str());
+        if (inst.condition() != ARM_CC_AL) {
+            printf("/ condition: %s",
+                   m_analyzer.conditionCodeToString(inst.condition()).c_str());
+        }
+        printf("\n");
+    }
+    printf("Direct branch: %d, Conditional: %d",
+           mblock->getBranch().isDirect(), mblock->getBranch().isConditional());
+    if (mblock->getBranch().isDirect()) {
+        printf(", Target: 0x%x",
+               static_cast<unsigned>(mblock->getBranch().target()));
+    }
+    printf("\n");
+}
+
 void ElfDisassembler::prettyPrintSectionDisassembly
-    (const SectionDisassembly &sec_disasm) const {
-    for (auto it = sec_disasm.cbegin(); it < sec_disasm.cend(); ++it) {
-        prettyPrintMaximalBlock(*it);
+    (const SectionDisassembly *sec_disasm) const {
+    for (auto it = sec_disasm->cbegin(); it < sec_disasm->cend(); ++it) {
+        prettyPrintMaximalBlock(&(*it));
+    }
+}
+
+void ElfDisassembler::prettyPrintSectionCFG
+    (const SectionDisassemblyCFG *sec_cfg) const {
+    for (auto &node :sec_cfg->getCFG()) {
+        prettyPrintCFGNode(&node);
     }
 }
 }

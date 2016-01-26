@@ -8,10 +8,13 @@
 
 #pragma once
 #include "SectionDisassembly.h"
-#include "binutils/elf/elf++.hh"
 #include "MCInstAnalyzer.h"
+#include "binutils/elf/elf++.hh"
 
 namespace disasm {
+
+class MaximalBlockCFGNode;
+class SectionDisassemblyCFG;
 
 class ARMCodeSymbolVal {
 public:
@@ -50,18 +53,18 @@ public:
 
     bool valid() const { return m_valid; }
     void disassembleCodeUsingSymbols() const;
-    SectionDisassembly
-        disassembleSectionUsingSymbols(const elf::section &sec) const;
 
-    SectionDisassembly
-        disassembleSectionSpeculative(const elf::section &sec) const;
+    SectionDisassembly disassembleSectionUsingSymbols
+        (const elf::section &sec) const;
+    SectionDisassembly disassembleSectionSpeculative
+        (const elf::section &sec) const;
     std::vector<SectionDisassembly> disassembleCodeSpeculative() const;
 
-    SectionDisassembly disassembleSectionbyName(std::string sec_name) const;
-    SectionDisassembly
-        disassembleSectionbyNameSpeculative(std::string sec_name) const;
+    SectionDisassembly disassembleSectionbyName
+        (std::string sec_name) const;
+    SectionDisassembly disassembleSectionbyNameSpeculative
+        (std::string sec_name) const;
     const std::pair<addr_t, addr_t> getExecutableRegion();
-
     bool isSymbolTableAvailable();
 
     /**
@@ -73,9 +76,11 @@ public:
     ISAType getElfMachineArch() const;
 
     void prettyPrintMaximalBlock
-        (const MaximalBlock &mblock) const;
+        (const MaximalBlock *mblock) const;
     void prettyPrintSectionDisassembly
-        (const SectionDisassembly &sec_disasm) const;
+        (const SectionDisassembly *sec_disasm) const;
+    void prettyPrintSectionCFG(const SectionDisassemblyCFG *sec_cfg) const;
+    void prettyPrintCFGNode(const MaximalBlockCFGNode *cfg_node) const;
 
 private:
     void prettyPrintCapstoneInst

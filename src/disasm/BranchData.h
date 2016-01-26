@@ -33,7 +33,7 @@ public:
     bool isConditional() const { return m_conditional_branch; }
     bool isDirect() const { return m_direct_branch; }
     // precondition: valid only for direct branch
-    addr_t getTarget() const { return m_target; }
+    addr_t target() const { return m_target; }
     friend class MaximalBlockBuilder;
 
 private:

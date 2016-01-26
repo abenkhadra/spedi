@@ -61,9 +61,8 @@ public:
     const uint8_t *physicalAddrOf(const addr_t virtual_addr) const;
     std::vector<MaximalBlock> &getMaximalBlocks();
 
-    bool isLast(const MaximalBlock &max_block) const;
     bool isLast(const MaximalBlock *max_block) const;
-    bool isFirst(const MaximalBlock &max_block) const;
+    bool isFirst(const MaximalBlock *max_block) const;
     bool isWithinSectionAddressSpace(const addr_t & addr) const;
 
 private:

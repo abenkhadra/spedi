@@ -28,21 +28,17 @@ class MaximalBlock {
 public:
     /**
      */
-    MaximalBlock();
+    MaximalBlock() = default;
     virtual ~MaximalBlock() = default;
     MaximalBlock(const MaximalBlock &src) = default;
     MaximalBlock &operator=(const MaximalBlock &src) = default;
     MaximalBlock(MaximalBlock &&src) = default;
-
-    friend class MaximalBlockBuilder;
 
     /**
      * MB is valid when all of its BBs are valid. A BB is valid when it
      * has a branch as last instruction.
      */
     bool isValid() const;
-    void setType(const MaximalBlockType type);
-    MaximalBlockType getType() const;
 
     const BasicBlock &getBasicBlockById(const unsigned bb_id) const;
     const std::vector<BasicBlock> &getBasicBlocks() const;
@@ -58,12 +54,6 @@ public:
      */
     const std::vector<MCInstSmall>
         &getAllInstructions() const;
-    /*
-     * return the sequence of instructions starting from the known start address,
-     * If address is invalid then return an empty vector
-     */
-    std::vector<MCInstSmall>
-        getKnownInstructions() const;
 
     const std::vector<const MCInstSmall *>
         getInstructionsOf(BasicBlock &bblock);
@@ -83,23 +73,17 @@ public:
     addr_t addrOfLastInst() const;
 
     addr_t endAddr() const;
-    bool isInstructionAddress(const addr_t inst_addr) const;
-    addr_t getKnownStartAddr() const;
-
+    bool isAddressOfInstruction(const addr_t inst_addr) const;
     bool startOverlapsWith(const MaximalBlock &prev_block) const;
     bool startOverlapsWith(const MaximalBlock *prev_block) const;
     bool coversAddressSpaceOf(const MaximalBlock &block) const;
     bool coversAddressSpaceOf(const MaximalBlock *block) const;
-    bool isData() const;
-    bool isCode() const;
 
+    friend class MaximalBlockBuilder;
 private:
     explicit MaximalBlock(unsigned int id, const BranchData &branch);
-
 private:
     unsigned int m_id;
-    MaximalBlockType m_type;
-    addr_t m_start_addr;
     addr_t m_end_addr;
     BranchData m_branch;
     std::vector<MCInstSmall> m_insts;

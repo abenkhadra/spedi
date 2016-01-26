@@ -7,9 +7,10 @@
 // Copyright (c) 2016 University of Kaiserslautern.
 
 #pragma once
-
 #include "MaximalBlockCFGNode.h"
 #include "../SectionDisassembly.h"
+#include "SectionDisassemblyCFG.h"
+
 namespace disasm {
 /**
  * SectionDisassemblyAnalyzer
@@ -31,19 +32,15 @@ public:
         (const MaximalBlockCFGNode &block_node) const;
     MaximalBlock *getRemoteSuccessor
         (addr_t target) const;
-    MaximalBlockCFGNode *getCFGNodeOf(const MaximalBlock *max_block);
-    void RefineMaximalBlocks(const std::vector<addr_t> &known_code_addrs) const;
+    void RefineMaximalBlocks();
+    void RefineMaximalBlocks(const std::vector<addr_t> &known_code_addrs);
     bool isValidCodeAddr(addr_t addr) const;
-    /*
-     * valid only after building analysis facts;
-     */
-    bool valid() const { return m_valid; }
+    const SectionDisassemblyCFG &getCFG() const;
 private:
-    bool m_valid;
     SectionDisassembly *m_sec_disassembly;
     addr_t m_exec_start;
     addr_t m_exec_end;
-    std::vector<MaximalBlockCFGNode> m_cfg;
+    SectionDisassemblyCFG m_sec_cfg;
 };
 }
 
