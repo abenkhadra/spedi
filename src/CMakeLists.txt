@@ -40,7 +40,8 @@ add_library(
         disasm/MCInstAnalyzer.cpp disasm/MCInstAnalyzer.h
         disasm/BranchData.cpp disasm/BranchData.h
         disasm/analysis/MaximalBlockCFGNode.cpp disasm/analysis/MaximalBlockCFGNode.h
-        disasm/analysis/SectionDisassemblyAnalyzer.cpp disasm/analysis/SectionDisassemblyAnalyzer.h disasm/analysis/SectionDisassemblyCFG.cpp disasm/analysis/SectionDisassemblyCFG.h)
+        disasm/analysis/SectionDisassemblyAnalyzer.cpp disasm/analysis/SectionDisassemblyAnalyzer.h
+        disasm/analysis/DisassemblyCFG.cpp disasm/analysis/DisassemblyCFG.h)
 
 #target_compile_options(disasm PRIVATE -fsanitize=address)
 add_dependencies(disasm elf++ dwarf++)

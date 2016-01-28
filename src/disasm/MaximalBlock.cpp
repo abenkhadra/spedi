@@ -56,7 +56,7 @@ addr_t MaximalBlock::addrOfLastInst() const {
 }
 
 const BasicBlock &
-MaximalBlock::getBasicBlockById(const unsigned int bb_id) const {
+MaximalBlock::getBasicBlockAt(const unsigned int bb_id) const {
     return m_bblocks[bb_id];
 }
 
@@ -92,6 +92,7 @@ bool MaximalBlock::isWithinAddressSpace(addr_t addr) const {
 const std::vector<MCInstSmall> &MaximalBlock::getAllInstructions() const {
     return m_insts;
 }
+
 const BranchData &MaximalBlock::getBranch() const {
     return m_branch;
 }

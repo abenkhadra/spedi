@@ -14,7 +14,7 @@
 namespace disasm {
 
 class MaximalBlockCFGNode;
-class SectionDisassemblyCFG;
+class DisassemblyCFG;
 
 class ARMCodeSymbolVal {
 public:
@@ -79,7 +79,7 @@ public:
         (const MaximalBlock *mblock) const;
     void prettyPrintSectionDisassembly
         (const SectionDisassembly *sec_disasm) const;
-    void prettyPrintSectionCFG(const SectionDisassemblyCFG *sec_cfg) const;
+    void prettyPrintSectionCFG(const DisassemblyCFG *sec_cfg) const;
     void prettyPrintCFGNode(const MaximalBlockCFGNode *cfg_node) const;
 
 private:

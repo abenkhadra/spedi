@@ -58,4 +58,12 @@ void BasicBlock::append(const cs_insn *inst) {
 addr_t BasicBlock::endAddr() const {
     return m_inst_addrs.front() + m_size;
 }
+
+const std::vector<addr_t> &BasicBlock::InstructionAddresses() const {
+    return m_inst_addrs;
+}
+
+size_t BasicBlock::getInstructionCount() const {
+    return m_inst_addrs.size();
+}
 }

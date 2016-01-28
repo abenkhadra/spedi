@@ -6,7 +6,7 @@
 // 
 // Copyright (c) 2015-2016 University of Kaiserslautern.
 
-#include "./analysis/SectionDisassemblyCFG.h"
+#include "./analysis/DisassemblyCFG.h"
 #include "ElfDisassembler.h"
 #include "MCInstWrapper.h"
 #include "MCParser.h"
@@ -403,7 +403,7 @@ void ElfDisassembler::prettyPrintSectionDisassembly
 }
 
 void ElfDisassembler::prettyPrintSectionCFG
-    (const SectionDisassemblyCFG *sec_cfg) const {
+    (const DisassemblyCFG *sec_cfg) const {
     for (auto &node :sec_cfg->getCFG()) {
         prettyPrintCFGNode(&node);
     }

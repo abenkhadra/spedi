@@ -43,6 +43,8 @@ public:
     size_t instCount() const;
     addr_t startAddr() const;
     addr_t endAddr() const;
+    const std::vector<addr_t> &InstructionAddresses() const;
+    size_t getInstructionCount() const;
 private:
     void append(const cs_insn *inst);
 

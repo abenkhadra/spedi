@@ -11,24 +11,23 @@
 
 namespace disasm {
 /**
- * SectionDisassemblyCFG
+ * DisassemblyCFG
  */
-class SectionDisassemblyCFG {
+class DisassemblyCFG {
 public:
     /**
-     * Construct a SectionDisassemblyCFG that is initially not valid.  Calling
+     * Construct a DisassemblyCFG that is initially not valid.  Calling
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
-    SectionDisassemblyCFG() = default;
-    virtual ~SectionDisassemblyCFG() = default;
-    SectionDisassemblyCFG(const SectionDisassemblyCFG &src) = default;
-    SectionDisassemblyCFG
-        &operator=(const SectionDisassemblyCFG &src) = default;
-    SectionDisassemblyCFG(SectionDisassemblyCFG &&src) = default;
+    DisassemblyCFG() = default;
+    virtual ~DisassemblyCFG() = default;
+    DisassemblyCFG(const DisassemblyCFG &src) = default;
+    DisassemblyCFG
+        &operator=(const DisassemblyCFG &src) = default;
+    DisassemblyCFG(DisassemblyCFG &&src) = default;
 
-    MaximalBlockCFGNode *getCFGNodeOf(const MaximalBlock *max_block);
-    const MaximalBlockCFGNode &nodeAt(size_t index) const;
+    const MaximalBlockCFGNode &getNodeAt(size_t index) const;
     const std::vector<MaximalBlockCFGNode> &getCFG() const;
     /*
      * Valid only after building CFG.
@@ -36,6 +35,10 @@ public:
     bool valid() const { return m_valid; }
 
     friend class SectionDisassemblyAnalyzer;
+private:
+    MaximalBlockCFGNode *getCFGNodeOf(const MaximalBlock *max_block);
+    MaximalBlockCFGNode *ptrToNodeAt(size_t index);
+
 private:
     bool m_valid;
     std::vector<MaximalBlockCFGNode> m_cfg;
