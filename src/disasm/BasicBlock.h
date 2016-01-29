@@ -40,11 +40,10 @@ public:
 
     bool isAppendableBy(const cs_insn *inst) const;
     bool isAppendableAt(const addr_t addr) const;
-    size_t instCount() const;
+    size_t instructionCount() const;
     addr_t startAddr() const;
     addr_t endAddr() const;
     const std::vector<addr_t> &InstructionAddresses() const;
-    size_t getInstructionCount() const;
 private:
     void append(const cs_insn *inst);
 

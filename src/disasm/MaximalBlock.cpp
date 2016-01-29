@@ -29,7 +29,7 @@ bool MaximalBlock::isValid() const {
 }
 
 const std::vector<const MCInstSmall *>
-MaximalBlock::getInstructionsOf(BasicBlock &bblock) {
+MaximalBlock::getInstructionsOf(const BasicBlock &bblock) const {
     std::vector<const MCInstSmall *> result;
 
     auto current = bblock.startAddr();
@@ -43,8 +43,13 @@ MaximalBlock::getInstructionsOf(BasicBlock &bblock) {
 }
 
 const std::vector<addr_t> &
-MaximalBlock::getInstructionAddressesOf(const BasicBlock &bblock) const {
+MaximalBlock::getInstructionAddressesOf(const BasicBlock &bblock) const noexcept {
     return bblock.m_inst_addrs;
+}
+
+const std::vector<addr_t> &
+MaximalBlock::getInstructionAddressesOf(const BasicBlock *bblock) const noexcept {
+    return bblock->m_inst_addrs;
 }
 
 addr_t MaximalBlock::addrOfFirstInst() const {
@@ -75,12 +80,12 @@ MaximalBlock::MaximalBlock(unsigned id, const BranchData &branch) :
     m_branch{branch} {
 }
 
-unsigned MaximalBlock::getId() const {
+unsigned MaximalBlock::id() const {
     return m_id;
 }
 
-unsigned MaximalBlock::instructionsCount() const {
-    return static_cast<unsigned> (m_insts.size());
+size_t MaximalBlock::instructionsCount() const {
+    return m_insts.size();
 }
 
 

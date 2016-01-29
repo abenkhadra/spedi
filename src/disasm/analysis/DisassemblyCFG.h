@@ -32,7 +32,8 @@ public:
     /*
      * Valid only after building CFG.
      */
-    bool valid() const { return m_valid; }
+    bool isValid() const { return m_valid; }
+    size_t calculateNodeWeight(const MaximalBlockCFGNode *node) const noexcept;
 
     friend class SectionDisassemblyAnalyzer;
 private:

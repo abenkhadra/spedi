@@ -38,13 +38,13 @@ SectionDisassembly::data() const {
 }
 
 void SectionDisassembly::add(const MaximalBlock &max_block) {
-    assert(m_max_blocks.size() == max_block.getId()
+    assert(m_max_blocks.size() == max_block.id()
                && "invalid index of maximal block");
     m_max_blocks.push_back(max_block);
 }
 
 void SectionDisassembly::add(MaximalBlock &&max_block) {
-    assert(m_max_blocks.size() == max_block.getId()
+    assert(m_max_blocks.size() == max_block.id()
                && "invalid index of maximal block");
     m_max_blocks.emplace_back(max_block);
 }
@@ -74,10 +74,10 @@ SectionDisassembly::getMaximalBlocks() {
     return m_max_blocks;
 }
 bool SectionDisassembly::isLast(const MaximalBlock *max_block) const {
-    return max_block->getId() == m_max_blocks.size() - 1;;
+    return max_block->id() == m_max_blocks.size() - 1;;
 }
 bool SectionDisassembly::isFirst(const MaximalBlock *max_block) const {
-    return max_block->getId() == 0;
+    return max_block->id() == 0;
 }
 
 const MaximalBlock &SectionDisassembly::maximalBlockAt(size_t index) const {

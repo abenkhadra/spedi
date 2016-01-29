@@ -30,19 +30,19 @@ public:
 
     void BuildCFG();
     /*
-     * Search in CFG to find a suitable direct successor
+     * Search in CFG to find direct successor
      */
-    MaximalBlockCFGNode *getDirectSuccessorPtr
+    MaximalBlockCFGNode *findDirectSuccessor
         (const MaximalBlockCFGNode &cfg_node) noexcept;
     /*
-     * Search in CFG to find a suitable remote successor
+     * Search in CFG to find remote successor matching target
      */
-    MaximalBlockCFGNode *getRemoteSuccessorPtr(addr_t target) noexcept;
+    MaximalBlockCFGNode *findRemoteSuccessor(addr_t target) noexcept;
 
-    void RefineMaximalBlocks();
+    void RefineCFG();
     void RefineMaximalBlocks(const std::vector<addr_t> &known_code_addrs);
     bool isValidCodeAddr(addr_t addr) const;
-    const DisassemblyCFG &getCFG() const;
+    const DisassemblyCFG &getCFG() const noexcept;
 
 private:
     /*

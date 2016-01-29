@@ -12,7 +12,7 @@ namespace disasm {
 MaximalBlockCFGNode::MaximalBlockCFGNode() :
     m_type{MaximalBlockType::kMaybe},
     m_known_start_addr{0},
-    m_valid_basic_block_id{0},
+    m_valid_basic_block_id{-1},
     m_overlap_node{nullptr},
     m_direct_successor{nullptr},
     m_remote_successor{nullptr},
@@ -22,7 +22,7 @@ MaximalBlockCFGNode::MaximalBlockCFGNode() :
 MaximalBlockCFGNode::MaximalBlockCFGNode(MaximalBlock *current_block) :
     m_type{MaximalBlockType::kMaybe},
     m_known_start_addr{0},
-    m_valid_basic_block_id{0},
+    m_valid_basic_block_id{-1},
     m_overlap_node{nullptr},
     m_direct_successor{nullptr},
     m_remote_successor{nullptr},
@@ -50,7 +50,7 @@ const MaximalBlock *MaximalBlockCFGNode::getMaximalBlock() const {
     return m_max_block;
 }
 
-const MaximalBlockCFGNode *MaximalBlockCFGNode::getOverlapCFGNode() const {
+const MaximalBlockCFGNode *MaximalBlockCFGNode::getOverlapNode() const {
     return m_overlap_node;
 }
 
@@ -70,23 +70,27 @@ MaximalBlockType MaximalBlockCFGNode::getType() const {
     return m_type;
 }
 
-std::vector<MCInstSmall> MaximalBlockCFGNode::getKnownInstructions() const {
-    std::vector<MCInstSmall> result;
+std::vector<const MCInstSmall *> MaximalBlockCFGNode::getKnownInstructions() const {
+    std::vector<const MCInstSmall *> result;
     if (m_known_start_addr == 0) {
         return result;
     }
     addr_t current = m_known_start_addr;
     for (auto &inst : m_max_block->getAllInstructions()) {
         if (inst.addr() == current) {
-            result.push_back(inst);
+            result.push_back(&inst);
             current += inst.size();
         }
     }
     return result;
 }
 
-addr_t MaximalBlockCFGNode::getKnownStartAddr() const {
+addr_t MaximalBlockCFGNode::getKnownStartAddr() const noexcept {
     return m_known_start_addr;
+}
+
+void MaximalBlockCFGNode::setKnownStartAddr(addr_t known_start) noexcept {
+    m_known_start_addr = known_start;
 }
 
 const MaximalBlockCFGNode *MaximalBlockCFGNode::getDirectSuccessor() const {
@@ -106,11 +110,27 @@ void MaximalBlockCFGNode::setMaximalBlock(MaximalBlock *maximal_block) noexcept 
     m_max_block = maximal_block;
 }
 
-unsigned int MaximalBlockCFGNode::getId() const noexcept {
-    return m_max_block->getId();
+unsigned int MaximalBlockCFGNode::id() const noexcept {
+    return m_max_block->id();
 }
 
-MaximalBlockCFGNode *MaximalBlockCFGNode::ptrToOverlapNode() const {
+MaximalBlockCFGNode *MaximalBlockCFGNode::getOverlapNodePtr() const {
     return m_overlap_node;
+}
+
+bool MaximalBlockCFGNode::isValidBasicBlockSet() const noexcept {
+    return m_valid_basic_block_id >= 0;
+}
+
+bool MaximalBlockCFGNode::hasOverlapWithOtherNode() const noexcept {
+    return m_overlap_node != nullptr;
+}
+
+const BasicBlock *MaximalBlockCFGNode::getValidBasicBlock() const noexcept {
+    if (!isValidBasicBlockSet()) {
+        return nullptr;
+    }
+    return &(m_max_block->
+        getBasicBlockAt(static_cast<unsigned >(m_valid_basic_block_id)));
 }
 }

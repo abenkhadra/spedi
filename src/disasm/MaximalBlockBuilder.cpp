@@ -73,11 +73,35 @@ MaximalBlock MaximalBlockBuilder::build() {
     }
     // Case of no overlap
     if (overlap_blocks.size() == 0) {
+        if (valid_blocks.size() == m_bblocks.size()) {
+            // all basic blocks are valid and should be moved to result
+            result.m_bblocks.swap(m_bblocks);
+            result.m_insts.swap(m_insts);
+        } else {
+            // move only valid BB to result
+            for (auto valid_block : valid_blocks) {
+                result.m_bblocks.push_back(*valid_block);
+            }
+            for (auto &inst : m_insts) {
+                for (auto valid_block : valid_blocks) {
+                    if (inst.addr() < valid_block->startAddr()
+                        || inst.addr() >= valid_block->endAddr()) {
+                        // instruction is not valid
+                        continue;
+                    }
+                    for (auto addr : valid_block->InstructionAddresses()) {
+                        if (inst.addr() == addr) {
+                            result.m_insts.push_back(inst);
+                        }
+                    }
+                }
+            }
+            m_bblocks.clear();
+            m_insts.clear();
+        }
         m_buildable = false;
         m_bb_idx = 0;
         m_end_addr = 0;
-        result.m_bblocks.swap(m_bblocks);
-        result.m_insts.swap(m_insts);
         result.m_end_addr = result.m_insts.back().addr()
             + result.m_insts.back().size();
         return result;
@@ -99,8 +123,9 @@ MaximalBlock MaximalBlockBuilder::build() {
         auto overlap_inst_iter = overlap_blocks.back()->m_inst_addrs.cbegin();
         // Instructions that belong to the overlap BB should be separated from the rest
         for (const auto &inst : m_insts) {
-            if (overlap_inst_iter < overlap_blocks.back()->m_inst_addrs.cend() &&
-                inst.addr() == (*overlap_inst_iter)) {
+            if (overlap_inst_iter < overlap_blocks.back()->m_inst_addrs.cend()
+                &&
+                    inst.addr() == (*overlap_inst_iter)) {
                 overlap_insts.push_back(inst);
                 ++overlap_inst_iter;
             } else {
@@ -109,7 +134,7 @@ MaximalBlock MaximalBlockBuilder::build() {
         }
         // copy valid BBs to result
         for (auto block_iter = valid_blocks.cbegin();
-            block_iter < valid_blocks.cend(); ++block_iter) {
+             block_iter < valid_blocks.cend(); ++block_iter) {
             result.m_bblocks.push_back(*(*block_iter));
         }
         m_end_addr = overlap_blocks.back()->endAddr();

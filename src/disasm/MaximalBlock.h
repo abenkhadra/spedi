@@ -47,7 +47,7 @@ public:
     size_t getBasicBlockMemSize(const unsigned int bb_id) const;
 
     size_t getBasicBlocksCount() const;
-    unsigned instructionsCount() const;
+    size_t instructionsCount() const;
 
     /*
      * return all instructions contained in the MB
@@ -56,12 +56,14 @@ public:
         &getAllInstructions() const;
 
     const std::vector<const MCInstSmall *>
-        getInstructionsOf(BasicBlock &bblock);
+        getInstructionsOf(const BasicBlock &bblock) const;
     const std::vector<addr_t> &
-        getInstructionAddressesOf(const BasicBlock &bblock) const;
+        getInstructionAddressesOf(const BasicBlock &bblock) const noexcept;
+    const std::vector<addr_t> &
+        getInstructionAddressesOf(const BasicBlock *bblock) const noexcept;
 
     const BranchData &getBranch() const;
-    unsigned getId() const;
+    unsigned id() const;
 
     /*
      * return true if the given address falls inside the address space

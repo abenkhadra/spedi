@@ -101,7 +101,7 @@ SectionDisassembly ElfDisassembler::disassembleSectionUsingSymbols
 //                prettyPrintMaximalBlock(result.back());
                 if (!max_block_builder.isCleanReset()) {
                     printf("Overlap detected at MaxBlock %u \n",
-                           result.back().getId());
+                           result.back().id());
                 }
 //                printf("Direct branch: %d, Conditional: %d  \n",
 //                       analyzer.isDirectBranch(inst_ptr),
@@ -172,7 +172,7 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
 //                    prettyPrintMaximalBlock(result.back());
 //                    if (!max_block_builder.isCleanReset()) {
 //                        printf("Overlap detected at MaxBlock %u \n",
-//                               result.back().getId());
+//                               result.back().id());
 //                    }
                 } else {
                     max_block_builder.append(inst_ptr);
@@ -328,14 +328,14 @@ void ElfDisassembler::prettyPrintMaximalBlock
     (const MaximalBlock *mblock) const {
     printf("**************************************\n");
     printf("MB No. %u. Starts at %#6x",
-           mblock->getId(),
+           mblock->id(),
            static_cast<unsigned> (mblock->addrOfFirstInst()));
-    printf(" / BB count. %lu, Total inst count %u: \n",
+    printf(" / BB count. %lu, Total inst count %lu: \n",
            mblock->getBasicBlocksCount(), mblock->instructionsCount());
 
     for (auto &block :mblock->getBasicBlocks()) {
         printf("Basic Block Id %u, inst count %lu\n / ",
-               block.id(), block.instCount());
+               block.id(), block.instructionCount());
         for (auto addr : mblock->getInstructionAddressesOf(block)) {
             printf(" Inst Addr: %#6x", static_cast<unsigned>(addr));
         }
@@ -364,14 +364,14 @@ void ElfDisassembler::prettyPrintCFGNode
     auto mblock = cfg_node->getMaximalBlock();
     printf("**************************************\n");
     printf("MB No. %u, Type: %u. Starts at %#6x",
-           mblock->getId(), cfg_node->getType(),
+           mblock->id(), cfg_node->getType(),
            static_cast<unsigned> (mblock->addrOfFirstInst()));
-    printf(" / BB count. %lu, Total inst count %u: \n",
+    printf(" / BB count. %lu, Total inst count %lu: \n",
            mblock->getBasicBlocksCount(), mblock->instructionsCount());
 
     for (auto &block :mblock->getBasicBlocks()) {
         printf("Basic Block Id %u, inst count %lu\n / ",
-               block.id(), block.instCount());
+               block.id(), block.instructionCount());
         for (auto addr : mblock->getInstructionAddressesOf(block)) {
             printf(" Inst Addr: %#6x", static_cast<unsigned>(addr));
         }
@@ -395,6 +395,52 @@ void ElfDisassembler::prettyPrintCFGNode
     printf("\n");
 }
 
+void ElfDisassembler::prettyPrintValidCFGNode
+    (const MaximalBlockCFGNode *cfg_node) const {
+
+    if (cfg_node->getValidBasicBlock() != nullptr) {
+        auto mblock = cfg_node->getMaximalBlock();
+        printf("**************************************\n");
+        printf("MB No. %u, Type: %u. Starts at %#6x",
+               cfg_node->id(), cfg_node->getType(),
+               static_cast<unsigned >(mblock->addrOfFirstInst()));
+        printf(" / BB count. %lu, Total inst count %lu: \n",
+               mblock->getBasicBlocksCount(), mblock->instructionsCount());
+
+        printf("Basic Block Id %u, inst count %lu\n / ",
+               cfg_node->getValidBasicBlock()->id(),
+               cfg_node->getValidBasicBlock()->instructionCount());
+        for (auto
+                addr : mblock->getInstructionAddressesOf(cfg_node->getValidBasicBlock())) {
+            printf(" Inst Addr: %#6x", static_cast<unsigned>(addr));
+        }
+        printf("\n");
+
+        for (auto
+                inst :mblock->getInstructionsOf(*cfg_node->getValidBasicBlock())) {
+            printf("0x%" PRIx64 ":\t%s\t\t%s ",
+                   inst->addr(),
+                   inst->mnemonic().c_str(),
+                   inst->operands().c_str());
+            if (inst->condition() != ARM_CC_AL) {
+                printf("/ condition: %s",
+                       m_analyzer.conditionCodeToString(inst->condition()).c_str());
+            }
+            printf("\n");
+        }
+        printf("Direct branch: %d, Conditional: %d",
+               mblock->getBranch().isDirect(),
+               mblock->getBranch().isConditional());
+        if (mblock->getBranch().isDirect()) {
+            printf(", Target: 0x%x",
+                   static_cast<unsigned>(mblock->getBranch().target()));
+        }
+        printf("\n");
+    } else {
+        prettyPrintCFGNode(cfg_node);
+    }
+}
+
 void ElfDisassembler::prettyPrintSectionDisassembly
     (const SectionDisassembly *sec_disasm) const {
     for (auto it = sec_disasm->cbegin(); it < sec_disasm->cend(); ++it) {
@@ -405,7 +451,7 @@ void ElfDisassembler::prettyPrintSectionDisassembly
 void ElfDisassembler::prettyPrintSectionCFG
     (const DisassemblyCFG *sec_cfg) const {
     for (auto &node :sec_cfg->getCFG()) {
-        prettyPrintCFGNode(&node);
+        prettyPrintValidCFGNode(&node);
     }
 }
 }

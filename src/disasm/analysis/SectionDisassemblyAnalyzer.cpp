@@ -67,8 +67,8 @@ void SectionDisassemblyAnalyzer::BuildCFG() {
                     // there is no MB overlap
                     break;
                 }
-//                std::cout << "MaximalBlock: " << (*rev_block_iter).getId()
-//                    << " Overlaps with : " << (*block_iter).getId() << "\n";
+//                std::cout << "MaximalBlock: " << (*rev_block_iter).id()
+//                    << " Overlaps with : " << (*block_iter).id() << "\n";
                 // set pointer to the overlap block
                 (*rev_cfg_node_iter).m_overlap_node = (&(*node_iter));
             }
@@ -83,13 +83,13 @@ void SectionDisassemblyAnalyzer::BuildCFG() {
             }
             auto current_block = (*node_iter).getMaximalBlock();
             if (current_block->getBranch().isConditional()) {
-                auto succ = getDirectSuccessorPtr(*node_iter);
+                auto succ = findDirectSuccessor(*node_iter);
                 if (succ != nullptr) {
                     (*node_iter).setDirectSuccessor(succ);
                     succ->
                         addPredecessor(&(*node_iter), current_block->endAddr());
-//                std::cout << "MaximalBlock: " << (*block_iter).getId()
-//                    << " Points to: " << (*succ).getId() << "\n";
+//                std::cout << "MaximalBlock: " << (*block_iter).id()
+//                    << " Points to: " << (*succ).id() << "\n";
                 } else {
                     // a conditional branch without a direct successor is data
                     (*node_iter).setType(MaximalBlockType::kData);
@@ -103,12 +103,12 @@ void SectionDisassemblyAnalyzer::BuildCFG() {
                     // other than this section.
                     continue;
                 }
-                auto succ = getRemoteSuccessorPtr(branch_target);
+                auto succ = findRemoteSuccessor(branch_target);
                 if (succ != nullptr) {
                     (*node_iter).setRemoteSuccessor(succ);
                     succ->addPredecessor(&(*node_iter), branch_target);
-//                    std::cout << "MaximalBlock: " << (*node_iter).getId()
-//                        << " Points to: " << (*succ).getId() << "\n";
+//                    std::cout << "MaximalBlock: " << (*node_iter).id()
+//                        << " Points to: " << (*succ).id() << "\n";
                 } else {
                     // a direct branch that doesn't target an MB is data
                     (*node_iter).setType(MaximalBlockType::kData);
@@ -124,27 +124,27 @@ bool SectionDisassemblyAnalyzer::isValidCodeAddr(addr_t addr) const {
     return (m_exec_addr_start <= addr) && (addr < m_exec_addr_end);
 }
 
-MaximalBlockCFGNode *SectionDisassemblyAnalyzer::getDirectSuccessorPtr
+MaximalBlockCFGNode *SectionDisassemblyAnalyzer::findDirectSuccessor
     (const MaximalBlockCFGNode &cfg_node) noexcept {
     // no direct successor to last cfg node
-    if (cfg_node.getId() >= m_sec_cfg.m_cfg.back().getId()) {
+    if (cfg_node.id() >= m_sec_cfg.m_cfg.back().id()) {
         return nullptr;
     }
-    auto end_addr = cfg_node.getMaximalBlock()->endAddr();
     auto direct_succ =
-        &(*(m_sec_cfg.m_cfg.begin() + cfg_node.getId() + 1));
-    if (direct_succ->getMaximalBlock()->isAddressOfInstruction(end_addr)) {
+        &(*(m_sec_cfg.m_cfg.begin() + cfg_node.id() + 1));
+    if (direct_succ->getMaximalBlock()->
+        isAddressOfInstruction(cfg_node.getMaximalBlock()->endAddr())) {
         return direct_succ;
     }
-    auto overlap_node = direct_succ->ptrToOverlapNode();
-    if (overlap_node != nullptr &&
-        overlap_node->getMaximalBlock()->isAddressOfInstruction(end_addr)) {
+    auto overlap_node = direct_succ->getOverlapNodePtr();
+    if (overlap_node != nullptr && overlap_node->getMaximalBlock()->
+        isAddressOfInstruction(cfg_node.getMaximalBlock()->endAddr())) {
         return overlap_node;
     }
     return nullptr;
 }
 
-MaximalBlockCFGNode *SectionDisassemblyAnalyzer::getRemoteSuccessorPtr
+MaximalBlockCFGNode *SectionDisassemblyAnalyzer::findRemoteSuccessor
     (addr_t target) noexcept {
 
     // binary search to find the remote MB that is targeted.
@@ -172,101 +172,129 @@ MaximalBlockCFGNode *SectionDisassemblyAnalyzer::getRemoteSuccessorPtr
         return m_sec_cfg.ptrToNodeAt(first);
     }
     // Handle overlap MBs.
-    auto overlap_node = m_sec_cfg.getNodeAt(last).getOverlapCFGNode();
+    auto overlap_node = m_sec_cfg.getNodeAt(last).getOverlapNode();
     if (overlap_node != nullptr &&
         overlap_node->getMaximalBlock()->isAddressOfInstruction(target)) {
-        return m_sec_cfg.ptrToNodeAt(overlap_node->getId());
+        return m_sec_cfg.ptrToNodeAt(overlap_node->id());
     }
     return nullptr;
 }
 
-const DisassemblyCFG &SectionDisassemblyAnalyzer::getCFG() const {
+const DisassemblyCFG &SectionDisassemblyAnalyzer::getCFG() const noexcept {
     return m_sec_cfg;
 }
 
-//void SectionDisassemblyAnalyzer::RefineMaximalBlocks() {
-//
-//    for (auto node_iter = m_sec_cfg.m_cfg.begin();
-//         node_iter < m_sec_cfg.m_cfg.end(); ++node_iter) {
-//        if ((*node_iter).isData()) {
-//            continue;
-//        }
-//        if ((*node_iter).getPredecessors().size() > 0) {
-//            // find maximally valid BB and converts conflicting MBs to data
-//            SetValidBasicBlock((*node_iter));
-//        }
-//
-//        // resolve overlap between MBs by shrinking the next or converting either to data
-//
-//    }
-//}
+void SectionDisassemblyAnalyzer::RefineCFG() {
+    if (!m_sec_cfg.isValid()) {
+        return;
+    }
+    for (auto node_iter = m_sec_cfg.m_cfg.begin();
+         node_iter < m_sec_cfg.m_cfg.end(); ++node_iter) {
+        if ((*node_iter).isData()) {
+            continue;
+        }
+        // resolve overlap between MBs by shrinking the next or converting either to data
+        if ((*node_iter).hasOverlapWithOtherNode()
+            && !(*node_iter).getOverlapNode()->isData()) {
+            if ((*node_iter).getOverlapNode()->getMaximalBlock()->
+                coversAddressSpaceOf((*node_iter).getMaximalBlock())) {
+                if (m_sec_cfg.calculateNodeWeight(&(*node_iter)) <
+                    m_sec_cfg.calculateNodeWeight((*node_iter).getOverlapNode())) {
+                    (*node_iter).setType(MaximalBlockType::kData);
+                    continue;
+                } else {
+                    (*node_iter).getOverlapNodePtr()->
+                        setType(MaximalBlockType::kData);
+                }
+            } else {
+                // XXX: what if overlapping node consists of only one instruction?
+                (*node_iter).getOverlapNodePtr()->
+                    setKnownStartAddr((*node_iter).getMaximalBlock()->endAddr());
+            }
+        }
 
-//void SectionDisassemblyAnalyzer::SetValidBasicBlock(MaximalBlockCFGNode &node) {
-//    {
-//        unsigned satisfied_by_first_bb = 0;
-//        for (auto pred_iter = node.m_predecessors.begin();
-//             pred_iter < node.m_predecessors.end(); ++pred_iter) {
-//
-//            for (addr_t addr : node.getMaximalBlock()->
-//                getBasicBlockAt(0).InstructionAddresses()) {
-//                if ((*pred_iter).second == addr) {
-//                    satisfied_by_first_bb++;
-//                }
-//            }
-//        }
-//        if (satisfied_by_first_bb == node.m_predecessors.size()) {
-//            // All branches of predecessors target the first BB. Nothing to do.
-////            node.m_valid_basic_block_id = 0;
-//            return;
-//        }
-//    }
-//    size_t bb_weights[node.getMaximalBlock()->getBasicBlocksCount()];
-//    memset(bb_weights, 0,
-//           node.getMaximalBlock()->getBasicBlocksCount() * sizeof(unsigned));
-//
-//    int assigned_predecessors[node.m_predecessors.size()];
-//    memset(assigned_predecessors, 1, node.m_predecessors.size() * sizeof(int));
-//
-//    // calculate the weight of each basic block
-//    for (unsigned i = 0;
-//         i < node.getMaximalBlock()->getBasicBlocksCount(); ++i) {
-//        bb_weights[i] =
-//            node.getMaximalBlock()->getBasicBlockAt(i).getInstructionCount();
-//
-//        unsigned j = 0;
-//        for (auto pred_iter = node.m_predecessors.begin();
-//             pred_iter < node.m_predecessors.end(); ++pred_iter, ++j) {
-//            // basic block weight = calculate predecessor instruction count
-//            //                      + instruction count of BB
-//            if (assigned_predecessors[j] >= 0) {
-//                continue;
-//            }
-//            for (addr_t addr : node.getMaximalBlock()->
-//                getBasicBlockAt(i).InstructionAddresses()) {
-//                if ((*pred_iter).second == addr) {
-//                    assigned_predecessors[j] = i;
-//                    bb_weights[i] += (*pred_iter).first->instructionsCount();
-//                }
-//            }
-//        }
-//    }
-//
-//    // get the basic block with highest weight
-//    unsigned valid_bb_idx = 0;
-//    size_t maximum_weight = 0;
-//    for (unsigned i = 0;
-//         i < node.getMaximalBlock()->getBasicBlocksCount(); ++i) {
-//        if (bb_weights[i] > maximum_weight) {
-//            valid_bb_idx = i;
-//            maximum_weight = bb_weights[i];
-//        }
-//    }
-//    // invalidate all maximal blocks that points to
-//    for (unsigned j = 0; j < node.m_predecessors.size() ; ++j) {
-//        if (assigned_predecessors[j] != valid_bb_idx) {
-//            SetPredecessorsToData
-//        }
-//    }
-//
-//}
+        if ((*node_iter).getPredecessors().size() > 0) {
+            // find maximally valid BB and converts conflicting MBs to data
+            SetValidBasicBlock((*node_iter));
+        }
+    }
+}
+
+void SectionDisassemblyAnalyzer::SetValidBasicBlock(MaximalBlockCFGNode &node) {
+    {
+        if (node.m_predecessors.size() == 1) {
+            // In case there is only one basic block then its the valid one
+            node.m_valid_basic_block_id = 0;
+            return;
+        }
+        // The common case where all branches target the first basic block
+        unsigned satisfied_by_first_bb = 0;
+        for (auto pred_iter = node.m_predecessors.begin();
+             pred_iter < node.m_predecessors.end(); ++pred_iter) {
+
+            for (addr_t addr : node.getMaximalBlock()->
+                getBasicBlockAt(0).InstructionAddresses()) {
+                if ((*pred_iter).second == addr) {
+                    satisfied_by_first_bb++;
+                }
+            }
+        }
+        if (satisfied_by_first_bb == node.m_predecessors.size()) {
+            // All branches of predecessors target the first BB. Nothing to do.
+            node.m_valid_basic_block_id = 0;
+            return;
+        }
+    }
+    // Conflicts between predecessors needs to be resolved.
+    size_t bb_weights[node.getMaximalBlock()->getBasicBlocksCount()];
+    memset(bb_weights, 0,
+           node.getMaximalBlock()->getBasicBlocksCount() * sizeof(unsigned));
+
+    int assigned_predecessors[node.m_predecessors.size()];
+    memset(assigned_predecessors, 1, node.m_predecessors.size() * sizeof(int));
+
+    // calculate the weight of each basic block
+    for (unsigned i = 0;
+         i < node.getMaximalBlock()->getBasicBlocksCount(); ++i) {
+        bb_weights[i] =
+            node.getMaximalBlock()->getBasicBlockAt(i).instructionCount();
+
+        unsigned j = 0;
+        for (auto pred_iter = node.m_predecessors.begin();
+             pred_iter < node.m_predecessors.end(); ++pred_iter, ++j) {
+            // basic block weight = calculate predecessor instruction count
+            //                      + instruction count of BB
+            if (assigned_predecessors[j] >= 0) {
+                continue;
+            }
+            for (addr_t addr : node.getMaximalBlock()->
+                getBasicBlockAt(i).InstructionAddresses()) {
+                if ((*pred_iter).second == addr) {
+                    assigned_predecessors[j] = i;
+                    bb_weights[i] += (*pred_iter).first->
+                        getMaximalBlock()->instructionsCount();
+                }
+            }
+        }
+    }
+
+    // Get the basic block with highest weight
+    unsigned valid_bb_idx = 0;
+    size_t maximum_weight = 0;
+    for (unsigned i = 0;
+         i < node.getMaximalBlock()->getBasicBlocksCount(); ++i) {
+        if (bb_weights[i] > maximum_weight) {
+            valid_bb_idx = i;
+            maximum_weight = bb_weights[i];
+        }
+    }
+    // Invalidate all maximal blocks that do not point to the valid basic block.
+    for (unsigned j = 0; j < node.m_predecessors.size(); ++j) {
+        if (assigned_predecessors[j] != valid_bb_idx) {
+            // set predecessor to data
+            (*(node.m_predecessors.begin()
+                + j)).first->setType(MaximalBlockType::kData);
+        }
+    }
+}
 }

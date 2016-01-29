@@ -81,6 +81,7 @@ public:
         (const SectionDisassembly *sec_disasm) const;
     void prettyPrintSectionCFG(const DisassemblyCFG *sec_cfg) const;
     void prettyPrintCFGNode(const MaximalBlockCFGNode *cfg_node) const;
+    void prettyPrintValidCFGNode(const MaximalBlockCFGNode *cfg_node) const;
 
 private:
     void prettyPrintCapstoneInst

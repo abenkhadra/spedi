@@ -42,7 +42,7 @@ bool BasicBlock::isAppendableAt(const addr_t addr) const {
     return (addr == endAddr());
 }
 
-size_t BasicBlock::instCount() const {
+size_t BasicBlock::instructionCount() const {
     return (m_inst_addrs.size());
 }
 
@@ -61,9 +61,5 @@ addr_t BasicBlock::endAddr() const {
 
 const std::vector<addr_t> &BasicBlock::InstructionAddresses() const {
     return m_inst_addrs;
-}
-
-size_t BasicBlock::getInstructionCount() const {
-    return m_inst_addrs.size();
 }
 }
