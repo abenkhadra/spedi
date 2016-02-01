@@ -18,15 +18,20 @@ MaximalBlockCFGNode *DisassemblyCFG::getCFGNodeOf
 const MaximalBlockCFGNode &DisassemblyCFG::getNodeAt(size_t index) const {
     return m_cfg[index];
 }
+
 const std::vector<MaximalBlockCFGNode> &DisassemblyCFG::getCFG() const {
     return m_cfg;
 }
+
 MaximalBlockCFGNode *DisassemblyCFG::ptrToNodeAt(size_t index) {
     return &(*(m_cfg.begin() + index));
 }
 
 size_t DisassemblyCFG::calculateNodeWeight
     (const MaximalBlockCFGNode *node) const noexcept {
+    if (node->isData()) {
+        return 0;
+    }
     unsigned pred_weight = 0;
     for (auto pred_iter = node->getPredecessors().begin();
          pred_iter < node->getPredecessors().end(); ++pred_iter) {

@@ -82,16 +82,24 @@ MaximalBlock MaximalBlockBuilder::build() {
             for (auto valid_block : valid_blocks) {
                 result.m_bblocks.push_back(*valid_block);
             }
-            for (auto &inst : m_insts) {
-                for (auto valid_block : valid_blocks) {
-                    if (inst.addr() < valid_block->startAddr()
-                        || inst.addr() >= valid_block->endAddr()) {
+            for (auto inst_iter = m_insts.cbegin();
+                 inst_iter < m_insts.cend(); ++inst_iter) {
+                bool inst_valid = false;
+                for (auto valid_block_iter = valid_blocks.cbegin();
+                     valid_block_iter < valid_blocks.cend() && !inst_valid;
+                     ++valid_block_iter) {
+                    if ((*inst_iter).addr() < (*valid_block_iter)->startAddr()
+                        || (*inst_iter).addr()
+                            >= (*valid_block_iter)->endAddr()) {
                         // instruction is not valid
                         continue;
                     }
-                    for (auto addr : valid_block->InstructionAddresses()) {
-                        if (inst.addr() == addr) {
-                            result.m_insts.push_back(inst);
+                    for (auto
+                            addr : (*valid_block_iter)->InstructionAddresses()) {
+                        if ((*inst_iter).addr() == addr) {
+                            result.m_insts.push_back(*inst_iter);
+                            inst_valid = true;
+                            break;
                         }
                     }
                 }

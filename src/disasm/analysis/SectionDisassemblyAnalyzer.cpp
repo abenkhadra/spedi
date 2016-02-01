@@ -220,81 +220,87 @@ void SectionDisassemblyAnalyzer::RefineCFG() {
     }
 }
 
-void SectionDisassemblyAnalyzer::SetValidBasicBlock(MaximalBlockCFGNode &node) {
-    {
-        if (node.m_predecessors.size() == 1) {
-            // In case there is only one basic block then its the valid one
-            node.m_valid_basic_block_id = 0;
-            return;
-        }
-        // The common case where all branches target the first basic block
-        unsigned satisfied_by_first_bb = 0;
-        for (auto pred_iter = node.m_predecessors.begin();
-             pred_iter < node.m_predecessors.end(); ++pred_iter) {
-
-            for (addr_t addr : node.getMaximalBlock()->
-                getBasicBlockAt(0).InstructionAddresses()) {
-                if ((*pred_iter).second == addr) {
-                    satisfied_by_first_bb++;
-                }
-            }
-        }
-        if (satisfied_by_first_bb == node.m_predecessors.size()) {
-            // All branches of predecessors target the first BB. Nothing to do.
-            node.m_valid_basic_block_id = 0;
-            return;
-        }
-    }
+void SectionDisassemblyAnalyzer::ResolveCFGConflict
+    (MaximalBlockCFGNode &node) {
     // Conflicts between predecessors needs to be resolved.
-    size_t bb_weights[node.getMaximalBlock()->getBasicBlocksCount()];
-    memset(bb_weights, 0,
-           node.getMaximalBlock()->getBasicBlocksCount() * sizeof(unsigned));
-
-    int assigned_predecessors[node.m_predecessors.size()];
-    memset(assigned_predecessors, 1, node.m_predecessors.size() * sizeof(int));
-
-    // calculate the weight of each basic block
-    for (unsigned i = 0;
-         i < node.getMaximalBlock()->getBasicBlocksCount(); ++i) {
-        bb_weights[i] =
-            node.getMaximalBlock()->getBasicBlockAt(i).instructionCount();
-
-        unsigned j = 0;
-        for (auto pred_iter = node.m_predecessors.begin();
-             pred_iter < node.m_predecessors.end(); ++pred_iter, ++j) {
-            // basic block weight = calculate predecessor instruction count
-            //                      + instruction count of BB
-            if (assigned_predecessors[j] >= 0) {
-                continue;
-            }
-            for (addr_t addr : node.getMaximalBlock()->
-                getBasicBlockAt(i).InstructionAddresses()) {
-                if ((*pred_iter).second == addr) {
+    unsigned assigned_predecessors[node.getPredecessors().size()];
+    memset(assigned_predecessors, 0,
+           node.getPredecessors().size() * sizeof(unsigned));
+    unsigned valid_bb_idx = 0;
+    {
+        size_t maximum_weight = 0;
+        size_t current_weight = 0;
+        // find the basic block with maximum weight
+        for (unsigned i = 0;
+             i < node.getMaximalBlock()->getBasicBlocksCount(); ++i) {
+            current_weight = node.getMaximalBlock()->
+                getBasicBlockAt(i).instructionCount();
+            unsigned j = 0;
+            for (auto pred_iter = node.getPredecessors().cbegin();
+                 pred_iter < node.getPredecessors().cend(); ++pred_iter, ++j) {
+                // basic block weight = calculate predecessor instruction count
+                //                      + instruction count of BB
+                auto &addrs = node.getMaximalBlock()->
+                    getBasicBlockAt(i).InstructionAddresses();
+                if (std::binary_search(addrs.begin(),
+                                       addrs.end(),
+                                       (*pred_iter).second)) {
                     assigned_predecessors[j] = i;
-                    bb_weights[i] += (*pred_iter).first->
+                    current_weight += (*pred_iter).first->
                         getMaximalBlock()->instructionsCount();
                 }
             }
+            if (current_weight > maximum_weight) {
+                valid_bb_idx = i;
+                maximum_weight = current_weight;
+            }
         }
     }
-
-    // Get the basic block with highest weight
-    unsigned valid_bb_idx = 0;
-    size_t maximum_weight = 0;
-    for (unsigned i = 0;
-         i < node.getMaximalBlock()->getBasicBlocksCount(); ++i) {
-        if (bb_weights[i] > maximum_weight) {
-            valid_bb_idx = i;
-            maximum_weight = bb_weights[i];
-        }
-    }
-    // Invalidate all maximal blocks that do not point to the valid basic block.
-    for (unsigned j = 0; j < node.m_predecessors.size(); ++j) {
+    node.m_valid_basic_block_id = valid_bb_idx;
+    unsigned j = 0;
+    for (auto pred_iter = node.getPredecessors().cbegin();
+         pred_iter < node.getPredecessors().cend(); ++pred_iter, ++j) {
         if (assigned_predecessors[j] != valid_bb_idx) {
-            // set predecessor to data
-            (*(node.m_predecessors.begin()
-                + j)).first->setType(MaximalBlockType::kData);
+            auto &addrs = node.getMaximalBlock()->
+                getBasicBlockAt(valid_bb_idx).InstructionAddresses();
+            if (!std::binary_search(addrs.begin(),
+                                    addrs.end(),
+                                    (*pred_iter).second)) {
+                // set predecessor to data
+                printf("CONFLICT: Invalidating %u predecessor of %u\n",
+                       (*pred_iter).first->id(),
+                       node.id());
+                (*pred_iter).first->setType(MaximalBlockType::kData);
+            }
         }
     }
+}
+
+void SectionDisassemblyAnalyzer::SetValidBasicBlock(MaximalBlockCFGNode &node) {
+
+    if (node.getMaximalBlock()->getBasicBlocksCount() == 1) {
+        // In case there is only one basic block then its the valid one
+        node.m_valid_basic_block_id = 0;
+        return;
+    }
+    // The common case where all branches target the same basic block
+    for (auto &block :node.getMaximalBlock()->getBasicBlocks()) {
+        unsigned target_count = 0;
+        for (auto pred_iter = node.getPredecessors().cbegin();
+             pred_iter < node.getPredecessors().cend(); ++pred_iter) {
+            for (addr_t addr : block.InstructionAddresses()) {
+                if ((*pred_iter).second == addr) {
+                    target_count++;
+                }
+            }
+        }
+        // XXX: what if more than one BB satisfies all targets?
+        if (target_count == node.getPredecessors().size()) {
+            node.m_valid_basic_block_id = block.id();
+            return;
+        }
+    }
+    // No basic block satisfies all targets then conflicts should be resolved
+    ResolveCFGConflict(node);
 }
 }

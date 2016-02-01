@@ -410,14 +410,14 @@ void ElfDisassembler::prettyPrintValidCFGNode
         printf("Basic Block Id %u, inst count %lu\n / ",
                cfg_node->getValidBasicBlock()->id(),
                cfg_node->getValidBasicBlock()->instructionCount());
-        for (auto
-                addr : mblock->getInstructionAddressesOf(cfg_node->getValidBasicBlock())) {
+        for (auto addr : mblock->
+            getInstructionAddressesOf(cfg_node->getValidBasicBlock())) {
             printf(" Inst Addr: %#6x", static_cast<unsigned>(addr));
         }
         printf("\n");
 
-        for (auto
-                inst :mblock->getInstructionsOf(*cfg_node->getValidBasicBlock())) {
+        for (auto inst :mblock->
+            getInstructionsOf(*cfg_node->getValidBasicBlock())) {
             printf("0x%" PRIx64 ":\t%s\t\t%s ",
                    inst->addr(),
                    inst->mnemonic().c_str(),

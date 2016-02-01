@@ -50,7 +50,7 @@ private:
      * do not target it.
      */
     void SetValidBasicBlock(MaximalBlockCFGNode &node);
-    void TraverseBackwordsSettingTypeTo(MaximalBlock *block);
+    void ResolveCFGConflict(MaximalBlockCFGNode &node);
 private:
     SectionDisassembly *m_sec_disassembly;
     addr_t m_exec_addr_start;
