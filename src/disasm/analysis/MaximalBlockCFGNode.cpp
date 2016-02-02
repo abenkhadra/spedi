@@ -12,7 +12,7 @@ namespace disasm {
 MaximalBlockCFGNode::MaximalBlockCFGNode() :
     m_type{MaximalBlockType::kMaybe},
     m_known_start_addr{0},
-    m_valid_basic_block_id{-1},
+    m_valid_basic_block_ptr{nullptr},
     m_overlap_node{nullptr},
     m_direct_successor{nullptr},
     m_remote_successor{nullptr},
@@ -22,7 +22,7 @@ MaximalBlockCFGNode::MaximalBlockCFGNode() :
 MaximalBlockCFGNode::MaximalBlockCFGNode(MaximalBlock *current_block) :
     m_type{MaximalBlockType::kMaybe},
     m_known_start_addr{0},
-    m_valid_basic_block_id{-1},
+    m_valid_basic_block_ptr{nullptr},
     m_overlap_node{nullptr},
     m_direct_successor{nullptr},
     m_remote_successor{nullptr},
@@ -70,13 +70,13 @@ MaximalBlockType MaximalBlockCFGNode::getType() const {
     return m_type;
 }
 
-std::vector<const MCInstSmall *> MaximalBlockCFGNode::getKnownInstructions() const {
+std::vector<const MCInstSmall *> MaximalBlockCFGNode::getValidInstructions() const {
     std::vector<const MCInstSmall *> result;
-    if (m_known_start_addr == 0) {
-        return result;
+    addr_t current = getValidBasicBlock()->startAddr();
+    if (current < getKnownStartAddr()) {
+        current = getValidBasicBlock()->addressAt(1);
     }
-    addr_t current = m_known_start_addr;
-    for (auto &inst : m_max_block->getAllInstructions()) {
+    for (auto &inst : getMaximalBlock()->getAllInstructions()) {
         if (inst.addr() == current) {
             result.push_back(&inst);
             current += inst.size();
@@ -119,7 +119,7 @@ MaximalBlockCFGNode *MaximalBlockCFGNode::getOverlapNodePtr() const {
 }
 
 bool MaximalBlockCFGNode::isValidBasicBlockSet() const noexcept {
-    return m_valid_basic_block_id >= 0;
+    return m_valid_basic_block_ptr != nullptr;
 }
 
 bool MaximalBlockCFGNode::hasOverlapWithOtherNode() const noexcept {
@@ -127,10 +127,6 @@ bool MaximalBlockCFGNode::hasOverlapWithOtherNode() const noexcept {
 }
 
 const BasicBlock *MaximalBlockCFGNode::getValidBasicBlock() const noexcept {
-    if (!isValidBasicBlockSet()) {
-        return nullptr;
-    }
-    return &(m_max_block->
-        getBasicBlockAt(static_cast<unsigned >(m_valid_basic_block_id)));
+    return m_valid_basic_block_ptr;
 }
 }

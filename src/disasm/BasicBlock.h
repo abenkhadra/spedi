@@ -30,6 +30,7 @@ public:
     BasicBlock(const BasicBlock &src) = default;
     BasicBlock &operator=(const BasicBlock &src) = default;
     BasicBlock(BasicBlock &&src) = default;
+    addr_t addressAt(unsigned index) const;
 
     friend class MaximalBlock;
     friend class MaximalBlockBuilder;

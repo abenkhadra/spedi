@@ -399,25 +399,25 @@ void ElfDisassembler::prettyPrintValidCFGNode
     (const MaximalBlockCFGNode *cfg_node) const {
 
     if (cfg_node->getValidBasicBlock() != nullptr) {
-        auto mblock = cfg_node->getMaximalBlock();
+        auto max_block = cfg_node->getMaximalBlock();
         printf("**************************************\n");
         printf("MB No. %u, Type: %u. Starts at %#6x",
                cfg_node->id(), cfg_node->getType(),
-               static_cast<unsigned >(mblock->addrOfFirstInst()));
+               static_cast<unsigned >(max_block->addrOfFirstInst()));
         printf(" / BB count. %lu, Total inst count %lu: \n",
-               mblock->getBasicBlocksCount(), mblock->instructionsCount());
+               max_block->getBasicBlocksCount(),
+               max_block->instructionsCount());
 
         printf("Basic Block Id %u, inst count %lu\n / ",
                cfg_node->getValidBasicBlock()->id(),
                cfg_node->getValidBasicBlock()->instructionCount());
-        for (auto addr : mblock->
+        for (auto addr : max_block->
             getInstructionAddressesOf(cfg_node->getValidBasicBlock())) {
             printf(" Inst Addr: %#6x", static_cast<unsigned>(addr));
         }
         printf("\n");
 
-        for (auto inst :mblock->
-            getInstructionsOf(*cfg_node->getValidBasicBlock())) {
+        for (auto inst : cfg_node->getValidInstructions()) {
             printf("0x%" PRIx64 ":\t%s\t\t%s ",
                    inst->addr(),
                    inst->mnemonic().c_str(),
@@ -429,11 +429,11 @@ void ElfDisassembler::prettyPrintValidCFGNode
             printf("\n");
         }
         printf("Direct branch: %d, Conditional: %d",
-               mblock->getBranch().isDirect(),
-               mblock->getBranch().isConditional());
-        if (mblock->getBranch().isDirect()) {
+               max_block->getBranch().isDirect(),
+               max_block->getBranch().isConditional());
+        if (max_block->getBranch().isDirect()) {
             printf(", Target: 0x%x",
-                   static_cast<unsigned>(mblock->getBranch().target()));
+                   static_cast<unsigned>(max_block->getBranch().target()));
         }
         printf("\n");
     } else {

@@ -135,4 +135,8 @@ bool MaximalBlock::isAddressOfInstruction(const addr_t inst_addr) const {
     }
     return false;
 }
+
+BasicBlock *MaximalBlock::ptrToBasicBlockAt(const unsigned bb_id) {
+    return &(*(m_bblocks.begin() + bb_id));
+}
 }

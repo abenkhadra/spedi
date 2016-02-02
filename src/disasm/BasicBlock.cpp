@@ -62,4 +62,8 @@ addr_t BasicBlock::endAddr() const {
 const std::vector<addr_t> &BasicBlock::InstructionAddresses() const {
     return m_inst_addrs;
 }
+
+addr_t BasicBlock::addressAt(unsigned index) const {
+    return m_inst_addrs[index];
+}
 }

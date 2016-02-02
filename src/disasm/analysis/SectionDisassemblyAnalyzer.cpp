@@ -242,9 +242,9 @@ void SectionDisassemblyAnalyzer::ResolveCFGConflict
                 //                      + instruction count of BB
                 auto &addrs = node.getMaximalBlock()->
                     getBasicBlockAt(i).InstructionAddresses();
-                if (std::binary_search(addrs.begin(),
-                                       addrs.end(),
-                                       (*pred_iter).second)) {
+                if (std::find(addrs.begin(), addrs.end(), (*pred_iter).second)
+                    !=
+                        addrs.end()) {
                     assigned_predecessors[j] = i;
                     current_weight += (*pred_iter).first->
                         getMaximalBlock()->instructionsCount();
@@ -256,7 +256,8 @@ void SectionDisassemblyAnalyzer::ResolveCFGConflict
             }
         }
     }
-    node.m_valid_basic_block_id = valid_bb_idx;
+    node.m_valid_basic_block_ptr =
+        node.m_max_block->ptrToBasicBlockAt(valid_bb_idx);
     unsigned j = 0;
     for (auto pred_iter = node.getPredecessors().cbegin();
          pred_iter < node.getPredecessors().cend(); ++pred_iter, ++j) {
@@ -280,7 +281,7 @@ void SectionDisassemblyAnalyzer::SetValidBasicBlock(MaximalBlockCFGNode &node) {
 
     if (node.getMaximalBlock()->getBasicBlocksCount() == 1) {
         // In case there is only one basic block then its the valid one
-        node.m_valid_basic_block_id = 0;
+        node.m_valid_basic_block_ptr = node.m_max_block->ptrToBasicBlockAt(0);
         return;
     }
     // The common case where all branches target the same basic block
@@ -295,8 +296,10 @@ void SectionDisassemblyAnalyzer::SetValidBasicBlock(MaximalBlockCFGNode &node) {
             }
         }
         // XXX: what if more than one BB satisfies all targets?
+        // currently we choose the earlier (bigger)
         if (target_count == node.getPredecessors().size()) {
-            node.m_valid_basic_block_id = block.id();
+            node.m_valid_basic_block_ptr = node.m_max_block->
+                ptrToBasicBlockAt(block.id());
             return;
         }
     }

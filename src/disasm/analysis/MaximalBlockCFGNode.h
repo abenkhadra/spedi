@@ -39,16 +39,16 @@ public:
     void setRemoteSuccessor(MaximalBlockCFGNode *successor);
     const MaximalBlockCFGNode *getRemoteSuccessor() const;
 
-    const std::vector<std::pair<MaximalBlockCFGNode *, addr_t>>
-        &getPredecessors() const;
+    const std::vector<std::pair<MaximalBlockCFGNode *, addr_t>> &
+        getPredecessors() const;
     bool hasOverlapWithOtherNode() const noexcept;
     const BasicBlock * getValidBasicBlock() const noexcept;
 
     /*
-     * return the sequence of instructions starting from the known start address,
-     * If address is invalid then return an empty vector
+     * return the sequence of instructions in valid basic block starting from
+     * the known start address. Throws exception in case valid basic block not set.
      */
-    std::vector<const MCInstSmall *> getKnownInstructions() const;
+    std::vector<const MCInstSmall *> getValidInstructions() const;
     addr_t getKnownStartAddr() const noexcept;
     void setKnownStartAddr(addr_t known_start) noexcept;
     void setType(const MaximalBlockType type);
@@ -63,7 +63,7 @@ private:
 private:
     MaximalBlockType m_type;
     addr_t m_known_start_addr;
-    int m_valid_basic_block_id;
+    BasicBlock *m_valid_basic_block_ptr;
     MaximalBlockCFGNode *m_overlap_node;
     /// valid only in case of conditional branch
     MaximalBlockCFGNode *m_direct_successor;
