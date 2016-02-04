@@ -15,6 +15,7 @@ namespace disasm {
 
 class MaximalBlockCFGNode;
 class DisassemblyCFG;
+class BasicBlock;
 
 class ARMCodeSymbolVal {
 public:
@@ -27,8 +28,6 @@ public:
     static std::string
     kData() { return "$d"; }
 };
-
-class BasicBlock;
 
 /**
  * ElfDisassembler
@@ -82,6 +81,7 @@ public:
     void prettyPrintSectionCFG(const DisassemblyCFG *sec_cfg) const;
     void prettyPrintCFGNode(const MaximalBlockCFGNode *cfg_node) const;
     void prettyPrintValidCFGNode(const MaximalBlockCFGNode *cfg_node) const;
+    const MCInstAnalyzer * getMCAnalyzer() const;
 
 private:
     void prettyPrintCapstoneInst

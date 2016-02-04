@@ -454,4 +454,8 @@ void ElfDisassembler::prettyPrintSectionCFG
         prettyPrintValidCFGNode(&node);
     }
 }
+
+const MCInstAnalyzer * ElfDisassembler::getMCAnalyzer() const {
+    return &m_analyzer;
+}
 }

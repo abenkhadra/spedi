@@ -7,6 +7,7 @@
 // Copyright (c) 2016 University of Kaiserslautern.
 
 #include "SectionDisassemblyAnalyzer.h"
+#include "../SectionDisassembly.h"
 #include <iostream>
 #include <algorithm>
 #include <string.h>
@@ -15,8 +16,10 @@ namespace disasm {
 
 SectionDisassemblyAnalyzer::SectionDisassemblyAnalyzer
     (SectionDisassembly *sec_disasm,
+     const MCInstAnalyzer *analyzer,
      const std::pair<addr_t, addr_t> &exec_region) :
     m_sec_disassembly{sec_disasm},
+    m_analyzer{analyzer},
     m_exec_addr_start{exec_region.first},
     m_exec_addr_end{exec_region.second} {
 }
