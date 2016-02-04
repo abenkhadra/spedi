@@ -243,8 +243,7 @@ void SectionDisassemblyAnalyzer::ResolveCFGConflict
                 auto &addrs = node.getMaximalBlock()->
                     getBasicBlockAt(i).InstructionAddresses();
                 if (std::find(addrs.begin(), addrs.end(), (*pred_iter).second)
-                    !=
-                        addrs.end()) {
+                    != addrs.end()) {
                     assigned_predecessors[j] = i;
                     current_weight += (*pred_iter).first->
                         getMaximalBlock()->instructionsCount();
