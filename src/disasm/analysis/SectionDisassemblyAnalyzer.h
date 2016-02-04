@@ -9,6 +9,7 @@
 #pragma once
 #include "MaximalBlockCFGNode.h"
 #include "DisassemblyCFG.h"
+#include "MCInstAnalyzer.h"
 
 namespace disasm {
 
@@ -21,10 +22,10 @@ class RawInstAnalyzer;
 class SectionDisassemblyAnalyzer {
 public:
     SectionDisassemblyAnalyzer() = delete;
-    explicit SectionDisassemblyAnalyzer
+    SectionDisassemblyAnalyzer
         (SectionDisassembly *sec_disasm,
-         const RawInstAnalyzer *analyzer,
          const std::pair<addr_t, addr_t> &exec_region);
+
     virtual ~SectionDisassemblyAnalyzer() = default;
     SectionDisassemblyAnalyzer
         (const SectionDisassemblyAnalyzer &src) = default;
@@ -57,7 +58,7 @@ private:
     void ResolveCFGConflict(MaximalBlockCFGNode &node);
 private:
     SectionDisassembly *m_sec_disassembly;
-    const RawInstAnalyzer * m_analyzer;
+    MCInstAnalyzer m_analyzer;
     addr_t m_exec_addr_start;
     addr_t m_exec_addr_end;
     DisassemblyCFG m_sec_cfg;

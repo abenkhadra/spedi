@@ -28,6 +28,7 @@ public:
      * undefined behavior.
      */
     explicit SectionDisassembly(const elf::section *section);
+    SectionDisassembly(const elf::section *section, ISAType isa);
     virtual ~SectionDisassembly() = default;
     SectionDisassembly(const SectionDisassembly &src) = default;
     SectionDisassembly &operator=(const SectionDisassembly &src) = default;
@@ -64,9 +65,11 @@ public:
     bool isLast(const MaximalBlock *max_block) const;
     bool isFirst(const MaximalBlock *max_block) const;
     bool isWithinSectionAddressSpace(const addr_t & addr) const;
+    ISAType getISA() const;
 
 private:
     bool m_valid;
+    ISAType m_isa;
     // section size in bytes, section start address, section ptr, setion name
     const elf::section *m_section;
     std::vector<MaximalBlock> m_max_blocks;

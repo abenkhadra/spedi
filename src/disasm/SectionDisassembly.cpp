@@ -12,8 +12,17 @@
 
 namespace disasm {
 
-SectionDisassembly::SectionDisassembly(const elf::section *section) :
+SectionDisassembly::SectionDisassembly
+    (const elf::section *section) :
     m_valid{false},
+    m_isa{ISAType::kThumb},
+    m_section{section} {
+}
+
+SectionDisassembly::SectionDisassembly
+    (const elf::section *section, ISAType isa) :
+    m_valid{false},
+    m_isa{isa},
     m_section{section} {
 }
 
@@ -98,5 +107,8 @@ bool SectionDisassembly::isWithinSectionAddressSpace(const addr_t &addr) const {
 }
 size_t SectionDisassembly::maximalBlockCount() const {
     return m_max_blocks.size();
+}
+ISAType SectionDisassembly::getISA() const {
+    return m_isa;
 }
 }

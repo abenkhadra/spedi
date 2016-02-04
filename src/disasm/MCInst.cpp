@@ -7,8 +7,6 @@
 // Copyright (c) 2015-2016 University of Kaiserslautern.
 
 #include "MCInst.h"
-#include <capstone/capstone.h>
-#include <cstring>
 
 namespace disasm {
 
@@ -16,11 +14,9 @@ MCInst::MCInst(const cs_insn *inst) :
     m_id{inst->id},
     m_addr{inst->address},
     m_size{inst->size},
-    m_condition{inst->detail->arm.cc},
     m_mnemonic{inst->mnemonic},
     m_operands{inst->op_str} {
-
-//    std::memcpy(m_bytes, inst->bytes, inst->size);
+    m_detail = *(inst->detail);
 }
 
 unsigned
@@ -49,6 +45,6 @@ MCInst::operator==(MCInst &other) const {
 }
 
 const arm_cc &MCInst::condition() const {
-    return m_condition;
+    return m_detail.arm.cc;
 }
 }
