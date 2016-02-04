@@ -27,6 +27,7 @@ public:
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
+    SectionDisassembly();
     explicit SectionDisassembly(const elf::section *section);
     SectionDisassembly(const elf::section *section, ISAType isa);
     virtual ~SectionDisassembly() = default;

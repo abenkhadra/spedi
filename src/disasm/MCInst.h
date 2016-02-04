@@ -32,7 +32,7 @@ public:
 
     addr_t addr() const;
 
-    const arm_cc &condition() const;
+    arm_cc condition() const;
 
     bool operator<(MCInst other) const;
     bool operator==(MCInst &other) const;

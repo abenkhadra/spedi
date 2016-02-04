@@ -61,8 +61,8 @@ int main(int argc, char **argv) {
                 disassembler.disassembleSectionbyNameSpeculative(".text");
             disasm::SectionDisassemblyAnalyzer
                 analyzer{&result, disassembler.getExecutableRegion()};
-            analyzer.BuildCFG();
-            analyzer.RefineCFG();
+            analyzer.buildCFG();
+            analyzer.refineCFG();
             disassembler.prettyPrintSectionCFG(&analyzer.getCFG());
         } else {
             disassembler.disassembleCodeSpeculative();

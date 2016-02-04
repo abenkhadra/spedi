@@ -84,29 +84,19 @@ SectionDisassembly ElfDisassembler::disassembleSectionUsingSymbols
 
         if (symbol.second == ARMCodeSymbolType::kARM) {
             parser.changeModeTo(CS_MODE_ARM);
-//            m_analyzer.changeModeTo(ISAType::kARM);
         } else {
             // We assume that the value of code symbol type is strictly
             // either Data, ARM, or Thumb.
             parser.changeModeTo(CS_MODE_THUMB);
-//            m_analyzer.changeModeTo(ISAType::kThumb);
         }
-
         while (parser.disasm2(&code_ptr, &size, &address, inst_ptr)) {
-
-//            prettyPrintInst(parser.handle(), inst_ptr, false);
             if (m_analyzer.isBranch(inst_ptr)) {
                 max_block_builder.appendBranch(inst_ptr);
                 result.add(max_block_builder.build());
-//                prettyPrintMaximalBlock(result.back());
                 if (!max_block_builder.isCleanReset()) {
                     printf("Overlap detected at MaxBlock %u \n",
                            result.back().id());
                 }
-//                printf("Direct branch: %d, Conditional: %d  \n",
-//                       analyzer.isDirectBranch(inst_ptr),
-//                       analyzer.isConditional(inst_ptr));
-//                printf("************************************\n");
             } else {
                 max_block_builder.append(inst_ptr);
             }
@@ -122,6 +112,7 @@ ElfDisassembler::disassembleSectionbyName(std::string sec_name) const {
             return disassembleSectionUsingSymbols(sec);
         }
     }
+    return SectionDisassembly();
 }
 
 SectionDisassembly
@@ -132,6 +123,7 @@ ElfDisassembler::disassembleSectionbyNameSpeculative(std::string sec_name) const
 
         }
     }
+    return SectionDisassembly();
 }
 
 void

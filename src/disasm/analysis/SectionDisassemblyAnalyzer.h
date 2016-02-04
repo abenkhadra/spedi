@@ -33,7 +33,7 @@ public:
         &operator=(const SectionDisassemblyAnalyzer &src) = default;
     SectionDisassemblyAnalyzer(SectionDisassemblyAnalyzer &&src) = default;
 
-    void BuildCFG();
+    void buildCFG();
     /*
      * Search in CFG to find direct successor
      */
@@ -44,7 +44,7 @@ public:
      */
     MaximalBlockCFGNode *findRemoteSuccessor(addr_t target) noexcept;
 
-    void RefineCFG();
+    void refineCFG();
     void RefineMaximalBlocks(const std::vector<addr_t> &known_code_addrs);
     bool isValidCodeAddr(addr_t addr) const;
     const DisassemblyCFG &getCFG() const noexcept;
@@ -54,8 +54,8 @@ private:
      * Finds a valid basic block in and invalidates all direct predecessors that
      * do not target it.
      */
-    void SetValidBasicBlock(MaximalBlockCFGNode &node);
-    void ResolveCFGConflict(MaximalBlockCFGNode &node);
+    void setValidBasicBlock(MaximalBlockCFGNode &node);
+    void resolveCFGConflict(MaximalBlockCFGNode &node);
 private:
     SectionDisassembly *m_sec_disassembly;
     MCInstAnalyzer m_analyzer;

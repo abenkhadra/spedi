@@ -12,6 +12,9 @@
 
 namespace disasm {
 
+SectionDisassembly::SectionDisassembly() : m_valid(false) {
+}
+
 SectionDisassembly::SectionDisassembly
     (const elf::section *section) :
     m_valid{false},

@@ -23,7 +23,7 @@ SectionDisassemblyAnalyzer::SectionDisassemblyAnalyzer
     m_exec_addr_end{exec_region.second} {
 }
 
-void SectionDisassemblyAnalyzer::BuildCFG() {
+void SectionDisassemblyAnalyzer::buildCFG() {
     if (m_sec_disassembly->maximalBlockCount() == 0) {
         return;
     }
@@ -186,7 +186,7 @@ const DisassemblyCFG &SectionDisassemblyAnalyzer::getCFG() const noexcept {
     return m_sec_cfg;
 }
 
-void SectionDisassemblyAnalyzer::RefineCFG() {
+void SectionDisassemblyAnalyzer::refineCFG() {
     if (!m_sec_cfg.isValid()) {
         return;
     }
@@ -210,19 +210,35 @@ void SectionDisassemblyAnalyzer::RefineCFG() {
                 }
             } else {
                 // XXX: what if overlapping node consists of only one instruction?
-                (*node_iter).getOverlapNodePtr()->
-                    setKnownStartAddr((*node_iter).getMaximalBlock()->endAddr());
+                if ((*node_iter).getMaximalBlock()->instructionsCount() == 1) {
+                    (*node_iter).setType(MaximalBlockType::kData);
+                } else {
+                    (*node_iter).getOverlapNodePtr()->
+                        setKnownStartAddr((*node_iter).getMaximalBlock()->endAddr());
+                }
             }
         }
 
         if ((*node_iter).getPredecessors().size() > 0) {
             // find maximally valid BB and converts conflicting MBs to data
-            SetValidBasicBlock((*node_iter));
+            setValidBasicBlock((*node_iter));
+        } else {
+            if (1 < (*node_iter).getMaximalBlock()->getBasicBlocksCount() &&
+                ((*node_iter).m_max_block->ptrToBasicBlockAt(1)->
+                    startAddr() == (*node_iter).getKnownStartAddr())) {
+                // BB 1 should be chosen if aligned with known start
+                (*node_iter).m_valid_basic_block_ptr =
+                    (*node_iter).m_max_block->ptrToBasicBlockAt(1);
+            } else {
+                // We choose the largest BB at this stage
+                (*node_iter).m_valid_basic_block_ptr =
+                    (*node_iter).m_max_block->ptrToBasicBlockAt(0);
+            }
         }
     }
 }
 
-void SectionDisassemblyAnalyzer::ResolveCFGConflict
+void SectionDisassemblyAnalyzer::resolveCFGConflict
     (MaximalBlockCFGNode &node) {
     // Conflicts between predecessors needs to be resolved.
     unsigned assigned_predecessors[node.getPredecessors().size()];
@@ -278,7 +294,7 @@ void SectionDisassemblyAnalyzer::ResolveCFGConflict
     }
 }
 
-void SectionDisassemblyAnalyzer::SetValidBasicBlock(MaximalBlockCFGNode &node) {
+void SectionDisassemblyAnalyzer::setValidBasicBlock(MaximalBlockCFGNode &node) {
 
     if (node.getMaximalBlock()->getBasicBlocksCount() == 1) {
         // In case there is only one basic block then its the valid one
@@ -305,6 +321,6 @@ void SectionDisassemblyAnalyzer::SetValidBasicBlock(MaximalBlockCFGNode &node) {
         }
     }
     // No basic block satisfies all targets then conflicts should be resolved
-    ResolveCFGConflict(node);
+    resolveCFGConflict(node);
 }
 }

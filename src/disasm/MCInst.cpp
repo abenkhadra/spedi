@@ -44,7 +44,7 @@ MCInst::operator==(MCInst &other) const {
     return (m_addr == other.addr());
 }
 
-const arm_cc &MCInst::condition() const {
+arm_cc MCInst::condition() const {
     return m_detail.arm.cc;
 }
 }
