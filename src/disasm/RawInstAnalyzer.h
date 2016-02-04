@@ -8,26 +8,25 @@
 
 #pragma once
 #include <capstone/capstone.h>
-#include "common.h"
 #include "BranchData.h"
 
 struct cs_insn;
 
 namespace disasm {
 /**
- * MCInstAnalyzer
+ * RawInstAnalyzer
  */
-class MCInstAnalyzer {
+class RawInstAnalyzer {
 public:
     /**
-     * Construct a MCInstAnalyzer
+     * Construct a RawInstAnalyzer
      */
-    MCInstAnalyzer() = default;
-    explicit MCInstAnalyzer(ISAType isa);
-    virtual ~MCInstAnalyzer() = default;
-    MCInstAnalyzer(const MCInstAnalyzer &src) = default;
-    MCInstAnalyzer &operator=(const MCInstAnalyzer &src) = default;
-    MCInstAnalyzer(MCInstAnalyzer &&src) = default;
+    RawInstAnalyzer() = default;
+    explicit RawInstAnalyzer(ISAType isa);
+    virtual ~RawInstAnalyzer() = default;
+    RawInstAnalyzer(const RawInstAnalyzer &src) = default;
+    RawInstAnalyzer &operator=(const RawInstAnalyzer &src) = default;
+    RawInstAnalyzer(RawInstAnalyzer &&src) = default;
 
     /**
      * return true if instruction is a branch

@@ -53,10 +53,10 @@ public:
     /*
      * return all instructions contained in the MB
      */
-    const std::vector<MCInstSmall>
+    const std::vector<MCInst>
         &getAllInstructions() const;
 
-    const std::vector<const MCInstSmall *>
+    const std::vector<const MCInst *>
         getInstructionsOf(const BasicBlock &bblock) const;
     const std::vector<addr_t> &
         getInstructionAddressesOf(const BasicBlock &bblock) const noexcept;
@@ -89,7 +89,7 @@ private:
     unsigned int m_id;
     addr_t m_end_addr;
     BranchData m_branch;
-    std::vector<MCInstSmall> m_insts;
+    std::vector<MCInst> m_insts;
     std::vector<BasicBlock> m_bblocks;
 };
 }

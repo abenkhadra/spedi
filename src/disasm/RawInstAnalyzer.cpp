@@ -6,16 +6,16 @@
 // 
 // Copyright (c) 2015-2016 University of Kaiserslautern.
 
-#include "MCInstAnalyzer.h"
+#include "RawInstAnalyzer.h"
 
 namespace disasm {
 
-MCInstAnalyzer::MCInstAnalyzer(ISAType isa) :
+RawInstAnalyzer::RawInstAnalyzer(ISAType isa) :
     m_isa{isa},
     m_inst_width{getMinxInstWidth(isa)} {
 }
 
-bool MCInstAnalyzer::isBranch(const cs_insn *inst) const {
+bool RawInstAnalyzer::isBranch(const cs_insn *inst) const {
     if (inst->detail == NULL) return false;
 
     cs_detail *detail = inst->detail;
@@ -39,7 +39,7 @@ bool MCInstAnalyzer::isBranch(const cs_insn *inst) const {
     return false;
 }
 
-bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
+bool RawInstAnalyzer::isValid(const cs_insn *inst) const {
 
     for (int i = 0; i < inst->detail->arm.op_count; ++i) {
         if (inst->detail->arm.operands[i].type == ARM_OP_REG) {
@@ -126,11 +126,11 @@ bool MCInstAnalyzer::isValid(const cs_insn *inst) const {
     return true;
 }
 
-bool MCInstAnalyzer::isConditional(const cs_insn *inst) const {
+bool RawInstAnalyzer::isConditional(const cs_insn *inst) const {
     return inst->detail->arm.cc != ARM_CC_AL;
 }
 
-ISAInstWidth MCInstAnalyzer::getMinxInstWidth(ISAType isa) const {
+ISAInstWidth RawInstAnalyzer::getMinxInstWidth(ISAType isa) const {
     switch (isa) {
         case ISAType::kx86:
         case ISAType::kx86_64:
@@ -143,7 +143,7 @@ ISAInstWidth MCInstAnalyzer::getMinxInstWidth(ISAType isa) const {
     }
 }
 
-const std::string MCInstAnalyzer::conditionCodeToString(const arm_cc &condition) const {
+const std::string RawInstAnalyzer::conditionCodeToString(const arm_cc &condition) const {
     switch (condition) {
         case ARM_CC_INVALID:
             return "Invalid";
@@ -181,7 +181,7 @@ const std::string MCInstAnalyzer::conditionCodeToString(const arm_cc &condition)
             return "Unknown";
     }
 }
-bool MCInstAnalyzer::isDirectBranch(const cs_insn *inst) const {
+bool RawInstAnalyzer::isDirectBranch(const cs_insn *inst) const {
     if (inst->id == ARM_INS_CBZ || inst->id == ARM_INS_CBNZ) {
         return true;
     }
@@ -191,11 +191,11 @@ bool MCInstAnalyzer::isDirectBranch(const cs_insn *inst) const {
     }
     return false;
 }
-void MCInstAnalyzer::setISA(const ISAType isa) {
+void RawInstAnalyzer::setISA(const ISAType isa) {
     m_isa = isa;
     m_inst_width = getMinxInstWidth(isa);
 }
-void MCInstAnalyzer::changeModeTo(const ISAType &isa) {
+void RawInstAnalyzer::changeModeTo(const ISAType &isa) {
     if (isa == ISAType::kARM) {
         m_isa = ISAType::kARM;
     } else {

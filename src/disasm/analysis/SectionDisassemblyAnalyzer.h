@@ -13,7 +13,7 @@
 namespace disasm {
 
 class SectionDisassembly;
-class MCInstAnalyzer;
+class RawInstAnalyzer;
 
 /**
  * SectionDisassemblyAnalyzer
@@ -23,7 +23,7 @@ public:
     SectionDisassemblyAnalyzer() = delete;
     explicit SectionDisassemblyAnalyzer
         (SectionDisassembly *sec_disasm,
-         const MCInstAnalyzer *analyzer,
+         const RawInstAnalyzer *analyzer,
          const std::pair<addr_t, addr_t> &exec_region);
     virtual ~SectionDisassemblyAnalyzer() = default;
     SectionDisassemblyAnalyzer
@@ -57,7 +57,7 @@ private:
     void ResolveCFGConflict(MaximalBlockCFGNode &node);
 private:
     SectionDisassembly *m_sec_disassembly;
-    const MCInstAnalyzer* m_analyzer;
+    const RawInstAnalyzer * m_analyzer;
     addr_t m_exec_addr_start;
     addr_t m_exec_addr_end;
     DisassemblyCFG m_sec_cfg;

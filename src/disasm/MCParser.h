@@ -13,7 +13,7 @@
 
 namespace disasm {
 
-class MCInstWrapper;
+class RawInstWrapper;
 /**
  * MCParser
  */

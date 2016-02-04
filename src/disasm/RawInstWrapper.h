@@ -15,24 +15,24 @@
 namespace disasm {
 
 /**
- * MCInstWrapper
+ * RawInstWrapper
  * A wrapper around capstone's cs_insn, composition was used instead of
  * inheritance to ensure compatiblity with C API.
  */
-class MCInstWrapper final {
+class RawInstWrapper final {
 public:
     /**
      * Allocates memory for cs_insn and frees memory in destructor.
      */
-    MCInstWrapper();
+    RawInstWrapper();
     /**
      * Owns a pointer to an already allocated cs_insn.
      */
-    explicit MCInstWrapper(cs_insn *instruction);
-    ~MCInstWrapper() = default;
-    MCInstWrapper(const MCInstWrapper &src) = delete;
-    MCInstWrapper &operator=(const MCInstWrapper &src) = delete;
-    MCInstWrapper(MCInstWrapper &&src) = default;
+    explicit RawInstWrapper(cs_insn *instruction);
+    ~RawInstWrapper() = default;
+    RawInstWrapper(const RawInstWrapper &src) = delete;
+    RawInstWrapper &operator=(const RawInstWrapper &src) = delete;
+    RawInstWrapper(RawInstWrapper &&src) = default;
     cs_insn *rawPtr();
 
     bool isValid() const;
@@ -49,6 +49,6 @@ private:
             free(inst);
         }
     };
-    std::unique_ptr<cs_insn, MCInstWrapper::DefaultDeleter> m_inst;
+    std::unique_ptr<cs_insn, RawInstWrapper::DefaultDeleter> m_inst;
 };
 }

@@ -6,28 +6,28 @@
 // 
 // Copyright (c) 2015-2016 University of Kaiserslautern.
 
-#include "MCInstWrapper.h"
+#include "RawInstWrapper.h"
 
 namespace disasm {
 
-MCInstWrapper::MCInstWrapper() :
+RawInstWrapper::RawInstWrapper() :
     m_inst(static_cast<cs_insn*>(malloc(sizeof(cs_insn))))
 {
     // Keep consistency with Capstone's API.
     m_inst->detail = static_cast<cs_detail*>(malloc(sizeof(cs_detail)));
 }
 
-MCInstWrapper::MCInstWrapper(cs_insn *inst) :
+RawInstWrapper::RawInstWrapper(cs_insn *inst) :
     m_inst{inst}
 { }
 
 cs_insn*
-MCInstWrapper::rawPtr()
+RawInstWrapper::rawPtr()
 {
     return m_inst.get();
 }
 
-bool MCInstWrapper::isValid() const {
+bool RawInstWrapper::isValid() const {
     return m_inst != nullptr;
 }
 }

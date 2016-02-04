@@ -8,7 +8,7 @@
 
 #include "./analysis/DisassemblyCFG.h"
 #include "ElfDisassembler.h"
-#include "MCInstWrapper.h"
+#include "RawInstWrapper.h"
 #include "MCParser.h"
 #include "MaximalBlockBuilder.h"
 #include "ElfData.h"
@@ -57,7 +57,7 @@ SectionDisassembly ElfDisassembler::disassembleSectionUsingSymbols
 
     const uint8_t *code_ptr = (const uint8_t *) sec.data();
 
-    MCInstWrapper inst;
+    RawInstWrapper inst;
     cs_insn *inst_ptr = inst.rawPtr();
 
     printf("Section Name: %s\n", sec.get_name().c_str());
@@ -84,12 +84,12 @@ SectionDisassembly ElfDisassembler::disassembleSectionUsingSymbols
 
         if (symbol.second == ARMCodeSymbolType::kARM) {
             parser.changeModeTo(CS_MODE_ARM);
-            m_analyzer.changeModeTo(ISAType::kARM);
+//            m_analyzer.changeModeTo(ISAType::kARM);
         } else {
             // We assume that the value of code symbol type is strictly
             // either Data, ARM, or Thumb.
             parser.changeModeTo(CS_MODE_THUMB);
-            m_analyzer.changeModeTo(ISAType::kThumb);
+//            m_analyzer.changeModeTo(ISAType::kThumb);
         }
 
         while (parser.disasm2(&code_ptr, &size, &address, inst_ptr)) {
@@ -155,7 +155,7 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
     MCParser parser;
     parser.initialize(CS_ARCH_ARM, CS_MODE_THUMB, last_addr);
 
-    MCInstWrapper inst;
+    RawInstWrapper inst;
     cs_insn *inst_ptr = inst.rawPtr();
 
     MaximalBlockBuilder max_block_builder;
@@ -455,7 +455,7 @@ void ElfDisassembler::prettyPrintSectionCFG
     }
 }
 
-const MCInstAnalyzer * ElfDisassembler::getMCAnalyzer() const {
+const RawInstAnalyzer * ElfDisassembler::getMCAnalyzer() const {
     return &m_analyzer;
 }
 }

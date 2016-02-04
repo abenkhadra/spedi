@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "MCInstSmall.h"
+#include "MCInst.h"
 #include <vector>
 
 namespace disasm {
@@ -33,10 +33,10 @@ public:
     unsigned int id() const;
     size_t instCount() const;
     addr_t startAddr() const;
-    const std::vector<MCInstSmall>& getInstructions() const;
+    const std::vector<MCInst>& getInstructions() const;
 
 private:
     unsigned int m_id;
-    std::vector<MCInstSmall*> m_insts;
+    std::vector<MCInst *> m_insts;
 };
 }

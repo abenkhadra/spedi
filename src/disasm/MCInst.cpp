@@ -6,13 +6,13 @@
 // 
 // Copyright (c) 2015-2016 University of Kaiserslautern.
 
-#include "MCInstSmall.h"
+#include "MCInst.h"
 #include <capstone/capstone.h>
 #include <cstring>
 
 namespace disasm {
 
-MCInstSmall::MCInstSmall(const cs_insn *inst) :
+MCInst::MCInst(const cs_insn *inst) :
     m_id{inst->id},
     m_addr{inst->address},
     m_size{inst->size},
@@ -24,31 +24,31 @@ MCInstSmall::MCInstSmall(const cs_insn *inst) :
 }
 
 unsigned
-MCInstSmall::id() const {
+MCInst::id() const {
     return m_id;
 }
 
 addr_t
-MCInstSmall::addr() const {
+MCInst::addr() const {
     return m_addr;
 }
 
 size_t
-MCInstSmall::size() const {
+MCInst::size() const {
     return m_size;
 }
 
 bool
-MCInstSmall::operator<(MCInstSmall other) const {
+MCInst::operator<(MCInst other) const {
     return m_addr < other.addr();
 }
 
 bool
-MCInstSmall::operator==(MCInstSmall &other) const {
+MCInst::operator==(MCInst &other) const {
     return (m_addr == other.addr());
 }
 
-const arm_cc &MCInstSmall::condition() const {
+const arm_cc &MCInst::condition() const {
     return m_condition;
 }
 }

@@ -15,18 +15,18 @@
 namespace disasm {
 
 /**
- * MCInstSmall
+ * MCInst
  */
-class MCInstSmall {
+class MCInst {
 public:
     // TODO: this class should be refactored to MCInst. It should be the base of
     // class hierarchy. Derived classes include MCInstARM and MCInstX86.
-    MCInstSmall() = delete;
-    explicit MCInstSmall(const cs_insn *inst);
-    virtual ~MCInstSmall() = default;
-    MCInstSmall(const MCInstSmall &src) = default;
-    MCInstSmall &operator=(const MCInstSmall &src) = default;
-    MCInstSmall(MCInstSmall &&src) = default;
+    MCInst() = delete;
+    explicit MCInst(const cs_insn *inst);
+    virtual ~MCInst() = default;
+    MCInst(const MCInst &src) = default;
+    MCInst &operator=(const MCInst &src) = default;
+    MCInst(MCInst &&src) = default;
 
     unsigned id() const;
 
@@ -36,8 +36,8 @@ public:
 
     const arm_cc &condition() const;
 
-    bool operator<(MCInstSmall other) const;
-    bool operator==(MCInstSmall &other) const;
+    bool operator<(MCInst other) const;
+    bool operator==(MCInst &other) const;
 
     const std::string &mnemonic() const {
         return m_mnemonic;

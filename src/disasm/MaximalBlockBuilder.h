@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "MCInstSmall.h"
+#include "MCInst.h"
 #include "MaximalBlock.h"
 #include "BranchData.h"
 #include <vector>
@@ -91,6 +91,6 @@ private:
     addr_t m_end_addr;
     BranchData m_branch;
     std::vector<BasicBlock> m_bblocks;
-    std::vector<MCInstSmall> m_insts;
+    std::vector<MCInst> m_insts;
 };
 }

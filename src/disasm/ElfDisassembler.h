@@ -8,7 +8,7 @@
 
 #pragma once
 #include "SectionDisassembly.h"
-#include "MCInstAnalyzer.h"
+#include "RawInstAnalyzer.h"
 #include "binutils/elf/elf++.hh"
 
 namespace disasm {
@@ -81,7 +81,7 @@ public:
     void prettyPrintSectionCFG(const DisassemblyCFG *sec_cfg) const;
     void prettyPrintCFGNode(const MaximalBlockCFGNode *cfg_node) const;
     void prettyPrintValidCFGNode(const MaximalBlockCFGNode *cfg_node) const;
-    const MCInstAnalyzer * getMCAnalyzer() const;
+    const RawInstAnalyzer * getMCAnalyzer() const;
 
 private:
     void prettyPrintCapstoneInst
@@ -91,7 +91,7 @@ private:
 
 private:
     bool m_valid;
-    mutable MCInstAnalyzer m_analyzer;
+    mutable RawInstAnalyzer m_analyzer;
     const elf::elf *m_elf_file;
 };
 }

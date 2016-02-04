@@ -37,7 +37,7 @@ MaximalBlockBuilder::appendableBasicBlocksAt(const addr_t addr) const {
 void
 MaximalBlockBuilder::createBasicBlockWith(const cs_insn *inst) {
     m_bblocks.emplace_back(BasicBlock(m_bb_idx, inst));
-    m_insts.emplace_back(MCInstSmall(inst));
+    m_insts.emplace_back(MCInst(inst));
     m_end_addr = inst->address + inst->size;
     m_bb_idx++;
 }
@@ -127,7 +127,7 @@ MaximalBlock MaximalBlockBuilder::build() {
         m_bblocks.pop_back();
         m_end_addr = m_insts.back().addr() + m_insts.back().size();
     } else {
-        std::vector<MCInstSmall> overlap_insts;
+        std::vector<MCInst> overlap_insts;
         auto overlap_inst_iter = overlap_blocks.back()->m_inst_addrs.cbegin();
         // Instructions that belong to the overlap BB should be separated from the rest
         for (const auto &inst : m_insts) {
@@ -177,7 +177,7 @@ void MaximalBlockBuilder::append(const cs_insn *inst) {
     }
 
     if (appendable) {
-        m_insts.emplace_back(MCInstSmall(inst));
+        m_insts.emplace_back(MCInst(inst));
         m_end_addr += inst->size;
     } else {
         createBasicBlockWith(inst);
@@ -203,7 +203,7 @@ void MaximalBlockBuilder::appendBranch(const cs_insn *inst) {
     }
 
     if (found_appendable) {
-        m_insts.emplace_back(MCInstSmall(inst));
+        m_insts.emplace_back(MCInst(inst));
         m_end_addr += inst->size;
     } else {
         createValidBasicBlockWith(inst);

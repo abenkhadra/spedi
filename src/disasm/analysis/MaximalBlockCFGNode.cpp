@@ -70,8 +70,8 @@ MaximalBlockType MaximalBlockCFGNode::getType() const {
     return m_type;
 }
 
-std::vector<const MCInstSmall *> MaximalBlockCFGNode::getValidInstructions() const {
-    std::vector<const MCInstSmall *> result;
+std::vector<const MCInst *> MaximalBlockCFGNode::getValidInstructions() const {
+    std::vector<const MCInst *> result;
     addr_t current = getValidBasicBlock()->startAddr();
     if (current < getKnownStartAddr()) {
         current = getValidBasicBlock()->addressAt(1);

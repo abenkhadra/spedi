@@ -27,9 +27,9 @@ add_library(
 add_library(
         disasm STATIC
         disasm/ElfDisassembler.cpp disasm/ElfDisassembler.h
-        disasm/MCInstWrapper.cpp disasm/MCInstWrapper.h
+        disasm/RawInstWrapper.cpp disasm/RawInstWrapper.h
         disasm/ElfData.h
-        disasm/MCInstSmall.cpp disasm/MCInstSmall.h
+        disasm/MCInst.cpp disasm/MCInst.h
         disasm/Fragment.cpp disasm/Fragment.h
         disasm/BasicBlock.cpp disasm/BasicBlock.h
         disasm/MaximalBlock.cpp disasm/MaximalBlock.h
@@ -37,11 +37,14 @@ add_library(
         disasm/SectionDisassembly.cpp disasm/SectionDisassembly.h
         disasm/MCParser.cpp disasm/MCParser.h
         disasm/MaximalBlockBuilder.cpp disasm/MaximalBlockBuilder.h
-        disasm/MCInstAnalyzer.cpp disasm/MCInstAnalyzer.h
+        disasm/RawInstAnalyzer.cpp disasm/RawInstAnalyzer.h
         disasm/BranchData.cpp disasm/BranchData.h
-        disasm/analysis/MaximalBlockCFGNode.cpp disasm/analysis/MaximalBlockCFGNode.h
-        disasm/analysis/SectionDisassemblyAnalyzer.cpp disasm/analysis/SectionDisassemblyAnalyzer.h
-        disasm/analysis/DisassemblyCFG.cpp disasm/analysis/DisassemblyCFG.h)
+        disasm/analysis/MaximalBlockCFGNode.cpp
+        disasm/analysis/MaximalBlockCFGNode.h
+        disasm/analysis/SectionDisassemblyAnalyzer.cpp
+        disasm/analysis/SectionDisassemblyAnalyzer.h
+        disasm/analysis/DisassemblyCFG.cpp
+        disasm/analysis/DisassemblyCFG.h)
 
 #target_compile_options(disasm PRIVATE -fsanitize=address)
 add_dependencies(disasm elf++ dwarf++)

@@ -28,9 +28,9 @@ bool MaximalBlock::isValid() const {
     return true;
 }
 
-const std::vector<const MCInstSmall *>
+const std::vector<const MCInst *>
 MaximalBlock::getInstructionsOf(const BasicBlock &bblock) const {
-    std::vector<const MCInstSmall *> result;
+    std::vector<const MCInst *> result;
 
     auto current = bblock.startAddr();
     for (auto iter = m_insts.cbegin(); iter < m_insts.cend(); ++iter) {
@@ -94,7 +94,7 @@ bool MaximalBlock::isWithinAddressSpace(addr_t addr) const {
         && addr < endAddr();
 }
 
-const std::vector<MCInstSmall> &MaximalBlock::getAllInstructions() const {
+const std::vector<MCInst> &MaximalBlock::getAllInstructions() const {
     return m_insts;
 }
 

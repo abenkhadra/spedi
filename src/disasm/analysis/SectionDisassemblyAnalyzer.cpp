@@ -16,7 +16,7 @@ namespace disasm {
 
 SectionDisassemblyAnalyzer::SectionDisassemblyAnalyzer
     (SectionDisassembly *sec_disasm,
-     const MCInstAnalyzer *analyzer,
+     const RawInstAnalyzer *analyzer,
      const std::pair<addr_t, addr_t> &exec_region) :
     m_sec_disassembly{sec_disasm},
     m_analyzer{analyzer},

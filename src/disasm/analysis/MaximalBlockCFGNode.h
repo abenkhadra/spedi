@@ -48,7 +48,7 @@ public:
      * return the sequence of instructions in valid basic block starting from
      * the known start address. Throws exception in case valid basic block not set.
      */
-    std::vector<const MCInstSmall *> getValidInstructions() const;
+    std::vector<const MCInst *> getValidInstructions() const;
     addr_t getKnownStartAddr() const noexcept;
     void setKnownStartAddr(addr_t known_start) noexcept;
     void setType(const MaximalBlockType type);
