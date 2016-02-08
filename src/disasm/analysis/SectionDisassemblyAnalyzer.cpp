@@ -27,7 +27,7 @@ void SectionDisassemblyAnalyzer::buildCFG() {
     if (m_sec_disassembly->maximalBlockCount() == 0) {
         return;
     }
-    // work directly with the vector of MaximalBlockCFGNode
+    // work directly with the vector of BlockCFGNode
     auto &cfg = m_sec_cfg.m_cfg;
     cfg.resize(m_sec_disassembly->maximalBlockCount());
     {
@@ -126,8 +126,8 @@ bool SectionDisassemblyAnalyzer::isValidCodeAddr(addr_t addr) const {
     return (m_exec_addr_start <= addr) && (addr < m_exec_addr_end);
 }
 
-MaximalBlockCFGNode *SectionDisassemblyAnalyzer::findDirectSuccessor
-    (const MaximalBlockCFGNode &cfg_node) noexcept {
+BlockCFGNode *SectionDisassemblyAnalyzer::findDirectSuccessor
+    (const BlockCFGNode &cfg_node) noexcept {
     // no direct successor to last cfg node
     if (cfg_node.id() >= m_sec_cfg.m_cfg.back().id()) {
         return nullptr;
@@ -146,7 +146,7 @@ MaximalBlockCFGNode *SectionDisassemblyAnalyzer::findDirectSuccessor
     return nullptr;
 }
 
-MaximalBlockCFGNode *SectionDisassemblyAnalyzer::findRemoteSuccessor
+BlockCFGNode *SectionDisassemblyAnalyzer::findRemoteSuccessor
     (addr_t target) noexcept {
 
     // binary search to find the remote MB that is targeted.
@@ -209,7 +209,7 @@ void SectionDisassemblyAnalyzer::refineCFG() {
                         setType(MaximalBlockType::kData);
                 }
             } else {
-                // XXX: what if overlapping node consists of only one instruction?
+                // if overlapping node consists of only one instruction?
                 if ((*node_iter).getMaximalBlock()->instructionsCount() == 1) {
                     (*node_iter).setType(MaximalBlockType::kData);
                 } else {
@@ -239,7 +239,7 @@ void SectionDisassemblyAnalyzer::refineCFG() {
 }
 
 void SectionDisassemblyAnalyzer::resolveCFGConflict
-    (MaximalBlockCFGNode &node) {
+    (BlockCFGNode &node) {
     // Conflicts between predecessors needs to be resolved.
     unsigned assigned_predecessors[node.getPredecessors().size()];
     memset(assigned_predecessors, 0,
@@ -294,7 +294,7 @@ void SectionDisassemblyAnalyzer::resolveCFGConflict
     }
 }
 
-void SectionDisassemblyAnalyzer::setValidBasicBlock(MaximalBlockCFGNode &node) {
+void SectionDisassemblyAnalyzer::setValidBasicBlock(BlockCFGNode &node) {
 
     if (node.getMaximalBlock()->getBasicBlocksCount() == 1) {
         // In case there is only one basic block then its the valid one

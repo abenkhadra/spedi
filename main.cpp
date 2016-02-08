@@ -63,6 +63,7 @@ int main(int argc, char **argv) {
                 analyzer{&result, disassembler.getExecutableRegion()};
             analyzer.buildCFG();
             analyzer.refineCFG();
+            // analyzer.buildCallGraph();
             disassembler.prettyPrintSectionCFG(&analyzer.getCFG());
         } else {
             disassembler.disassembleCodeSpeculative();

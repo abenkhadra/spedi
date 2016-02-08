@@ -352,7 +352,7 @@ void ElfDisassembler::prettyPrintMaximalBlock
 }
 
 void ElfDisassembler::prettyPrintCFGNode
-    (const MaximalBlockCFGNode *cfg_node) const {
+    (const BlockCFGNode *cfg_node) const {
     auto mblock = cfg_node->getMaximalBlock();
     printf("**************************************\n");
     printf("MB No. %u, Type: %u. Starts at %#6x",
@@ -388,7 +388,7 @@ void ElfDisassembler::prettyPrintCFGNode
 }
 
 void ElfDisassembler::prettyPrintValidCFGNode
-    (const MaximalBlockCFGNode *cfg_node) const {
+    (const BlockCFGNode *cfg_node) const {
 
     if (cfg_node->getValidBasicBlock() != nullptr) {
         auto max_block = cfg_node->getMaximalBlock();

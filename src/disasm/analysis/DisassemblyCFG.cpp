@@ -10,25 +10,25 @@
 
 namespace disasm {
 
-MaximalBlockCFGNode *DisassemblyCFG::getCFGNodeOf
+BlockCFGNode *DisassemblyCFG::getCFGNodeOf
     (const MaximalBlock *max_block) {
     return &(*(m_cfg.begin() + max_block->id()));
 }
 
-const MaximalBlockCFGNode &DisassemblyCFG::getNodeAt(size_t index) const {
+const BlockCFGNode &DisassemblyCFG::getNodeAt(size_t index) const {
     return m_cfg[index];
 }
 
-const std::vector<MaximalBlockCFGNode> &DisassemblyCFG::getCFG() const {
+const std::vector<BlockCFGNode> &DisassemblyCFG::getCFG() const {
     return m_cfg;
 }
 
-MaximalBlockCFGNode *DisassemblyCFG::ptrToNodeAt(size_t index) {
+BlockCFGNode *DisassemblyCFG::ptrToNodeAt(size_t index) {
     return &(*(m_cfg.begin() + index));
 }
 
 size_t DisassemblyCFG::calculateNodeWeight
-    (const MaximalBlockCFGNode *node) const noexcept {
+    (const BlockCFGNode *node) const noexcept {
     if (node->isData()) {
         return 0;
     }

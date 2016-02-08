@@ -45,7 +45,7 @@ SectionDisassembly::sectionSize() const {
 }
 
 const uint8_t *
-SectionDisassembly::data() const {
+SectionDisassembly::ptrToData() const {
     return static_cast<const uint8_t *>(m_section->data());
 }
 
@@ -61,28 +61,25 @@ void SectionDisassembly::add(MaximalBlock &&max_block) {
     m_max_blocks.emplace_back(max_block);
 }
 
-const MaximalBlock &
-SectionDisassembly::back() const {
+const MaximalBlock &SectionDisassembly::back() const {
     return m_max_blocks.back();
 }
-addr_t
-SectionDisassembly::virtualAddrOf(const uint8_t *ptr) const {
-    assert(data() <= ptr
-               && ptr < data() + sectionSize()
+addr_t SectionDisassembly::virtualAddrOf(const uint8_t *ptr) const {
+    assert(ptrToData() <= ptr
+               && ptr < ptrToData() + sectionSize()
                && "Invalid pointer !!!");
-    return startAddr() + (ptr - data());
+    return startAddr() + (ptr - ptrToData());
 }
 
-const uint8_t *
-SectionDisassembly::physicalAddrOf(const addr_t virtual_addr) const {
+const uint8_t *SectionDisassembly::physicalAddrOf
+    (const addr_t virtual_addr) const {
     assert(startAddr() <= virtual_addr
                && virtual_addr < startAddr() + sectionSize()
                && "Invalid virtual address !!!");
-    return data() + (virtual_addr - startAddr());
+    return ptrToData() + (virtual_addr - startAddr());
 }
 
-std::vector<MaximalBlock> &
-SectionDisassembly::getMaximalBlocks() {
+std::vector<MaximalBlock> &SectionDisassembly::getMaximalBlocks() {
     return m_max_blocks;
 }
 bool SectionDisassembly::isLast(const MaximalBlock *max_block) const {

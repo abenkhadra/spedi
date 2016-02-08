@@ -39,8 +39,8 @@ add_library(
         disasm/MaximalBlockBuilder.cpp disasm/MaximalBlockBuilder.h
         disasm/RawInstAnalyzer.cpp disasm/RawInstAnalyzer.h
         disasm/BranchData.cpp disasm/BranchData.h
-        disasm/analysis/MaximalBlockCFGNode.cpp
-        disasm/analysis/MaximalBlockCFGNode.h
+        disasm/analysis/BlockCFGNode.cpp
+        disasm/analysis/BlockCFGNode.h
         disasm/analysis/SectionDisassemblyAnalyzer.cpp
         disasm/analysis/SectionDisassemblyAnalyzer.h
         disasm/analysis/DisassemblyCFG.cpp

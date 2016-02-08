@@ -7,7 +7,7 @@
 // Copyright (c) 2016 University of Kaiserslautern.
 
 #pragma once
-#include "MaximalBlockCFGNode.h"
+#include "BlockCFGNode.h"
 #include "DisassemblyCFG.h"
 #include "MCInstAnalyzer.h"
 
@@ -37,12 +37,12 @@ public:
     /*
      * Search in CFG to find direct successor
      */
-    MaximalBlockCFGNode *findDirectSuccessor
-        (const MaximalBlockCFGNode &cfg_node) noexcept;
+    BlockCFGNode *findDirectSuccessor
+        (const BlockCFGNode &cfg_node) noexcept;
     /*
      * Search in CFG to find remote successor matching target
      */
-    MaximalBlockCFGNode *findRemoteSuccessor(addr_t target) noexcept;
+    BlockCFGNode *findRemoteSuccessor(addr_t target) noexcept;
 
     void refineCFG();
     void RefineMaximalBlocks(const std::vector<addr_t> &known_code_addrs);
@@ -54,8 +54,8 @@ private:
      * Finds a valid basic block in and invalidates all direct predecessors that
      * do not target it.
      */
-    void setValidBasicBlock(MaximalBlockCFGNode &node);
-    void resolveCFGConflict(MaximalBlockCFGNode &node);
+    void setValidBasicBlock(BlockCFGNode &node);
+    void resolveCFGConflict(BlockCFGNode &node);
 private:
     SectionDisassembly *m_sec_disassembly;
     MCInstAnalyzer m_analyzer;

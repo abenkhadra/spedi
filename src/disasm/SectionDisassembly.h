@@ -53,7 +53,7 @@ public:
     /*
      * return a pointer to the beginning of bytes of the section
      */
-    const uint8_t *data() const;
+    const uint8_t *ptrToData() const;
 
     size_t maximalBlockCount() const;
     void add(const MaximalBlock &max_block);

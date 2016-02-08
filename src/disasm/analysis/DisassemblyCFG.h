@@ -7,7 +7,7 @@
 // Copyright (c) 2016 University of Kaiserslautern.
 
 #pragma once
-#include "MaximalBlockCFGNode.h"
+#include "BlockCFGNode.h"
 
 namespace disasm {
 /**
@@ -27,22 +27,22 @@ public:
         &operator=(const DisassemblyCFG &src) = default;
     DisassemblyCFG(DisassemblyCFG &&src) = default;
 
-    const MaximalBlockCFGNode &getNodeAt(size_t index) const;
-    const std::vector<MaximalBlockCFGNode> &getCFG() const;
+    const BlockCFGNode &getNodeAt(size_t index) const;
+    const std::vector<BlockCFGNode> &getCFG() const;
     /*
      * Valid only after building CFG.
      */
     bool isValid() const { return m_valid; }
-    size_t calculateNodeWeight(const MaximalBlockCFGNode *node) const noexcept;
+    size_t calculateNodeWeight(const BlockCFGNode *node) const noexcept;
 
     friend class SectionDisassemblyAnalyzer;
 private:
-    MaximalBlockCFGNode *getCFGNodeOf(const MaximalBlock *max_block);
-    MaximalBlockCFGNode *ptrToNodeAt(size_t index);
+    BlockCFGNode *getCFGNodeOf(const MaximalBlock *max_block);
+    BlockCFGNode *ptrToNodeAt(size_t index);
 
 private:
     bool m_valid;
-    std::vector<MaximalBlockCFGNode> m_cfg;
+    std::vector<BlockCFGNode> m_cfg;
 };
 }
 
