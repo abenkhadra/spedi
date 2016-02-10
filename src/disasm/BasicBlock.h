@@ -8,9 +8,9 @@
 
 #pragma once
 #include "common.h"
-#include "Fragment.h"
 #include <vector>
 
+struct cs_insn;
 namespace disasm {
 
 /**
@@ -44,7 +44,7 @@ public:
     size_t instructionCount() const;
     addr_t startAddr() const;
     addr_t endAddr() const;
-    const std::vector<addr_t> &InstructionAddresses() const;
+    const std::vector<addr_t> &getInstructionAddresses() const;
 private:
     void append(const cs_insn *inst);
 

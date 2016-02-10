@@ -45,7 +45,8 @@ add_library(
         disasm/analysis/SectionDisassemblyAnalyzer.h
         disasm/analysis/DisassemblyCFG.cpp
         disasm/analysis/DisassemblyCFG.h
-        disasm/analysis/MCInstAnalyzer.cpp disasm/analysis/MCInstAnalyzer.h)
+        disasm/analysis/MaximalBlockAnalyzer.cpp disasm/analysis/MaximalBlockAnalyzer.h
+        disasm/analysis/ProcedureICFGNode.cpp disasm/analysis/ProcedureICFGNode.h)
 
 #target_compile_options(disasm PRIVATE -fsanitize=address)
 add_dependencies(disasm elf++ dwarf++)

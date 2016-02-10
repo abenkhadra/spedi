@@ -34,7 +34,9 @@ public:
      */
     bool isValid() const { return m_valid; }
     size_t calculateNodeWeight(const BlockCFGNode *node) const noexcept;
-
+    bool isLast(const BlockCFGNode *node) const noexcept;
+    std::vector<BlockCFGNode>::const_iterator cbegin() const noexcept;
+    std::vector<BlockCFGNode>::const_iterator cend() const noexcept;
     friend class SectionDisassemblyAnalyzer;
 private:
     BlockCFGNode *getCFGNodeOf(const MaximalBlock *max_block);

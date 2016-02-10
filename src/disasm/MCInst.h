@@ -34,6 +34,8 @@ public:
 
     arm_cc condition() const;
 
+    const cs_detail &detail() const;
+
     bool operator<(MCInst other) const;
     bool operator==(MCInst &other) const;
 

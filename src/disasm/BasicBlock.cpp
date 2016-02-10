@@ -59,7 +59,7 @@ addr_t BasicBlock::endAddr() const {
     return m_inst_addrs.front() + m_size;
 }
 
-const std::vector<addr_t> &BasicBlock::InstructionAddresses() const {
+const std::vector<addr_t> &BasicBlock::getInstructionAddresses() const {
     return m_inst_addrs;
 }
 

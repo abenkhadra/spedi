@@ -47,4 +47,8 @@ MCInst::operator==(MCInst &other) const {
 arm_cc MCInst::condition() const {
     return m_detail.arm.cc;
 }
+
+const cs_detail &MCInst::detail() const {
+    return m_detail;
+}
 }

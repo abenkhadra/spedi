@@ -409,7 +409,7 @@ void ElfDisassembler::prettyPrintValidCFGNode
         }
         printf("\n");
 
-        for (auto inst : cfg_node->getValidInstructions()) {
+        for (auto inst : cfg_node->getCandidateInstructions()) {
             printf("0x%" PRIx64 ":\t%s\t\t%s ",
                    inst->addr(),
                    inst->mnemonic().c_str(),

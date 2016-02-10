@@ -11,7 +11,7 @@
 namespace disasm {
 BlockCFGNode::BlockCFGNode() :
     m_type{MaximalBlockType::kMaybe},
-    m_known_start_addr{0},
+    m_candidate_start_addr{0},
     m_valid_basic_block_ptr{nullptr},
     m_overlap_node{nullptr},
     m_direct_successor{nullptr},
@@ -21,7 +21,7 @@ BlockCFGNode::BlockCFGNode() :
 
 BlockCFGNode::BlockCFGNode(MaximalBlock *current_block) :
     m_type{MaximalBlockType::kMaybe},
-    m_known_start_addr{0},
+    m_candidate_start_addr{0},
     m_valid_basic_block_ptr{nullptr},
     m_overlap_node{nullptr},
     m_direct_successor{nullptr},
@@ -70,12 +70,9 @@ MaximalBlockType BlockCFGNode::getType() const {
     return m_type;
 }
 
-std::vector<const MCInst *> BlockCFGNode::getValidInstructions() const {
+std::vector<const MCInst *> BlockCFGNode::getCandidateInstructions() const {
     std::vector<const MCInst *> result;
-    addr_t current = getValidBasicBlock()->startAddr();
-    if (current < getKnownStartAddr()) {
-        current = getValidBasicBlock()->addressAt(1);
-    }
+    addr_t current = m_candidate_start_addr;
     for (auto &inst : getMaximalBlock()->getAllInstructions()) {
         if (inst.addr() == current) {
             result.push_back(&inst);
@@ -85,12 +82,28 @@ std::vector<const MCInst *> BlockCFGNode::getValidInstructions() const {
     return result;
 }
 
-addr_t BlockCFGNode::getKnownStartAddr() const noexcept {
-    return m_known_start_addr;
+std::vector<const MCInst *> BlockCFGNode::getCandidateInstructionsSatisfying
+    (std::function<bool(const MCInst *)> predicate) const {
+    std::vector<const MCInst *> result;
+    addr_t current = m_candidate_start_addr;
+    for (auto &inst : getMaximalBlock()->getAllInstructions()) {
+        if (inst.addr() == current) {
+            if (predicate(&inst)) {
+                result.push_back(&inst);
+            }
+            current += inst.size();
+        }
+    }
+    return result;
 }
 
-void BlockCFGNode::setKnownStartAddr(addr_t known_start) noexcept {
-    m_known_start_addr = known_start;
+
+addr_t BlockCFGNode::getCandidateStartAddr() const noexcept {
+    return m_candidate_start_addr;
+}
+
+void BlockCFGNode::setCandidateStartAddr(addr_t candidate_start) noexcept {
+    m_candidate_start_addr = candidate_start;
 }
 
 const BlockCFGNode *BlockCFGNode::getDirectSuccessor() const {
@@ -128,5 +141,18 @@ bool BlockCFGNode::hasOverlapWithOtherNode() const noexcept {
 
 const BasicBlock *BlockCFGNode::getValidBasicBlock() const noexcept {
     return m_valid_basic_block_ptr;
+}
+
+bool BlockCFGNode::givenCandidateStartAddressIsValid() const noexcept {
+    return m_candidate_start_addr < m_max_block->addrOfLastInst();
+}
+
+void BlockCFGNode::adjustCandidateStartAddress() noexcept {
+    for (auto addr : m_valid_basic_block_ptr->getInstructionAddresses()) {
+        if (m_candidate_start_addr <= addr) {
+            m_candidate_start_addr = addr;
+            break;
+        }
+    }
 }
 }

@@ -9,7 +9,7 @@
 #pragma once
 #include "BlockCFGNode.h"
 #include "DisassemblyCFG.h"
-#include "MCInstAnalyzer.h"
+#include "MaximalBlockAnalyzer.h"
 
 namespace disasm {
 
@@ -49,16 +49,23 @@ public:
     bool isValidCodeAddr(addr_t addr) const;
     const DisassemblyCFG &getCFG() const noexcept;
 
+    /*
+     * precondition: given instruction is PC-relative load
+     */
+    BlockCFGNode *findPCRelativeLoadTargetStartingFrom
+        (addr_t target, const BlockCFGNode *node) const noexcept;
+
 private:
     /*
      * Finds a valid basic block in and invalidates all direct predecessors that
      * do not target it.
      */
-    void setValidBasicBlock(BlockCFGNode &node);
+    void resolveValidBasicBlock(BlockCFGNode &node);
     void resolveCFGConflict(BlockCFGNode &node);
+    void resolveLoadConflicts();
 private:
     SectionDisassembly *m_sec_disassembly;
-    MCInstAnalyzer m_analyzer;
+    MaximalBlockAnalyzer m_analyzer;
     addr_t m_exec_addr_start;
     addr_t m_exec_addr_end;
     DisassemblyCFG m_sec_cfg;

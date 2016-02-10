@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Fragment.h"
+#include "MCInst.h"
 #include "BasicBlock.h"
 #include "BranchData.h"
 #include <vector>

@@ -95,7 +95,7 @@ MaximalBlock MaximalBlockBuilder::build() {
                         continue;
                     }
                     for (auto
-                            addr : (*valid_block_iter)->InstructionAddresses()) {
+                            addr : (*valid_block_iter)->getInstructionAddresses()) {
                         if ((*inst_iter).addr() == addr) {
                             result.m_insts.push_back(*inst_iter);
                             inst_valid = true;
