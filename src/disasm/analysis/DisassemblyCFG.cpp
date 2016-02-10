@@ -45,13 +45,11 @@ bool DisassemblyCFG::isLast(const BlockCFGNode *node) const noexcept {
     return m_cfg.back().id() == node->id();
 }
 
-std::vector<BlockCFGNode>::const_iterator
-DisassemblyCFG::cbegin() const noexcept {
+std::vector<BlockCFGNode>::const_iterator DisassemblyCFG::cbegin() const noexcept {
     return m_cfg.cbegin();
 }
 
-std::vector<BlockCFGNode>::const_iterator
-DisassemblyCFG::cend() const {
+std::vector<BlockCFGNode>::const_iterator DisassemblyCFG::cend() const noexcept {
     return m_cfg.cend();
 }
 }

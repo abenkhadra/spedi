@@ -15,12 +15,6 @@
 
 namespace disasm {
 
-enum class MaximalBlockType: unsigned {
-    kData = 1,
-    kMaybe = 2,
-    kCode = 4
-};
-
 /**
  * MaximalBlock
  */

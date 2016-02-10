@@ -53,7 +53,7 @@ public:
      * precondition: given instruction is PC-relative load
      */
     BlockCFGNode *findPCRelativeLoadTargetStartingFrom
-        (addr_t target, const BlockCFGNode *node) const noexcept;
+        (addr_t target, const BlockCFGNode *node) noexcept;
 
 private:
     /*
@@ -61,7 +61,8 @@ private:
      * do not target it.
      */
     void resolveValidBasicBlock(BlockCFGNode &node);
-    void resolveCFGConflict(BlockCFGNode &node);
+    void resolveOverlapBetweenCFGNodes(BlockCFGNode &node);
+    void resolveCFGConflicts(BlockCFGNode &node);
     void resolveLoadConflicts();
 private:
     SectionDisassembly *m_sec_disassembly;

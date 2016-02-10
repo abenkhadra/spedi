@@ -10,9 +10,8 @@
 #include <cassert>
 namespace disasm {
 BlockCFGNode::BlockCFGNode() :
-    m_type{MaximalBlockType::kMaybe},
+    m_type{BlockCFGNodeType::kMaybe},
     m_candidate_start_addr{0},
-    m_valid_basic_block_ptr{nullptr},
     m_overlap_node{nullptr},
     m_direct_successor{nullptr},
     m_remote_successor{nullptr},
@@ -20,9 +19,8 @@ BlockCFGNode::BlockCFGNode() :
 }
 
 BlockCFGNode::BlockCFGNode(MaximalBlock *current_block) :
-    m_type{MaximalBlockType::kMaybe},
+    m_type{BlockCFGNodeType::kMaybe},
     m_candidate_start_addr{0},
-    m_valid_basic_block_ptr{nullptr},
     m_overlap_node{nullptr},
     m_direct_successor{nullptr},
     m_remote_successor{nullptr},
@@ -55,25 +53,25 @@ const BlockCFGNode *BlockCFGNode::getOverlapNode() const {
 }
 
 bool BlockCFGNode::isData() const {
-    return m_type == MaximalBlockType::kData;
+    return m_type == BlockCFGNodeType::kData;
 }
 
 bool BlockCFGNode::isCode() const {
-    return m_type == MaximalBlockType::kCode;
+    return m_type == BlockCFGNodeType::kCode;
 }
 
-void BlockCFGNode::setType(const MaximalBlockType type) {
+void BlockCFGNode::setType(const BlockCFGNodeType type) {
     m_type = type;
 }
 
-MaximalBlockType BlockCFGNode::getType() const {
+BlockCFGNodeType BlockCFGNode::getType() const {
     return m_type;
 }
 
 std::vector<const MCInst *> BlockCFGNode::getCandidateInstructions() const {
     std::vector<const MCInst *> result;
     addr_t current = m_candidate_start_addr;
-    for (auto &inst : getMaximalBlock()->getAllInstructions()) {
+    for (auto &inst : m_max_block->getAllInstructions()) {
         if (inst.addr() == current) {
             result.push_back(&inst);
             current += inst.size();
@@ -86,7 +84,7 @@ std::vector<const MCInst *> BlockCFGNode::getCandidateInstructionsSatisfying
     (std::function<bool(const MCInst *)> predicate) const {
     std::vector<const MCInst *> result;
     addr_t current = m_candidate_start_addr;
-    for (auto &inst : getMaximalBlock()->getAllInstructions()) {
+    for (auto &inst : m_max_block->getAllInstructions()) {
         if (inst.addr() == current) {
             if (predicate(&inst)) {
                 result.push_back(&inst);
@@ -103,7 +101,14 @@ addr_t BlockCFGNode::getCandidateStartAddr() const noexcept {
 }
 
 void BlockCFGNode::setCandidateStartAddr(addr_t candidate_start) noexcept {
-    m_candidate_start_addr = candidate_start;
+    // a candidate start address should be set to the first instruction that can
+    // match it.
+    for (auto &inst : m_max_block->getAllInstructions()) {
+        if (candidate_start <= inst.addr()) {
+            m_candidate_start_addr = candidate_start;
+            break;
+        }
+    }
 }
 
 const BlockCFGNode *BlockCFGNode::getDirectSuccessor() const {
@@ -131,28 +136,33 @@ BlockCFGNode *BlockCFGNode::getOverlapNodePtr() const {
     return m_overlap_node;
 }
 
-bool BlockCFGNode::isValidBasicBlockSet() const noexcept {
-    return m_valid_basic_block_ptr != nullptr;
-}
-
 bool BlockCFGNode::hasOverlapWithOtherNode() const noexcept {
     return m_overlap_node != nullptr;
 }
 
-const BasicBlock *BlockCFGNode::getValidBasicBlock() const noexcept {
-    return m_valid_basic_block_ptr;
+bool BlockCFGNode::isCandidateStartAddressSet() const noexcept {
+    return m_candidate_start_addr != 0;
 }
 
-bool BlockCFGNode::givenCandidateStartAddressIsValid() const noexcept {
-    return m_candidate_start_addr < m_max_block->addrOfLastInst();
+bool BlockCFGNode::isGivenCandidateStartAddressValid() const noexcept {
+    return m_candidate_start_addr <= m_max_block->addrOfLastInst();
 }
 
-void BlockCFGNode::adjustCandidateStartAddress() noexcept {
-    for (auto addr : m_valid_basic_block_ptr->getInstructionAddresses()) {
-        if (m_candidate_start_addr <= addr) {
-            m_candidate_start_addr = addr;
-            break;
-        }
+void BlockCFGNode::setToDataAndInvalidatePredecessors() {
+    if (m_type == BlockCFGNodeType::kData) {
+        return;
     }
+    m_type = BlockCFGNodeType::kData;
+    for (auto pred_iter = m_predecessors.begin();
+         pred_iter < m_predecessors.end(); ++pred_iter) {
+//        printf("CONFLICT: Invalidating %u predecessor of %u\n",
+//               (*pred_iter).first->id(),
+//               id());
+        (*pred_iter).first->setToDataAndInvalidatePredecessors();
+    }
+}
+
+void BlockCFGNode::resetCandidateStartAddress() {
+    m_candidate_start_addr = 0;
 }
 }

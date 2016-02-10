@@ -12,6 +12,13 @@
 #include <functional>
 
 namespace disasm {
+
+enum class BlockCFGNodeType: unsigned {
+    kData = 1,
+    kMaybe = 2,
+    kCode = 4
+};
+
 /**
  * BlockCFGNode
  */
@@ -43,7 +50,7 @@ public:
     const std::vector<std::pair<BlockCFGNode *, addr_t>> &
         getPredecessors() const;
     bool hasOverlapWithOtherNode() const noexcept;
-    const BasicBlock * getValidBasicBlock() const noexcept;
+    bool isCandidateStartAddressSet() const noexcept;
 
     /*
      * return the sequence of instructions in valid basic block starting from
@@ -54,26 +61,21 @@ public:
         (std::function<bool(const MCInst *inst)> predicate) const;
     addr_t getCandidateStartAddr() const noexcept;
     void setCandidateStartAddr(addr_t candidate_start) noexcept;
-    void setType(const MaximalBlockType type);
-    MaximalBlockType getType() const;
+    void setType(const BlockCFGNodeType type);
+    void setToDataAndInvalidatePredecessors();
+    void resetCandidateStartAddress();
+    BlockCFGNodeType getType() const;
     bool isData() const;
     bool isCode() const;
     bool isValidBasicBlockSet() const noexcept;
-    bool givenCandidateStartAddressIsValid() const noexcept;
-    /*
-     * Candidate start adjust to address of the first instruction in the valid BB
-     * that is bigger than it.
-     * precondition: valid basic block must be set
-     */
-    void adjustCandidateStartAddress() noexcept;
+    bool isGivenCandidateStartAddressValid() const noexcept;
     friend class SectionDisassemblyAnalyzer;
 private:
     void setMaximalBlock(MaximalBlock *maximal_block) noexcept;
     BlockCFGNode *getOverlapNodePtr() const;
 private:
-    MaximalBlockType m_type;
+    BlockCFGNodeType m_type;
     addr_t m_candidate_start_addr;
-    BasicBlock *m_valid_basic_block_ptr;
     BlockCFGNode *m_overlap_node;
     /// valid only in case of conditional branch
     BlockCFGNode *m_direct_successor;

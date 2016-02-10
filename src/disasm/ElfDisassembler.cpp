@@ -390,7 +390,7 @@ void ElfDisassembler::prettyPrintCFGNode
 void ElfDisassembler::prettyPrintValidCFGNode
     (const BlockCFGNode *cfg_node) const {
 
-    if (cfg_node->getValidBasicBlock() != nullptr) {
+    if (cfg_node->isCandidateStartAddressSet()) {
         auto max_block = cfg_node->getMaximalBlock();
         printf("**************************************\n");
         printf("MB No. %u, Type: %u. Starts at %#6x",
@@ -399,15 +399,6 @@ void ElfDisassembler::prettyPrintValidCFGNode
         printf(" / BB count. %lu, Total inst count %lu: \n",
                max_block->getBasicBlocksCount(),
                max_block->instructionsCount());
-
-        printf("Basic Block Id %u, inst count %lu\n / ",
-               cfg_node->getValidBasicBlock()->id(),
-               cfg_node->getValidBasicBlock()->instructionCount());
-        for (auto addr : max_block->
-            getInstructionAddressesOf(cfg_node->getValidBasicBlock())) {
-            printf(" Inst Addr: %#6x", static_cast<unsigned>(addr));
-        }
-        printf("\n");
 
         for (auto inst : cfg_node->getCandidateInstructions()) {
             printf("0x%" PRIx64 ":\t%s\t\t%s ",
