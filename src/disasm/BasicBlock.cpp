@@ -14,7 +14,7 @@
 
 namespace disasm {
 
-BasicBlock::BasicBlock(unsigned id, const cs_insn *inst) :
+BasicBlock::BasicBlock(size_t id, const cs_insn *inst) :
     m_valid{false},
     m_id{id},
     m_size{0} {

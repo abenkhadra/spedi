@@ -75,7 +75,7 @@ MaximalBlock::getBasicBlocks() const {
     return m_bblocks;
 }
 
-MaximalBlock::MaximalBlock(unsigned id, const BranchData &branch) :
+MaximalBlock::MaximalBlock(size_t id, const BranchData &branch) :
     m_id{id},
     m_branch{branch} {
 }

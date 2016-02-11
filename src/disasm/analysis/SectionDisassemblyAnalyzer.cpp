@@ -39,7 +39,7 @@ void SectionDisassemblyAnalyzer::buildCFG() {
         if (first_maximal_block->getBranch().isDirect()
             && !isValidCodeAddr(first_maximal_block->getBranch().target())) {
             // a branch to an address outside of executable code
-            cfg.front().setType(BlockCFGNodeType::kData);
+            cfg.front().setToDataAndInvalidatePredecessors();
         }
     }
     {
@@ -217,26 +217,26 @@ void SectionDisassemblyAnalyzer::resolveOverlapBetweenCFGNodes(BlockCFGNode &nod
                 node.setToDataAndInvalidatePredecessors();
                 return;
             }
-        }
-        node.getOverlapNodePtr()->
-            setCandidateStartAddr(node.getMaximalBlock()->endAddr());
-        if (!node.getOverlapNodePtr()->
-            isGivenCandidateStartAddressValid()) {
-            if (m_sec_cfg.calculateNodeWeight(&node) <
-                m_sec_cfg.calculateNodeWeight(node.getOverlapNode())) {
-                printf("CONFLICT: Invalidating %u predecessor of \n",
-                       node.id());
-                node.setToDataAndInvalidatePredecessors();
-                node.getOverlapNodePtr()->resetCandidateStartAddress();
-            } else {
-                // overlapping node consists of only one instruction?
-                printf("CONFLICT: Invalidating %u predecessor of \n",
-                       node.getOverlapNodePtr()->id());
-                node.getOverlapNodePtr()->setToDataAndInvalidatePredecessors();
+        } else {
+            node.getOverlapNodePtr()->
+                setCandidateStartAddr(node.getMaximalBlock()->endAddr());
+            if (!node.getOverlapNodePtr()->
+                isGivenCandidateStartAddressValid()) {
+                if (m_sec_cfg.calculateNodeWeight(&node) <
+                    m_sec_cfg.calculateNodeWeight(node.getOverlapNode())) {
+                    printf("CONFLICT: Invalidating %u predecessor of \n",
+                           node.id());
+                    node.setToDataAndInvalidatePredecessors();
+                    node.getOverlapNodePtr()->resetCandidateStartAddress();
+                } else {
+                    // overlapping node consists of only one instruction?
+                    printf("CONFLICT: Invalidating %u predecessor of \n",
+                           node.getOverlapNodePtr()->id());
+                    node.getOverlapNodePtr()->setToDataAndInvalidatePredecessors();
+                }
             }
         }
     }
-
     if (!node.isCandidateStartAddressSet()) {
         // with no objections we take the first instruction
         node.setCandidateStartAddr

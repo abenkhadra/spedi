@@ -155,9 +155,9 @@ void BlockCFGNode::setToDataAndInvalidatePredecessors() {
     m_type = BlockCFGNodeType::kData;
     for (auto pred_iter = m_predecessors.begin();
          pred_iter < m_predecessors.end(); ++pred_iter) {
-//        printf("CONFLICT: Invalidating %u predecessor of %u\n",
-//               (*pred_iter).first->id(),
-//               id());
+        printf("CONFLICT: Invalidating %u predecessor of %u\n",
+               (*pred_iter).first->id(),
+               id());
         (*pred_iter).first->setToDataAndInvalidatePredecessors();
     }
 }

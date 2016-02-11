@@ -78,9 +78,9 @@ public:
 
     friend class MaximalBlockBuilder;
 private:
-    explicit MaximalBlock(unsigned int id, const BranchData &branch);
+    explicit MaximalBlock(size_t id, const BranchData &branch);
 private:
-    unsigned int m_id;
+    size_t m_id;
     addr_t m_end_addr;
     BranchData m_branch;
     std::vector<MCInst> m_insts;
