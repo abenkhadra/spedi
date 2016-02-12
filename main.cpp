@@ -74,7 +74,13 @@ int main(int argc, char **argv) {
             << file_path << "\n";
         if (cmd_parser.exist(config.kText)) {
             auto result = disassembler.disassembleSectionbyName(".text");
-            disassembler.prettyPrintSectionDisassembly(&result);
+//            disassembler.prettyPrintSectionDisassembly(&result);
+            disasm::SectionDisassemblyAnalyzer
+                analyzer{&result, disassembler.getExecutableRegion()};
+            analyzer.buildCFG();
+            analyzer.refineCFG();
+            // analyzer.buildCallGraph();
+            disassembler.prettyPrintSectionCFG(&analyzer.getCFG());
         } else
             disassembler.disassembleCodeUsingSymbols();
     } else

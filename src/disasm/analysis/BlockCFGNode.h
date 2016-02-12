@@ -36,7 +36,7 @@ public:
     BlockCFGNode &operator=(const BlockCFGNode &src) = default;
     BlockCFGNode(BlockCFGNode &&src) = default;
 
-    const MaximalBlock * getMaximalBlock() const;
+    const MaximalBlock *getMaximalBlock() const;
     const BlockCFGNode *getOverlapNode() const;
     unsigned int id() const noexcept;
 
@@ -68,7 +68,7 @@ public:
     bool isData() const;
     bool isCode() const;
     bool isValidBasicBlockSet() const noexcept;
-    bool isGivenCandidateStartAddressValid() const noexcept;
+    bool isCandidateStartAddressValid(addr_t candidate_addr) const noexcept;
     friend class SectionDisassemblyAnalyzer;
 private:
     void setMaximalBlock(MaximalBlock *maximal_block) noexcept;

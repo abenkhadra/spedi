@@ -83,6 +83,7 @@ bool RawInstAnalyzer::isValid(const cs_insn *inst) const {
                     case ARM_INS_ADD:
                     case ARM_INS_ADDW:
                     case ARM_INS_SUB:
+                    case ARM_INS_SUBW:
                     case ARM_INS_CMN:
                     case ARM_INS_CMP:
                         break;

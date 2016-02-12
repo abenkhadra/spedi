@@ -46,7 +46,7 @@ public:
 
     void refineCFG();
     void RefineMaximalBlocks(const std::vector<addr_t> &known_code_addrs);
-    bool isValidCodeAddr(addr_t addr) const;
+    bool isValidCodeAddr(addr_t addr) const noexcept;
     const DisassemblyCFG &getCFG() const noexcept;
 
     /*

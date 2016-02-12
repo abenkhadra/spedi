@@ -8,7 +8,6 @@
 
 #include "SectionDisassemblyAnalyzer.h"
 #include "disasm/SectionDisassembly.h"
-#include <capstone/capstone.h>
 #include <iostream>
 #include <algorithm>
 #include <string.h>
@@ -57,7 +56,6 @@ void SectionDisassemblyAnalyzer::buildCFG() {
                 (*node_iter).setToDataAndInvalidatePredecessors();
                 continue;
             }
-
             // check for overlap MB
             auto rev_cfg_node_iter = (node_iter) - 1;
             for (auto rev_block_iter = block_iter - 1;
@@ -122,7 +120,7 @@ void SectionDisassemblyAnalyzer::buildCFG() {
     m_sec_cfg.m_valid = true;
 }
 
-bool SectionDisassemblyAnalyzer::isValidCodeAddr(addr_t addr) const {
+bool SectionDisassemblyAnalyzer::isValidCodeAddr(addr_t addr) const noexcept {
     // XXX: validity should consider alignment of the address
     return (m_exec_addr_start <= addr) && (addr < m_exec_addr_end);
 }
@@ -214,29 +212,31 @@ void SectionDisassemblyAnalyzer::resolveOverlapBetweenCFGNodes(BlockCFGNode &nod
             coversAddressSpaceOf(node.getMaximalBlock())) {
             if (m_sec_cfg.calculateNodeWeight(&node) <
                 m_sec_cfg.calculateNodeWeight(node.getOverlapNode())) {
-                node.setToDataAndInvalidatePredecessors();
-                return;
+                if (node.getMaximalBlock()->addrOfFirstInst() ==
+                    m_sec_cfg.getPrev(node).getMaximalBlock()->endAddr()) {
+                    // XXX: heuristic applied when this node aligns with previous
+                    // what if previous is data?
+                    node.getOverlapNodePtr()->
+                        setCandidateStartAddr(node.getMaximalBlock()->endAddr());
+                } else {
+                    node.setToDataAndInvalidatePredecessors();
+                }
             }
         } else {
-            node.getOverlapNodePtr()->
-                setCandidateStartAddr(node.getMaximalBlock()->endAddr());
-            if (!node.getOverlapNodePtr()->
-                isGivenCandidateStartAddressValid()) {
-                if (m_sec_cfg.calculateNodeWeight(&node) <
-                    m_sec_cfg.calculateNodeWeight(node.getOverlapNode())) {
-                    printf("CONFLICT: Invalidating %u predecessor of \n",
-                           node.id());
-                    node.setToDataAndInvalidatePredecessors();
-                    node.getOverlapNodePtr()->resetCandidateStartAddress();
-                } else {
-                    // overlapping node consists of only one instruction?
-                    printf("CONFLICT: Invalidating %u predecessor of \n",
-                           node.getOverlapNodePtr()->id());
-                    node.getOverlapNodePtr()->setToDataAndInvalidatePredecessors();
-                }
+            if (node.getOverlapNodePtr()->
+                isCandidateStartAddressValid(node.getMaximalBlock()->endAddr())) {
+                node.getOverlapNodePtr()->
+                    setCandidateStartAddr(node.getMaximalBlock()->endAddr());
+            } else if (m_sec_cfg.calculateNodeWeight(&node) <
+                m_sec_cfg.calculateNodeWeight(node.getOverlapNode())) {
+                node.setToDataAndInvalidatePredecessors();
+            } else {
+                // overlapping node consists of only one instruction?
+                node.getOverlapNodePtr()->setToDataAndInvalidatePredecessors();
             }
         }
     }
+
     if (!node.isCandidateStartAddressSet()) {
         // with no objections we take the first instruction
         node.setCandidateStartAddr
@@ -251,12 +251,14 @@ void SectionDisassemblyAnalyzer::resolveValidBasicBlock(BlockCFGNode &node) {
         return;
     }
     // The common case where all branches target the same basic block
-    for (auto &block :node.getMaximalBlock()->getBasicBlocks()) {
+    for (auto block_iter = node.getMaximalBlock()->getBasicBlocks().begin();
+         block_iter < node.getMaximalBlock()->getBasicBlocks().end();
+         ++block_iter) {
         unsigned target_count = 0;
         addr_t minimum_target = node.getMaximalBlock()->endAddr();
         for (auto pred_iter = node.getPredecessors().cbegin();
              pred_iter < node.getPredecessors().cend(); ++pred_iter) {
-            for (addr_t addr : block.getInstructionAddresses()) {
+            for (addr_t addr : (*block_iter).getInstructionAddresses()) {
                 if ((*pred_iter).second == addr) {
                     if ((*pred_iter).second < minimum_target) {
                         minimum_target = (*pred_iter).second;
@@ -270,9 +272,10 @@ void SectionDisassemblyAnalyzer::resolveValidBasicBlock(BlockCFGNode &node) {
         // XXX: what if more than one BB satisfies all targets?
         // currently we choose the earlier (bigger)
         if (target_count == node.getPredecessors().size()) {
-            if (node.getCandidateStartAddr() < block.startAddr()) {
-                node.setCandidateStartAddr(block.startAddr());
-            } else if (node.getCandidateStartAddr() > block.startAddr()) {
+            if (node.getCandidateStartAddr() < (*block_iter).startAddr()) {
+                node.setCandidateStartAddr((*block_iter).startAddr());
+            } else if (node.getCandidateStartAddr()
+                > (*block_iter).startAddr()) {
                 if (node.getCandidateStartAddr() > minimum_target) {
                     printf("ERROR: CFG error at node %u \n", node.id());
                 }

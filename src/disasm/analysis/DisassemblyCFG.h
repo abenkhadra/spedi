@@ -37,6 +37,8 @@ public:
     bool isLast(const BlockCFGNode *node) const noexcept;
     std::vector<BlockCFGNode>::const_iterator cbegin() const noexcept;
     std::vector<BlockCFGNode>::const_iterator cend() const noexcept;
+    const BlockCFGNode &getPrev(const BlockCFGNode &node) const;
+    const BlockCFGNode &getNext(const BlockCFGNode &node) const;
     friend class SectionDisassemblyAnalyzer;
 private:
     BlockCFGNode *getCFGNodeOf(const MaximalBlock *max_block);

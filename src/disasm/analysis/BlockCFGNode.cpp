@@ -8,6 +8,7 @@
 
 #include "BlockCFGNode.h"
 #include <cassert>
+
 namespace disasm {
 BlockCFGNode::BlockCFGNode() :
     m_type{BlockCFGNodeType::kMaybe},
@@ -144,8 +145,9 @@ bool BlockCFGNode::isCandidateStartAddressSet() const noexcept {
     return m_candidate_start_addr != 0;
 }
 
-bool BlockCFGNode::isGivenCandidateStartAddressValid() const noexcept {
-    return m_candidate_start_addr <= m_max_block->addrOfLastInst();
+bool BlockCFGNode::isCandidateStartAddressValid
+    (addr_t candidate_addr) const noexcept {
+    return candidate_addr <= m_max_block->addrOfLastInst();
 }
 
 void BlockCFGNode::setToDataAndInvalidatePredecessors() {

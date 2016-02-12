@@ -52,4 +52,12 @@ std::vector<BlockCFGNode>::const_iterator DisassemblyCFG::cbegin() const noexcep
 std::vector<BlockCFGNode>::const_iterator DisassemblyCFG::cend() const noexcept {
     return m_cfg.cend();
 }
+
+const BlockCFGNode &DisassemblyCFG::getPrev(const BlockCFGNode &node) const {
+    return *(m_cfg.begin() + node.id() - 1);
+}
+
+const BlockCFGNode &DisassemblyCFG::getNext(const BlockCFGNode &node) const {
+    return *(m_cfg.begin() + node.id() + 1);
+}
 }
