@@ -29,6 +29,10 @@ public:
     kData() { return "$d"; }
 };
 
+enum class PrettyPrintConfig: unsigned {
+    kHideDataNodes,
+    kDisplayDataNodes
+};
 /**
  * ElfDisassembler
  */
@@ -80,8 +84,10 @@ public:
         (const SectionDisassembly *sec_disasm) const;
     void prettyPrintSectionCFG(const DisassemblyCFG *sec_cfg) const;
     void prettyPrintCFGNode(const BlockCFGNode *cfg_node) const;
-    void prettyPrintValidCFGNode(const BlockCFGNode *cfg_node) const;
-    const RawInstAnalyzer * getMCAnalyzer() const;
+    void prettyPrintValidCFGNode
+        (const BlockCFGNode *cfg_node,
+         PrettyPrintConfig config = PrettyPrintConfig::kHideDataNodes) const;
+    const RawInstAnalyzer *getMCAnalyzer() const;
 
 private:
     void prettyPrintCapstoneInst

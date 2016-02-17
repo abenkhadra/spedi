@@ -68,7 +68,6 @@ int main(int argc, char **argv) {
         } else {
             disassembler.disassembleCodeSpeculative();
         }
-
     } else if (disassembler.isSymbolTableAvailable()) {
         std::cout << "Disassembly using symbol table of file: "
             << file_path << "\n";
@@ -85,6 +84,5 @@ int main(int argc, char **argv) {
             disassembler.disassembleCodeUsingSymbols();
     } else
         std::cout << "Symbol table was not found!!" << "\n";
-
     return 0;
 }

@@ -215,7 +215,7 @@ void SectionDisassemblyAnalyzer::resolveOverlapBetweenCFGNodes(BlockCFGNode &nod
                 if (node.getMaximalBlock()->addrOfFirstInst() ==
                     m_sec_cfg.getPrev(node).getMaximalBlock()->endAddr()) {
                     // XXX: heuristic applied when this node aligns with previous
-                    // what if previous is data?
+                    // what if previous is data? what if next is one instruction?
                     node.getOverlapNodePtr()->
                         setCandidateStartAddr(node.getMaximalBlock()->endAddr());
                 } else {

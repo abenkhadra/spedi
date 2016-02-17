@@ -388,8 +388,11 @@ void ElfDisassembler::prettyPrintCFGNode
 }
 
 void ElfDisassembler::prettyPrintValidCFGNode
-    (const BlockCFGNode *cfg_node) const {
-
+    (const BlockCFGNode *cfg_node, PrettyPrintConfig config) const {
+    if (cfg_node->getType() == BlockCFGNodeType::kData &&
+        config == PrettyPrintConfig::kHideDataNodes) {
+        return;
+    }
     if (cfg_node->isCandidateStartAddressSet()) {
         auto max_block = cfg_node->getMaximalBlock();
         printf("**************************************\n");
@@ -399,7 +402,21 @@ void ElfDisassembler::prettyPrintValidCFGNode
         printf(" / BB count. %lu, Total inst count %lu: \n",
                max_block->getBasicBlocksCount(),
                max_block->instructionsCount());
-
+        printf("Direct successor: %d, ",
+               (cfg_node->getDirectSuccessor() != nullptr)
+               ? cfg_node->getDirectSuccessor()->id() : 0);
+        printf("Remote successor: %d\n",
+               (cfg_node->getRemoteSuccessor() != nullptr)
+               ? cfg_node->getRemoteSuccessor()->id() : 0);
+        printf("Predecessors: ");
+        if (cfg_node->getPredecessors().size() == 0) {
+            printf("none\n");
+        } else {
+            for (auto &pred : cfg_node->getPredecessors()) {
+                printf("%u ", pred.first->id());
+            }
+            printf("\n");
+        }
         for (auto inst : cfg_node->getCandidateInstructions()) {
             printf("0x%" PRIx64 ":\t%s\t\t%s ",
                    inst->addr(),
