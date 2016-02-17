@@ -19,6 +19,16 @@ enum class BlockCFGNodeType: unsigned {
     kCode = 4
 };
 
+/*
+ * a special value used to identify indirect predecessors
+ */
+enum class PredecessorType: addr_t {
+    kIndirectCall,      // control reaches this node through indirect call node
+    kSwitchStatement,   // control reaches this node from a switch statement
+    kCallNode,          // control reaches this node after returning from call
+    kOther              // none of the above
+};
+
 /**
  * BlockCFGNode
  */

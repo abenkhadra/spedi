@@ -27,20 +27,6 @@ BlockCFGNode *DisassemblyCFG::ptrToNodeAt(size_t index) {
     return &(*(m_cfg.begin() + index));
 }
 
-size_t DisassemblyCFG::calculateNodeWeight
-    (const BlockCFGNode *node) const noexcept {
-    if (node->isData()) {
-        return 0;
-    }
-    unsigned pred_weight = 0;
-    for (auto pred_iter = node->getPredecessors().begin();
-         pred_iter < node->getPredecessors().end(); ++pred_iter) {
-        pred_weight +=
-            (*pred_iter).first->getMaximalBlock()->instructionsCount();
-    }
-    return node->getMaximalBlock()->instructionsCount() + pred_weight;
-}
-
 bool DisassemblyCFG::isLast(const BlockCFGNode *node) const noexcept {
     return m_cfg.back().id() == node->id();
 }
@@ -53,11 +39,11 @@ std::vector<BlockCFGNode>::const_iterator DisassemblyCFG::cend() const noexcept 
     return m_cfg.cend();
 }
 
-const BlockCFGNode &DisassemblyCFG::getPrev(const BlockCFGNode &node) const {
+const BlockCFGNode &DisassemblyCFG::previous(const BlockCFGNode &node) const {
     return *(m_cfg.begin() + node.id() - 1);
 }
 
-const BlockCFGNode &DisassemblyCFG::getNext(const BlockCFGNode &node) const {
+const BlockCFGNode &DisassemblyCFG::next(const BlockCFGNode &node) const {
     return *(m_cfg.begin() + node.id() + 1);
 }
 }

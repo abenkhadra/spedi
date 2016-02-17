@@ -34,6 +34,7 @@ public:
     SectionDisassemblyAnalyzer(SectionDisassemblyAnalyzer &&src) = default;
 
     void buildCFG();
+    void refineCFG();
     /*
      * Search in CFG to find direct successor
      */
@@ -44,7 +45,6 @@ public:
      */
     BlockCFGNode *findRemoteSuccessor(addr_t target) noexcept;
 
-    void refineCFG();
     void RefineMaximalBlocks(const std::vector<addr_t> &known_code_addrs);
     bool isValidCodeAddr(addr_t addr) const noexcept;
     const DisassemblyCFG &getCFG() const noexcept;
@@ -55,6 +55,8 @@ public:
     BlockCFGNode *findPCRelativeLoadTargetStartingFrom
         (addr_t target, const BlockCFGNode *node) noexcept;
 
+    size_t calculateNodeWeight(const BlockCFGNode *node) const noexcept;
+
 private:
     /*
      * Finds a valid basic block in and invalidates all direct predecessors that
@@ -64,6 +66,7 @@ private:
     void resolveOverlapBetweenCFGNodes(BlockCFGNode &node);
     void resolveCFGConflicts(BlockCFGNode &node);
     void resolveLoadConflicts();
+
 private:
     SectionDisassembly *m_sec_disassembly;
     MaximalBlockAnalyzer m_analyzer;

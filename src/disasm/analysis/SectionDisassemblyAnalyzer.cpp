@@ -23,6 +23,20 @@ SectionDisassemblyAnalyzer::SectionDisassemblyAnalyzer
     m_exec_addr_end{exec_region.second} {
 }
 
+size_t SectionDisassemblyAnalyzer::calculateNodeWeight
+    (const BlockCFGNode *node) const noexcept {
+    if (node->isData()) {
+        return 0;
+    }
+    unsigned pred_weight = 0;
+    for (auto pred_iter = node->getPredecessors().begin();
+         pred_iter < node->getPredecessors().end(); ++pred_iter) {
+        pred_weight +=
+            (*pred_iter).first->getMaximalBlock()->instructionsCount();
+    }
+    return node->getMaximalBlock()->instructionsCount() + pred_weight;
+}
+
 void SectionDisassemblyAnalyzer::buildCFG() {
     if (m_sec_disassembly->maximalBlockCount() == 0) {
         return;
@@ -210,10 +224,10 @@ void SectionDisassemblyAnalyzer::resolveOverlapBetweenCFGNodes(BlockCFGNode &nod
         && !node.getOverlapNode()->isData()) {
         if (node.getOverlapNode()->getMaximalBlock()->
             coversAddressSpaceOf(node.getMaximalBlock())) {
-            if (m_sec_cfg.calculateNodeWeight(&node) <
-                m_sec_cfg.calculateNodeWeight(node.getOverlapNode())) {
+            if (calculateNodeWeight(&node) <
+                calculateNodeWeight(node.getOverlapNode())) {
                 if (node.getMaximalBlock()->addrOfFirstInst() ==
-                    m_sec_cfg.getPrev(node).getMaximalBlock()->endAddr()) {
+                    m_sec_cfg.previous(node).getMaximalBlock()->endAddr()) {
                     // XXX: heuristic applied when this node aligns with previous
                     // what if previous is data? what if next is one instruction?
                     node.getOverlapNodePtr()->
@@ -227,8 +241,8 @@ void SectionDisassemblyAnalyzer::resolveOverlapBetweenCFGNodes(BlockCFGNode &nod
                 isCandidateStartAddressValid(node.getMaximalBlock()->endAddr())) {
                 node.getOverlapNodePtr()->
                     setCandidateStartAddr(node.getMaximalBlock()->endAddr());
-            } else if (m_sec_cfg.calculateNodeWeight(&node) <
-                m_sec_cfg.calculateNodeWeight(node.getOverlapNode())) {
+            } else if (calculateNodeWeight(&node) <
+                calculateNodeWeight(node.getOverlapNode())) {
                 node.setToDataAndInvalidatePredecessors();
             } else {
                 // overlapping node consists of only one instruction?
@@ -255,30 +269,31 @@ void SectionDisassemblyAnalyzer::resolveValidBasicBlock(BlockCFGNode &node) {
          block_iter < node.getMaximalBlock()->getBasicBlocks().end();
          ++block_iter) {
         unsigned target_count = 0;
-        addr_t minimum_target = node.getMaximalBlock()->endAddr();
         for (auto pred_iter = node.getPredecessors().cbegin();
              pred_iter < node.getPredecessors().cend(); ++pred_iter) {
             for (addr_t addr : (*block_iter).getInstructionAddresses()) {
                 if ((*pred_iter).second == addr) {
-                    if ((*pred_iter).second < minimum_target) {
-                        minimum_target = (*pred_iter).second;
+                    if ((*pred_iter).second < node.getCandidateStartAddr() &&
+                        !(*pred_iter).first->isData()) {
+                        printf("Overlap-CFG conflict at node %u,", node.id());
+                        if (calculateNodeWeight((*pred_iter).first) <
+                            calculateNodeWeight(m_sec_cfg.ptrToNodeAt(
+                                node.id() - 1))) {
+                            (*pred_iter).first->setToDataAndInvalidatePredecessors();
+                        } else {
+                            m_sec_cfg.ptrToNodeAt(node.id() - 1)->
+                                setToDataAndInvalidatePredecessors();
+                        }
                     }
-                    // a predecessor-target tuple is unique
                     target_count++;
+                    // a predecessor-target tuple is unique
                     break;
                 }
             }
         }
-        // XXX: what if more than one BB satisfies all targets?
-        // currently we choose the earlier (bigger)
         if (target_count == node.getPredecessors().size()) {
             if (node.getCandidateStartAddr() < (*block_iter).startAddr()) {
                 node.setCandidateStartAddr((*block_iter).startAddr());
-            } else if (node.getCandidateStartAddr()
-                > (*block_iter).startAddr()) {
-                if (node.getCandidateStartAddr() > minimum_target) {
-                    printf("ERROR: CFG error at node %u \n", node.id());
-                }
             }
             return;
         }
