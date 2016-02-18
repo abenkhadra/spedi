@@ -26,25 +26,19 @@ public:
     MCInst &operator=(const MCInst &src) = default;
     MCInst(MCInst &&src) = default;
 
-    unsigned id() const;
+    unsigned id() const noexcept;
+    size_t size() const noexcept;
+    addr_t addr() const noexcept;
+    arm_cc condition() const noexcept;
+    addr_t endAddr() const noexcept;
+    const cs_detail &detail() const noexcept;
 
-    size_t size() const;
+    bool operator<(MCInst other) const noexcept;
+    bool operator==(MCInst &other) const noexcept;
 
-    addr_t addr() const;
+    const std::string &mnemonic() const noexcept;
 
-    arm_cc condition() const;
-
-    const cs_detail &detail() const;
-
-    bool operator<(MCInst other) const;
-    bool operator==(MCInst &other) const;
-
-    const std::string &mnemonic() const {
-        return m_mnemonic;
-    }
-    const std::string &operands() const {
-        return m_operands;
-    }
+    const std::string &operands() const noexcept;
 
 private:
     unsigned int m_id;

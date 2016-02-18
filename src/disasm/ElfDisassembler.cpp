@@ -153,8 +153,7 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
     MaximalBlockBuilder max_block_builder;
 
     SectionDisassembly result{&sec};
-    // we need to maintain the invariant that for whatever MB in the result
-    // its start address should be > than the start address of the next MB.
+
     while (current < last_addr) {
         if (parser.disasm(code_ptr, buf_size, current, inst_ptr)) {
             if (m_analyzer.isValid(inst_ptr)) {
@@ -212,17 +211,14 @@ ElfDisassembler::getCodeSymbolsOfSection(const elf::section &sec) const {
         // code symbols.
         if ((start_addr <= value) && (value < end_addr)) {
             if (symbol.get_name() == ARMCodeSymbolVal::kThumb()) {
-                result.emplace_back(std::make_pair(value,
-                                                   ARMCodeSymbolType::kThumb));
-
+                result.emplace_back
+                    (std::make_pair(value, ARMCodeSymbolType::kThumb));
             } else if (symbol.get_name() == ARMCodeSymbolVal::kARM()) {
-                result.emplace_back(std::make_pair(value,
-                                                   ARMCodeSymbolType::kARM));
-
+                result.emplace_back
+                    (std::make_pair(value, ARMCodeSymbolType::kARM));
             } else if (symbol.get_name() == ARMCodeSymbolVal::kData()) {
-                result.emplace_back(std::make_pair(value,
-                                                   ARMCodeSymbolType::kData));
-
+                result.emplace_back
+                    (std::make_pair(value, ARMCodeSymbolType::kData));
             }
         }
     }
@@ -455,7 +451,7 @@ void ElfDisassembler::prettyPrintSectionCFG
     }
 }
 
-const RawInstAnalyzer * ElfDisassembler::getMCAnalyzer() const {
+const RawInstAnalyzer *ElfDisassembler::getMCAnalyzer() const {
     return &m_analyzer;
 }
 }

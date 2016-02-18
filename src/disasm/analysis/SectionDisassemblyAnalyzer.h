@@ -52,8 +52,8 @@ public:
     /*
      * precondition: given instruction is PC-relative load
      */
-    BlockCFGNode *findPCRelativeLoadTargetStartingFrom
-        (addr_t target, const BlockCFGNode *node) noexcept;
+    BlockCFGNode *findCFGNodeAffectedByLoadStartingFrom
+        (const BlockCFGNode &node, addr_t target) noexcept;
 
     size_t calculateNodeWeight(const BlockCFGNode *node) const noexcept;
 
@@ -65,7 +65,9 @@ private:
     void resolveValidBasicBlock(BlockCFGNode &node);
     void resolveOverlapBetweenCFGNodes(BlockCFGNode &node);
     void resolveCFGConflicts(BlockCFGNode &node);
-    void resolveLoadConflicts();
+    void resolveLoadConflicts(BlockCFGNode &node);
+    void shortenToCandidateAddressOrSetToData
+        (BlockCFGNode &node, addr_t addr) noexcept;
 
 private:
     SectionDisassembly *m_sec_disassembly;
@@ -75,6 +77,3 @@ private:
     DisassemblyCFG m_sec_cfg;
 };
 }
-
-
-

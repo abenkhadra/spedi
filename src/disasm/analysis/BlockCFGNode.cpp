@@ -96,7 +96,6 @@ std::vector<const MCInst *> BlockCFGNode::getCandidateInstructionsSatisfying
     return result;
 }
 
-
 addr_t BlockCFGNode::getCandidateStartAddr() const noexcept {
     return m_candidate_start_addr;
 }
