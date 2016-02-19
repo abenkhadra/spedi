@@ -7,7 +7,7 @@
 // Copyright (c) 2016 University of Kaiserslautern.
 
 #include "MaximalBlockAnalyzer.h"
-#include "BlockCFGNode.h"
+#include "CFGNode.h"
 
 namespace disasm {
 
@@ -24,7 +24,7 @@ bool MaximalBlockAnalyzer::isCall(const MCInst *inst) const noexcept {
 }
 
 std::vector<const MCInst *> MaximalBlockAnalyzer::getPCRelativeLoadsInstructions
-    (const BlockCFGNode *cfg_node) const noexcept {
+    (const CFGNode *cfg_node) const noexcept {
     // XXX: assuming pc-relative loads can happen only in LDR, VLDR, and LDRD
     auto predicate = [](const MCInst *inst) -> bool {
         if ((inst->id() == ARM_INS_LDR ||

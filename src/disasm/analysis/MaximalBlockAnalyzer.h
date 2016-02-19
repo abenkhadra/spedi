@@ -12,7 +12,7 @@
 
 namespace disasm {
 class MCInst;
-class BlockCFGNode;
+class CFGNode;
 
 /**
  * MaximalBlockAnalyzer
@@ -31,7 +31,7 @@ public:
     bool modifySP(const MCInst *inst) const;
 
     std::vector<const MCInst *> getPCRelativeLoadsInstructions
-        (const BlockCFGNode *cfg_node) const noexcept;
+        (const CFGNode *cfg_node) const noexcept;
 
 private:
     ISAType m_isa;

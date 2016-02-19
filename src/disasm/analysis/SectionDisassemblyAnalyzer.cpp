@@ -24,7 +24,7 @@ SectionDisassemblyAnalyzer::SectionDisassemblyAnalyzer
 }
 
 size_t SectionDisassemblyAnalyzer::calculateNodeWeight
-    (const BlockCFGNode *node) const noexcept {
+    (const CFGNode *node) const noexcept {
     if (node->isData()) {
         return 0;
     }
@@ -41,7 +41,7 @@ void SectionDisassemblyAnalyzer::buildCFG() {
     if (m_sec_disassembly->maximalBlockCount() == 0) {
         return;
     }
-    // work directly with the vector of BlockCFGNode
+    // work directly with the vector of CFGNode
     auto &cfg = m_sec_cfg.m_cfg;
     cfg.resize(m_sec_disassembly->maximalBlockCount());
     {
@@ -139,8 +139,8 @@ bool SectionDisassemblyAnalyzer::isValidCodeAddr(addr_t addr) const noexcept {
     return (m_exec_addr_start <= addr) && (addr < m_exec_addr_end);
 }
 
-BlockCFGNode *SectionDisassemblyAnalyzer::findDirectSuccessor
-    (const BlockCFGNode &cfg_node) noexcept {
+CFGNode *SectionDisassemblyAnalyzer::findDirectSuccessor
+    (const CFGNode &cfg_node) noexcept {
     // no direct successor to last cfg node
     if (m_sec_cfg.isLast(&cfg_node)) {
         return nullptr;
@@ -159,7 +159,7 @@ BlockCFGNode *SectionDisassemblyAnalyzer::findDirectSuccessor
     return nullptr;
 }
 
-BlockCFGNode *SectionDisassemblyAnalyzer::findRemoteSuccessor
+CFGNode *SectionDisassemblyAnalyzer::findRemoteSuccessor
     (addr_t target) noexcept {
 
     // binary search to find the remote MB that is targeted.
@@ -222,7 +222,7 @@ void SectionDisassemblyAnalyzer::refineCFG() {
     }
 }
 
-void SectionDisassemblyAnalyzer::resolveOverlapBetweenCFGNodes(BlockCFGNode &node) {
+void SectionDisassemblyAnalyzer::resolveOverlapBetweenCFGNodes(CFGNode &node) {
     // resolve overlap between MBs by shrinking the next or converting this to data
     if (node.hasOverlapWithOtherNode()
         && !node.getOverlapNode()->isData()) {
@@ -262,7 +262,7 @@ void SectionDisassemblyAnalyzer::resolveOverlapBetweenCFGNodes(BlockCFGNode &nod
     }
 }
 
-void SectionDisassemblyAnalyzer::resolveValidBasicBlock(BlockCFGNode &node) {
+void SectionDisassemblyAnalyzer::resolveValidBasicBlock(CFGNode &node) {
 
     if (node.getMaximalBlock()->getBasicBlocksCount() == 1) {
         // In case there is only one basic block then its the valid one
@@ -307,7 +307,7 @@ void SectionDisassemblyAnalyzer::resolveValidBasicBlock(BlockCFGNode &node) {
 }
 
 void SectionDisassemblyAnalyzer::resolveCFGConflicts
-    (BlockCFGNode &node) {
+    (CFGNode &node) {
     // Conflicts between predecessors needs to be resolved.
     unsigned assigned_predecessors[node.getPredecessors().size()];
     memset(assigned_predecessors, 0,
@@ -357,7 +357,7 @@ void SectionDisassemblyAnalyzer::resolveCFGConflicts
     }
 }
 
-void SectionDisassemblyAnalyzer::resolveLoadConflicts(BlockCFGNode &node) {
+void SectionDisassemblyAnalyzer::resolveLoadConflicts(CFGNode &node) {
     // A load conflict can happen between an MB_1 and another MB_2 such that
     // MB_1 < MB_2 (comparing start addresses)
     auto pc_relative_loads =
@@ -373,7 +373,7 @@ void SectionDisassemblyAnalyzer::resolveLoadConflicts(BlockCFGNode &node) {
         addr_t target = inst_ptr->addr() + 4 +
             inst_ptr->detail().arm.operands[1].mem.disp;
         target = (target >> 2) << 2; // align target to word address
-        BlockCFGNode *target_node =
+        CFGNode *target_node =
             findCFGNodeAffectedByLoadStartingFrom(node, target);
         if (target_node == nullptr) {
             shortenToCandidateAddressOrSetToData
@@ -399,8 +399,8 @@ void SectionDisassemblyAnalyzer::resolveLoadConflicts(BlockCFGNode &node) {
     }
 }
 
-BlockCFGNode *SectionDisassemblyAnalyzer::findCFGNodeAffectedByLoadStartingFrom
-    (const BlockCFGNode &node, addr_t target) noexcept {
+CFGNode *SectionDisassemblyAnalyzer::findCFGNodeAffectedByLoadStartingFrom
+    (const CFGNode &node, addr_t target) noexcept {
 
     if (target < node.getMaximalBlock()->endAddr() || target > m_exec_addr_end){
         // A PC-relative load can't target its same MB or load an external address
@@ -417,7 +417,7 @@ BlockCFGNode *SectionDisassemblyAnalyzer::findCFGNodeAffectedByLoadStartingFrom
 }
 
 void SectionDisassemblyAnalyzer::shortenToCandidateAddressOrSetToData
-    (BlockCFGNode &node, addr_t addr) noexcept {
+    (CFGNode &node, addr_t addr) noexcept {
     if (node.isCandidateStartAddressValid(addr)) {
         node.setCandidateStartAddr(addr);
     } else {

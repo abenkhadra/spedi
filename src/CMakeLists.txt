@@ -39,14 +39,14 @@ add_library(
         disasm/MaximalBlockBuilder.cpp disasm/MaximalBlockBuilder.h
         disasm/RawInstAnalyzer.cpp disasm/RawInstAnalyzer.h
         disasm/BranchData.cpp disasm/BranchData.h
-        disasm/analysis/BlockCFGNode.cpp
-        disasm/analysis/BlockCFGNode.h
+        disasm/analysis/CFGNode.cpp
+        disasm/analysis/CFGNode.h
         disasm/analysis/SectionDisassemblyAnalyzer.cpp
         disasm/analysis/SectionDisassemblyAnalyzer.h
         disasm/analysis/DisassemblyCFG.cpp
         disasm/analysis/DisassemblyCFG.h
         disasm/analysis/MaximalBlockAnalyzer.cpp disasm/analysis/MaximalBlockAnalyzer.h
-        disasm/analysis/ProcedureICFGNode.cpp disasm/analysis/ProcedureICFGNode.h)
+        disasm/analysis/ICFGNode.cpp disasm/analysis/ICFGNode.h)
 
 #target_compile_options(disasm PRIVATE -fsanitize=address)
 add_dependencies(disasm elf++ dwarf++)

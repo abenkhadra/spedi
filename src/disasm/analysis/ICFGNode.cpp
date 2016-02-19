@@ -6,7 +6,7 @@
 // 
 // Copyright (c) 2016 University of Kaiserslautern.
 
-#include "ProcedureICFGNode.h"
+#include "ICFGNode.h"
 namespace disasm {
 
 }

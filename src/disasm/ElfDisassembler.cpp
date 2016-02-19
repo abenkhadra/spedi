@@ -348,7 +348,7 @@ void ElfDisassembler::prettyPrintMaximalBlock
 }
 
 void ElfDisassembler::prettyPrintCFGNode
-    (const BlockCFGNode *cfg_node) const {
+    (const CFGNode *cfg_node) const {
     auto mblock = cfg_node->getMaximalBlock();
     printf("**************************************\n");
     printf("MB No. %u, Type: %u. Starts at %#6x",
@@ -384,7 +384,7 @@ void ElfDisassembler::prettyPrintCFGNode
 }
 
 void ElfDisassembler::prettyPrintValidCFGNode
-    (const BlockCFGNode *cfg_node, PrettyPrintConfig config) const {
+    (const CFGNode *cfg_node, PrettyPrintConfig config) const {
     if (cfg_node->getType() == BlockCFGNodeType::kData &&
         config == PrettyPrintConfig::kHideDataNodes) {
         return;

@@ -13,7 +13,7 @@
 
 namespace disasm {
 
-class BlockCFGNode;
+class CFGNode;
 class DisassemblyCFG;
 class BasicBlock;
 
@@ -83,9 +83,9 @@ public:
     void prettyPrintSectionDisassembly
         (const SectionDisassembly *sec_disasm) const;
     void prettyPrintSectionCFG(const DisassemblyCFG *sec_cfg) const;
-    void prettyPrintCFGNode(const BlockCFGNode *cfg_node) const;
+    void prettyPrintCFGNode(const CFGNode *cfg_node) const;
     void prettyPrintValidCFGNode
-        (const BlockCFGNode *cfg_node,
+        (const CFGNode *cfg_node,
          PrettyPrintConfig config = PrettyPrintConfig::kHideDataNodes) const;
     const RawInstAnalyzer *getMCAnalyzer() const;
 

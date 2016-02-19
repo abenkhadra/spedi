@@ -7,7 +7,7 @@
 // Copyright (c) 2016 University of Kaiserslautern.
 
 #pragma once
-#include "BlockCFGNode.h"
+#include "CFGNode.h"
 #include "DisassemblyCFG.h"
 #include "MaximalBlockAnalyzer.h"
 
@@ -36,14 +36,14 @@ public:
     void buildCFG();
     void refineCFG();
     /*
-     * Search in CFG to find direct successor
+     * Search in CFG to find direct successorls
      */
-    BlockCFGNode *findDirectSuccessor
-        (const BlockCFGNode &cfg_node) noexcept;
+    CFGNode *findDirectSuccessor
+        (const CFGNode &cfg_node) noexcept;
     /*
      * Search in CFG to find remote successor matching target
      */
-    BlockCFGNode *findRemoteSuccessor(addr_t target) noexcept;
+    CFGNode *findRemoteSuccessor(addr_t target) noexcept;
 
     void RefineMaximalBlocks(const std::vector<addr_t> &known_code_addrs);
     bool isValidCodeAddr(addr_t addr) const noexcept;
@@ -52,22 +52,22 @@ public:
     /*
      * precondition: given instruction is PC-relative load
      */
-    BlockCFGNode *findCFGNodeAffectedByLoadStartingFrom
-        (const BlockCFGNode &node, addr_t target) noexcept;
+    CFGNode *findCFGNodeAffectedByLoadStartingFrom
+        (const CFGNode &node, addr_t target) noexcept;
 
-    size_t calculateNodeWeight(const BlockCFGNode *node) const noexcept;
+    size_t calculateNodeWeight(const CFGNode *node) const noexcept;
 
 private:
     /*
      * Finds a valid basic block in and invalidates all direct predecessors that
      * do not target it.
      */
-    void resolveValidBasicBlock(BlockCFGNode &node);
-    void resolveOverlapBetweenCFGNodes(BlockCFGNode &node);
-    void resolveCFGConflicts(BlockCFGNode &node);
-    void resolveLoadConflicts(BlockCFGNode &node);
+    void resolveValidBasicBlock(CFGNode &node);
+    void resolveOverlapBetweenCFGNodes(CFGNode &node);
+    void resolveCFGConflicts(CFGNode &node);
+    void resolveLoadConflicts(CFGNode &node);
     void shortenToCandidateAddressOrSetToData
-        (BlockCFGNode &node, addr_t addr) noexcept;
+        (CFGNode &node, addr_t addr) noexcept;
 
 private:
     SectionDisassembly *m_sec_disassembly;

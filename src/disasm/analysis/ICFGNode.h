@@ -11,26 +11,26 @@
 
 namespace disasm {
 
-class BlockCFGNode;
+class CFGNode;
 
 /**
- * ProcedureICFGNode
+ * ICFGNode
  */
-class ProcedureICFGNode {
+class ICFGNode {
 public:
     /**
-     * Construct a ProcedureICFGNode that is initially not valid.  Calling
+     * Construct a ICFGNode that is initially not valid.  Calling
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
-    ProcedureICFGNode() = default;
-    virtual ~ProcedureICFGNode() = default;
-    ProcedureICFGNode(const ProcedureICFGNode &src) = default;
-    ProcedureICFGNode &operator=(const ProcedureICFGNode &src) = default;
-    ProcedureICFGNode(ProcedureICFGNode &&src) = default;
+    ICFGNode() = default;
+    virtual ~ICFGNode() = default;
+    ICFGNode(const ICFGNode &src) = default;
+    ICFGNode &operator=(const ICFGNode &src) = default;
+    ICFGNode(ICFGNode &&src) = default;
 
 private:
-    std::vector<BlockCFGNode *> m_blocks;
+    std::vector<CFGNode *> m_blocks;
 
 };
 }
