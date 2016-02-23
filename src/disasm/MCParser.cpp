@@ -14,7 +14,6 @@ namespace disasm {
 
 void MCParser::initialize(cs_arch arch, cs_mode mode,
                 addr_t end_addr) {
-
     m_arch = arch;
     m_mode = mode;
     m_end_addr = end_addr;
@@ -57,7 +56,6 @@ bool MCParser::disasm(const uint8_t *code,
                       addr_t address,
                       cs_insn *inst) {
     assert(address <= m_end_addr && "Address out of bound");
-    // TODO: patch CBNZ, CBZ in capstone to be conditional branches
     auto result = cs_disasm_iter(m_handle, &code, &size, &address, inst);
     switch (inst->id) {
         case ARM_INS_CBNZ:

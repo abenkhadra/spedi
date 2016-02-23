@@ -6,24 +6,20 @@
 // 
 // Copyright (c) 2016 University of Kaiserslautern.
 
-#include "MaximalBlockAnalyzer.h"
+#include "MCInstAnalyzerARM.h"
 #include "CFGNode.h"
 
 namespace disasm {
 
-MaximalBlockAnalyzer::MaximalBlockAnalyzer() :
+MCInstAnalyzerARM::MCInstAnalyzerARM() :
     m_isa{ISAType::kThumb} {
 }
 
-MaximalBlockAnalyzer::MaximalBlockAnalyzer(ISAType isa) :
+MCInstAnalyzerARM::MCInstAnalyzerARM(ISAType isa) :
     m_isa{isa} {
 }
 
-bool MaximalBlockAnalyzer::isCall(const MCInst *inst) const noexcept {
-    return inst->id() == ARM_INS_BLX || inst->id() == ARM_INS_BL;
-}
-
-std::vector<const MCInst *> MaximalBlockAnalyzer::getPCRelativeLoadsInstructions
+std::vector<const MCInst *> MCInstAnalyzerARM::getPCRelativeLoadsInstructions
     (const CFGNode *cfg_node) const noexcept {
     // XXX: assuming pc-relative loads can happen only in LDR, VLDR, and LDRD
     auto predicate = [](const MCInst *inst) -> bool {

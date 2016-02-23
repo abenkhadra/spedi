@@ -7,7 +7,7 @@
 // Copyright (c) 2015-2016 University of Kaiserslautern.
 
 #pragma once
-#include "SectionDisassembly.h"
+#include "SectionDisassemblyARM.h"
 #include "RawInstAnalyzer.h"
 #include "binutils/elf/elf++.hh"
 
@@ -57,15 +57,15 @@ public:
     bool valid() const { return m_valid; }
     void disassembleCodeUsingSymbols() const;
 
-    SectionDisassembly disassembleSectionUsingSymbols
+    SectionDisassemblyARM disassembleSectionUsingSymbols
         (const elf::section &sec) const;
-    SectionDisassembly disassembleSectionSpeculative
+    SectionDisassemblyARM disassembleSectionSpeculative
         (const elf::section &sec) const;
-    std::vector<SectionDisassembly> disassembleCodeSpeculative() const;
+    std::vector<SectionDisassemblyARM> disassembleCodeSpeculative() const;
 
-    SectionDisassembly disassembleSectionbyName
+    SectionDisassemblyARM disassembleSectionbyName
         (std::string sec_name) const;
-    SectionDisassembly disassembleSectionbyNameSpeculative
+    SectionDisassemblyARM disassembleSectionbyNameSpeculative
         (std::string sec_name) const;
     const std::pair<addr_t, addr_t> getExecutableRegion();
     bool isSymbolTableAvailable();
@@ -81,12 +81,14 @@ public:
     void prettyPrintMaximalBlock
         (const MaximalBlock *mblock) const;
     void prettyPrintSectionDisassembly
-        (const SectionDisassembly *sec_disasm) const;
-    void prettyPrintSectionCFG(const DisassemblyCFG *sec_cfg) const;
+        (const SectionDisassemblyARM *sec_disasm) const;
+    void prettyPrintSectionCFG
+        (const DisassemblyCFG *sec_cfg,
+         const PrettyPrintConfig config = PrettyPrintConfig::kHideDataNodes) const;
     void prettyPrintCFGNode(const CFGNode *cfg_node) const;
     void prettyPrintValidCFGNode
         (const CFGNode *cfg_node,
-         PrettyPrintConfig config = PrettyPrintConfig::kHideDataNodes) const;
+         const PrettyPrintConfig config = PrettyPrintConfig::kHideDataNodes) const;
     const RawInstAnalyzer *getMCAnalyzer() const;
 
 private:

@@ -1,7 +1,7 @@
 #include "binutils/elf/elf++.hh"
 #include "disasm/ElfDisassembler.h"
 #include "disasm/ElfData.h"
-#include <disasm/analysis/SectionDisassemblyAnalyzer.h>
+#include "disasm/analysis/SectionDisassemblyAnalyzerARM.h"
 #include <fcntl.h>
 #include <util/cmdline.h>
 
@@ -59,12 +59,14 @@ int main(int argc, char **argv) {
         if (cmd_parser.exist(config.kText)) {
             auto result =
                 disassembler.disassembleSectionbyNameSpeculative(".text");
-            disasm::SectionDisassemblyAnalyzer
+            disasm::SectionDisassemblyAnalyzerARM
                 analyzer{&result, disassembler.getExecutableRegion()};
             analyzer.buildCFG();
             analyzer.refineCFG();
             // analyzer.buildCallGraph();
-            disassembler.prettyPrintSectionCFG(&analyzer.getCFG());
+            disassembler.prettyPrintSectionCFG
+                (&analyzer.getCFG(),
+                 disasm::PrettyPrintConfig::kHideDataNodes);
         } else {
             disassembler.disassembleCodeSpeculative();
         }
@@ -74,7 +76,7 @@ int main(int argc, char **argv) {
         if (cmd_parser.exist(config.kText)) {
             auto result = disassembler.disassembleSectionbyName(".text");
 //            disassembler.prettyPrintSectionDisassembly(&result);
-            disasm::SectionDisassemblyAnalyzer
+            disasm::SectionDisassemblyAnalyzerARM
                 analyzer{&result, disassembler.getExecutableRegion()};
             analyzer.buildCFG();
             analyzer.refineCFG();

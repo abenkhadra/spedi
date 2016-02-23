@@ -36,7 +36,7 @@ printHex(unsigned char *str, size_t len) {
     printf("\n");
 }
 
-SectionDisassembly ElfDisassembler::disassembleSectionUsingSymbols
+SectionDisassemblyARM ElfDisassembler::disassembleSectionUsingSymbols
     (const elf::section &sec) const {
 
     // a type_mismatch exception would thrown in case symbol table was not found.
@@ -66,7 +66,8 @@ SectionDisassembly ElfDisassembler::disassembleSectionUsingSymbols
     size_t address = 0;
     size_t size = 0;
     MaximalBlockBuilder max_block_builder;
-    SectionDisassembly result{&sec};
+    SectionDisassemblyARM result{&sec};
+    result.reserve(sec.size() / 10);
 
     for (auto &symbol : symbols) {
         index++;
@@ -94,7 +95,7 @@ SectionDisassembly ElfDisassembler::disassembleSectionUsingSymbols
                 max_block_builder.appendBranch(inst_ptr);
                 result.add(max_block_builder.build());
                 if (!max_block_builder.isCleanReset()) {
-                    printf("Overlap detected at MaxBlock %u \n",
+                    printf("Overlap detected at MaxBlock %lu \n",
                            result.back().id());
                 }
             } else {
@@ -105,29 +106,28 @@ SectionDisassembly ElfDisassembler::disassembleSectionUsingSymbols
     return result;
 }
 
-SectionDisassembly
-ElfDisassembler::disassembleSectionbyName(std::string sec_name) const {
+SectionDisassemblyARM ElfDisassembler::disassembleSectionbyName
+    (std::string sec_name) const {
     for (auto &sec : m_elf_file->sections()) {
         if (sec.get_name() == sec_name) {
             return disassembleSectionUsingSymbols(sec);
         }
     }
-    return SectionDisassembly();
+    return SectionDisassemblyARM();
 }
 
-SectionDisassembly
-ElfDisassembler::disassembleSectionbyNameSpeculative(std::string sec_name) const {
+SectionDisassemblyARM ElfDisassembler::disassembleSectionbyNameSpeculative
+    (std::string sec_name) const {
     for (auto &sec : m_elf_file->sections()) {
         if (sec.get_name() == sec_name) {
             return disassembleSectionSpeculative(sec);
 
         }
     }
-    return SectionDisassembly();
+    return SectionDisassemblyARM();
 }
 
-void
-ElfDisassembler::disassembleCodeUsingSymbols() const {
+void ElfDisassembler::disassembleCodeUsingSymbols() const {
     for (auto &sec : m_elf_file->sections()) {
         if (sec.is_alloc() && sec.is_exec()) {
             disassembleSectionUsingSymbols(sec);
@@ -135,9 +135,8 @@ ElfDisassembler::disassembleCodeUsingSymbols() const {
     }
 }
 
-SectionDisassembly
-ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
-
+SectionDisassemblyARM ElfDisassembler::disassembleSectionSpeculative
+    (const elf::section &sec) const {
     printf("Section Name: %s\n", sec.get_name().c_str());
     size_t current = sec.get_hdr().addr;
     size_t last_addr = current + sec.get_hdr().size;
@@ -151,8 +150,10 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
     cs_insn *inst_ptr = inst.rawPtr();
 
     MaximalBlockBuilder max_block_builder;
-
-    SectionDisassembly result{&sec};
+    SectionDisassemblyARM result{&sec};
+    // Empirical data suggests that average size of a maximal block is 14 bytes.
+    // we try to pre-allocate more to avoid reallocating the vector.
+    result.reserve(sec.size() / 10);
 
     while (current < last_addr) {
         if (parser.disasm(code_ptr, buf_size, current, inst_ptr)) {
@@ -176,9 +177,9 @@ ElfDisassembler::disassembleSectionSpeculative(const elf::section &sec) const {
     return result;
 }
 
-std::vector<SectionDisassembly>
+std::vector<SectionDisassemblyARM>
 ElfDisassembler::disassembleCodeSpeculative() const {
-    std::vector<SectionDisassembly> result;
+    std::vector<SectionDisassemblyARM> result;
     for (auto &sec : m_elf_file->sections()) {
         if (sec.is_alloc() && sec.is_exec()) {
             result.emplace_back(disassembleSectionSpeculative(sec));
@@ -315,7 +316,7 @@ void ElfDisassembler::prettyPrintCapstoneInst
 void ElfDisassembler::prettyPrintMaximalBlock
     (const MaximalBlock *mblock) const {
     printf("**************************************\n");
-    printf("MB No. %u. Starts at %#6x",
+    printf("MB No. %lu. Starts at %#6x",
            mblock->id(),
            static_cast<unsigned> (mblock->addrOfFirstInst()));
     printf(" / BB count. %lu, Total inst count %lu: \n",
@@ -351,7 +352,7 @@ void ElfDisassembler::prettyPrintCFGNode
     (const CFGNode *cfg_node) const {
     auto mblock = cfg_node->getMaximalBlock();
     printf("**************************************\n");
-    printf("MB No. %u, Type: %u. Starts at %#6x",
+    printf("MB No. %lu, Type: %u. Starts at %#6x",
            mblock->id(), cfg_node->getType(),
            static_cast<unsigned> (mblock->addrOfFirstInst()));
     printf(" / BB count. %lu, Total inst count %lu: \n",
@@ -384,7 +385,7 @@ void ElfDisassembler::prettyPrintCFGNode
 }
 
 void ElfDisassembler::prettyPrintValidCFGNode
-    (const CFGNode *cfg_node, PrettyPrintConfig config) const {
+    (const CFGNode *cfg_node, const PrettyPrintConfig config) const {
     if (cfg_node->getType() == BlockCFGNodeType::kData &&
         config == PrettyPrintConfig::kHideDataNodes) {
         return;
@@ -399,16 +400,20 @@ void ElfDisassembler::prettyPrintValidCFGNode
                max_block->getBasicBlocksCount(),
                max_block->instructionsCount());
         printf("Direct successor: %d, ",
-               (cfg_node->getDirectSuccessor() != nullptr)
-               ? cfg_node->getDirectSuccessor()->id() : 0);
+               (cfg_node->getImmediateSuccessor() != nullptr)
+               ? cfg_node->getImmediateSuccessor()->id() : 0);
         printf("Remote successor: %d\n",
                (cfg_node->getRemoteSuccessor() != nullptr)
                ? cfg_node->getRemoteSuccessor()->id() : 0);
         printf("Predecessors: ");
-        if (cfg_node->getPredecessors().size() == 0) {
-            printf("none\n");
+        if (cfg_node->getDirectPredecessors().size() == 0) {
+            if (cfg_node->isPossibleReturn()) {
+                printf("return\n");
+            } else {
+                printf("none\n");
+            }
         } else {
-            for (auto &pred : cfg_node->getPredecessors()) {
+            for (auto &pred : cfg_node->getDirectPredecessors()) {
                 printf("%u ", pred.first->id());
             }
             printf("\n");
@@ -438,16 +443,16 @@ void ElfDisassembler::prettyPrintValidCFGNode
 }
 
 void ElfDisassembler::prettyPrintSectionDisassembly
-    (const SectionDisassembly *sec_disasm) const {
+    (const SectionDisassemblyARM *sec_disasm) const {
     for (auto it = sec_disasm->cbegin(); it < sec_disasm->cend(); ++it) {
         prettyPrintMaximalBlock(&(*it));
     }
 }
 
 void ElfDisassembler::prettyPrintSectionCFG
-    (const DisassemblyCFG *sec_cfg) const {
+    (const DisassemblyCFG *sec_cfg, const PrettyPrintConfig config) const {
     for (auto &node :sec_cfg->getCFG()) {
-        prettyPrintValidCFGNode(&node);
+        prettyPrintValidCFGNode(&node, config);
     }
 }
 

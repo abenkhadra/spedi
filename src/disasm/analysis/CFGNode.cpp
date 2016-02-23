@@ -14,31 +14,36 @@ CFGNode::CFGNode() :
     m_type{BlockCFGNodeType::kMaybe},
     m_candidate_start_addr{0},
     m_overlap_node{nullptr},
-    m_direct_successor{nullptr},
+    m_procedure{nullptr},
+    m_traversal_status{TraversalStatus::kUnvisited},
+    m_immediate_successor{nullptr},
     m_remote_successor{nullptr},
-    m_max_block{nullptr} {
+    m_max_block{nullptr},
+    m_possible_return{false}{
 }
 
 CFGNode::CFGNode(MaximalBlock *current_block) :
     m_type{BlockCFGNodeType::kMaybe},
     m_candidate_start_addr{0},
     m_overlap_node{nullptr},
-    m_direct_successor{nullptr},
+    m_procedure{nullptr},
+    m_traversal_status{TraversalStatus::kUnvisited},
+    m_immediate_successor{nullptr},
     m_remote_successor{nullptr},
-    m_max_block{current_block} {
+    m_max_block{current_block},
+    m_possible_return{false}{
 }
 
-void CFGNode::addPredecessor(CFGNode *predecessor,
-                             addr_t target_addr) {
+void CFGNode::addDirectPredecessor(CFGNode *predecessor, addr_t target_addr) {
     assert(m_max_block->isWithinAddressSpace(target_addr)
                && "Invalid target address");
-    m_predecessors.emplace_back(std::pair<CFGNode *, addr_t>(
+    m_direct_predecessors.emplace_back(std::pair<CFGNode *, addr_t>(
         predecessor,
         target_addr));
 }
 
-void CFGNode::setDirectSuccessor(CFGNode *successor) {
-    m_direct_successor = successor;
+void CFGNode::setImmediateSuccessor(CFGNode *successor) {
+    m_immediate_successor = successor;
 }
 
 void CFGNode::setRemoteSuccessor(CFGNode *successor) {
@@ -111,8 +116,8 @@ void CFGNode::setCandidateStartAddr(addr_t candidate_start) noexcept {
     }
 }
 
-const CFGNode *CFGNode::getDirectSuccessor() const {
-    return m_direct_successor;
+const CFGNode *CFGNode::getImmediateSuccessor() const {
+    return m_immediate_successor;
 }
 
 const CFGNode *CFGNode::getRemoteSuccessor() const {
@@ -120,8 +125,8 @@ const CFGNode *CFGNode::getRemoteSuccessor() const {
 }
 
 const std::vector<std::pair<CFGNode *, addr_t>> &
-CFGNode::getPredecessors() const {
-    return m_predecessors;
+CFGNode::getDirectPredecessors() const noexcept {
+    return m_direct_predecessors;
 }
 
 void CFGNode::setMaximalBlock(MaximalBlock *maximal_block) noexcept {
@@ -132,7 +137,7 @@ unsigned int CFGNode::id() const noexcept {
     return m_max_block->id();
 }
 
-CFGNode *CFGNode::getOverlapNodePtr() const {
+CFGNode *CFGNode::getOverlapNodePtr() const noexcept {
     return m_overlap_node;
 }
 
@@ -154,8 +159,8 @@ void CFGNode::setToDataAndInvalidatePredecessors() {
         return;
     }
     m_type = BlockCFGNodeType::kData;
-    for (auto pred_iter = m_predecessors.begin();
-         pred_iter < m_predecessors.end(); ++pred_iter) {
+    for (auto pred_iter = m_direct_predecessors.begin();
+         pred_iter < m_direct_predecessors.end(); ++pred_iter) {
         printf("CONFLICT: Invalidating %u predecessor of %u\n",
                (*pred_iter).first->id(),
                id());
@@ -165,5 +170,22 @@ void CFGNode::setToDataAndInvalidatePredecessors() {
 
 void CFGNode::resetCandidateStartAddress() {
     m_candidate_start_addr = 0;
+}
+
+bool CFGNode::operator==(const CFGNode &src) const noexcept {
+    return this->id() == src.id();
+}
+
+bool CFGNode::isAssignedToProcedure() const noexcept {
+    return m_procedure != nullptr;
+}
+
+bool CFGNode::isPossibleCall() const noexcept {
+    return m_max_block->getBranchInstruction()->id() == ARM_INS_BLX
+        || m_max_block->getBranchInstruction()->id() == ARM_INS_BL;
+}
+
+bool CFGNode::isPossibleReturn() const noexcept {
+    return m_possible_return;
 }
 }

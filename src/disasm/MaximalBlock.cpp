@@ -61,7 +61,7 @@ addr_t MaximalBlock::addrOfLastInst() const {
 }
 
 const BasicBlock &
-MaximalBlock::getBasicBlockAt(const unsigned int bb_id) const {
+MaximalBlock::getBasicBlockAt(const size_t bb_id) const {
     return m_bblocks[bb_id];
 }
 
@@ -80,7 +80,7 @@ MaximalBlock::MaximalBlock(size_t id, const BranchData &branch) :
     m_branch{branch} {
 }
 
-unsigned MaximalBlock::id() const {
+size_t MaximalBlock::id() const {
     return m_id;
 }
 
@@ -138,5 +138,18 @@ bool MaximalBlock::isAddressOfInstruction(const addr_t inst_addr) const {
 
 BasicBlock *MaximalBlock::ptrToBasicBlockAt(const unsigned bb_id) {
     return &(*(m_bblocks.begin() + bb_id));
+}
+
+bool MaximalBlock::operator==(const MaximalBlock &src) const noexcept {
+    return this->id() == src.id();
+}
+
+const MCInst *MaximalBlock::getBranchInstruction() const noexcept {
+    return &(m_insts.back());
+}
+
+bool MaximalBlock::isAppendableBy(const MaximalBlock &block) const noexcept {
+    return m_end_addr == block.m_insts[0].addr()
+        || (block.m_insts.size() > 1 && m_end_addr == block.m_insts[1].addr());
 }
 }

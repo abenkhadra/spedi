@@ -15,18 +15,16 @@ class MCInst;
 class CFGNode;
 
 /**
- * MaximalBlockAnalyzer
+ * MCInstAnalyzerARM
  */
-class MaximalBlockAnalyzer {
+class MCInstAnalyzerARM {
 public:
-    MaximalBlockAnalyzer();
-    MaximalBlockAnalyzer(ISAType isa);
-    virtual ~MaximalBlockAnalyzer() = default;
-    MaximalBlockAnalyzer(const MaximalBlockAnalyzer &src) = default;
-    MaximalBlockAnalyzer &operator=(const MaximalBlockAnalyzer &src) = default;
-    MaximalBlockAnalyzer(MaximalBlockAnalyzer &&src) = default;
-
-    bool isCall(const MCInst *inst) const noexcept;
+    MCInstAnalyzerARM();
+    MCInstAnalyzerARM(ISAType isa);
+    virtual ~MCInstAnalyzerARM() = default;
+    MCInstAnalyzerARM(const MCInstAnalyzerARM &src) = default;
+    MCInstAnalyzerARM &operator=(const MCInstAnalyzerARM &src) = default;
+    MCInstAnalyzerARM(MCInstAnalyzerARM &&src) = default;
 
     bool modifySP(const MCInst *inst) const;
 

@@ -18,22 +18,22 @@ class section;
 
 namespace disasm {
 /**
- * SectionDisassembly
+ * SectionDisassemblyARM
  */
-class SectionDisassembly {
+class SectionDisassemblyARM {
 public:
     /**
-     * Construct a SectionDisassembly that is initially not valid.  Calling
+     * Construct a SectionDisassemblyARM that is initially not valid.  Calling
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
-    SectionDisassembly();
-    explicit SectionDisassembly(const elf::section *section);
-    SectionDisassembly(const elf::section *section, ISAType isa);
-    virtual ~SectionDisassembly() = default;
-    SectionDisassembly(const SectionDisassembly &src) = default;
-    SectionDisassembly &operator=(const SectionDisassembly &src) = default;
-    SectionDisassembly(SectionDisassembly &&src) = default;
+    SectionDisassemblyARM();
+    explicit SectionDisassemblyARM(const elf::section *section);
+    SectionDisassemblyARM(const elf::section *section, ISAType isa);
+    virtual ~SectionDisassemblyARM() = default;
+    SectionDisassemblyARM(const SectionDisassemblyARM &src) = default;
+    SectionDisassemblyARM &operator=(const SectionDisassemblyARM &src) = default;
+    SectionDisassemblyARM(SectionDisassemblyARM &&src) = default;
     const MaximalBlock &maximalBlockAt(size_t index) const;
     MaximalBlock *ptrToMaximalBlockAt(size_t index);
     std::vector<MaximalBlock>::const_iterator cbegin() const;
@@ -67,6 +67,7 @@ public:
     bool isFirst(const MaximalBlock *max_block) const;
     bool isWithinSectionAddressSpace(const addr_t & addr) const;
     ISAType getISA() const;
+    void reserve(size_t maximal_block_count);
 
 private:
     bool m_valid;

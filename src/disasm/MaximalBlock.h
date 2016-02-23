@@ -27,6 +27,7 @@ public:
     MaximalBlock(const MaximalBlock &src) = default;
     MaximalBlock &operator=(const MaximalBlock &src) = default;
     MaximalBlock(MaximalBlock &&src) = default;
+    bool operator==(const MaximalBlock& src) const noexcept;
 
     /**
      * MB is valid when all of its BBs are valid. A BB is valid when it
@@ -34,7 +35,7 @@ public:
      */
     bool isValid() const;
 
-    const BasicBlock &getBasicBlockAt(const unsigned bb_id) const;
+    const BasicBlock &getBasicBlockAt(const size_t bb_id) const;
     BasicBlock *ptrToBasicBlockAt(const unsigned bb_id);
     const std::vector<BasicBlock> &getBasicBlocks() const;
     // getting size and memsize of getFragments are provided by the fragment itself.
@@ -58,7 +59,7 @@ public:
         getInstructionAddressesOf(const BasicBlock *bblock) const noexcept;
 
     const BranchData &getBranch() const;
-    unsigned id() const;
+    size_t id() const;
 
     /*
      * return true if the given address falls inside the address space
@@ -75,6 +76,10 @@ public:
     bool startOverlapsWith(const MaximalBlock *prev_block) const;
     bool coversAddressSpaceOf(const MaximalBlock &block) const;
     bool coversAddressSpaceOf(const MaximalBlock *block) const;
+    const MCInst * getBranchInstruction() const noexcept;
+    // returns true if this block aligns with the first (or second) instruction
+    // of the given block.
+    bool isAppendableBy(const MaximalBlock &block) const noexcept;
 
     friend class MaximalBlockBuilder;
 private:

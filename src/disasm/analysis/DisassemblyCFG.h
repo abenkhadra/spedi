@@ -38,7 +38,7 @@ public:
     std::vector<CFGNode>::const_iterator cend() const noexcept;
     const CFGNode &previous(const CFGNode &node) const;
     const CFGNode &next(const CFGNode &node) const;
-    friend class SectionDisassemblyAnalyzer;
+    friend class SectionDisassemblyAnalyzerARM;
 private:
     CFGNode *getCFGNodeOf(const MaximalBlock *max_block);
     CFGNode *ptrToNodeAt(size_t index);

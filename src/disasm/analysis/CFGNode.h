@@ -12,6 +12,7 @@
 #include <functional>
 
 namespace disasm {
+class ICFGNode;
 
 enum class BlockCFGNodeType: unsigned {
     kData = 1,
@@ -22,13 +23,20 @@ enum class BlockCFGNodeType: unsigned {
 /*
  * a special value used to identify indirect predecessors
  */
-enum class PredecessorType: addr_t {
-    kIndirectCall,      // control reaches this node through indirect call node
-    kSwitchStatement,   // control reaches this node from a switch statement
-    kCallNode,          // control reaches this node after returning from call
-    kOther              // none of the above
+enum class PredecessorType: unsigned short {
+    kIndirectCall =
+    0,      // control reaches this node through indirect call node
+    kSwitchStatement = 1,   // control reaches this node from a switch statement
+    kCallNode =
+    2,          // control reaches this node after returning from call
+    kOther = 3              // none of the above
 };
 
+enum class TraversalStatus: unsigned short {
+    kUnvisited,
+    kVisited,
+    kFinished
+};
 /**
  * CFGNode
  */
@@ -45,20 +53,29 @@ public:
     CFGNode(const CFGNode &src) = default;
     CFGNode &operator=(const CFGNode &src) = default;
     CFGNode(CFGNode &&src) = default;
+    bool operator==(const CFGNode &src) const noexcept;
 
     const MaximalBlock *getMaximalBlock() const;
     const CFGNode *getOverlapNode() const;
     unsigned int id() const noexcept;
 
-    void addPredecessor(CFGNode *predecessor, addr_t target_addr);
-
-    void setDirectSuccessor(CFGNode *successor);
-    const CFGNode *getDirectSuccessor() const;
+    void addDirectPredecessor(CFGNode *predecessor, addr_t target_addr);
+    /*
+     * should be set only for conditional branches
+     */
+    void setImmediateSuccessor(CFGNode *successor);
+    /*
+     * should be valid only for conditional branches
+     */
+    const CFGNode *getImmediateSuccessor() const;
+    /*
+     * should be set for direct branches (conditional/unconditional)
+     */
     void setRemoteSuccessor(CFGNode *successor);
     const CFGNode *getRemoteSuccessor() const;
 
     const std::vector<std::pair<CFGNode *, addr_t>> &
-        getPredecessors() const;
+        getDirectPredecessors() const noexcept;
     bool hasOverlapWithOtherNode() const noexcept;
     bool isCandidateStartAddressSet() const noexcept;
 
@@ -77,20 +94,32 @@ public:
     BlockCFGNodeType getType() const;
     bool isData() const;
     bool isCode() const;
-    bool isValidBasicBlockSet() const noexcept;
+    /*
+     * returns true if the branch instruction belongs to the call_group of
+     * ARM which is BL and BLX.
+     */
+    bool isPossibleCall() const noexcept;
+    /*
+     * returns true if immediate predecessor is a PossibleCall
+     */
+    bool isPossibleReturn() const noexcept;
+
     bool isCandidateStartAddressValid(addr_t candidate_addr) const noexcept;
-    friend class SectionDisassemblyAnalyzer;
+    bool isAssignedToProcedure() const noexcept;
+    friend class SectionDisassemblyAnalyzerARM;
 private:
     void setMaximalBlock(MaximalBlock *maximal_block) noexcept;
-    CFGNode *getOverlapNodePtr() const;
+    CFGNode *getOverlapNodePtr() const noexcept;
 private:
     BlockCFGNodeType m_type;
     addr_t m_candidate_start_addr;
     CFGNode *m_overlap_node;
-    /// valid only in case of conditional branch
-    CFGNode *m_direct_successor;
+    ICFGNode *m_procedure;
+    TraversalStatus m_traversal_status;
+    CFGNode *m_immediate_successor;
     CFGNode *m_remote_successor;
     MaximalBlock *m_max_block;
-    std::vector<std::pair<CFGNode *, addr_t>> m_predecessors;
+    std::vector<std::pair<CFGNode *, addr_t>> m_direct_predecessors;
+    bool m_possible_return;
 };
 }
