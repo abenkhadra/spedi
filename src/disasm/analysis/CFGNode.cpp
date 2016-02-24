@@ -133,7 +133,7 @@ void CFGNode::setMaximalBlock(MaximalBlock *maximal_block) noexcept {
     m_max_block = maximal_block;
 }
 
-unsigned int CFGNode::id() const noexcept {
+size_t CFGNode::id() const noexcept {
     return m_max_block->id();
 }
 
@@ -187,5 +187,17 @@ bool CFGNode::isPossibleCall() const noexcept {
 
 bool CFGNode::isPossibleReturn() const noexcept {
     return m_possible_return;
+}
+
+size_t CFGNode::getCountOfCandidateInstructions() const noexcept {
+    size_t result = 0;
+    addr_t current = m_candidate_start_addr;
+    for (auto &inst : m_max_block->getAllInstructions()) {
+        if (inst.addr() == current) {
+            current += inst.size();
+            result++;
+        }
+    }
+    return result;
 }
 }

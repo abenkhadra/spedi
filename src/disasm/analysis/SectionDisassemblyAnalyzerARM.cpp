@@ -10,7 +10,6 @@
 #include "disasm/SectionDisassemblyARM.h"
 #include <iostream>
 #include <algorithm>
-#include <string.h>
 
 namespace disasm {
 
@@ -23,14 +22,27 @@ SectionDisassemblyAnalyzerARM::SectionDisassemblyAnalyzerARM
     m_exec_addr_end{exec_region.second} {
 }
 
+size_t SectionDisassemblyAnalyzerARM::calculateBasicBlockWeight
+    (const CFGNode &node, const BasicBlock &basic_block) const noexcept {
+    unsigned pred_weight = 0;
+    for (auto pred_iter = node.getDirectPredecessors().cbegin();
+         pred_iter < node.getDirectPredecessors().cend(); ++pred_iter) {
+        if (!(*pred_iter).first->isData()) {
+            pred_weight +=
+                (*pred_iter).first->getMaximalBlock()->instructionsCount();
+        }
+    }
+    return pred_weight + basic_block.instructionCount();
+}
+
 size_t SectionDisassemblyAnalyzerARM::calculateNodeWeight
     (const CFGNode *node) const noexcept {
     if (node->isData()) {
         return 0;
     }
     unsigned pred_weight = 0;
-    for (auto pred_iter = node->getDirectPredecessors().begin();
-         pred_iter < node->getDirectPredecessors().end(); ++pred_iter) {
+    for (auto pred_iter = node->getDirectPredecessors().cbegin();
+         pred_iter < node->getDirectPredecessors().cend(); ++pred_iter) {
         pred_weight +=
             (*pred_iter).first->getMaximalBlock()->instructionsCount();
     }
@@ -298,7 +310,12 @@ void SectionDisassemblyAnalyzerARM::resolveValidBasicBlock(CFGNode &node) {
         }
         if (target_count == node.getDirectPredecessors().size()) {
             if (node.getCandidateStartAddr() < (*bblock_iter).startAddr()) {
-                node.setCandidateStartAddr((*bblock_iter).startAddr());
+                if (node.getCountOfCandidateInstructions() <
+                    calculateBasicBlockWeight(node, (*bblock_iter))) {
+                    // we advance candidate start address only for
+                    // valid predecessors
+                    node.setCandidateStartAddr((*bblock_iter).startAddr());
+                }
             }
             return;
         }
@@ -310,6 +327,7 @@ void SectionDisassemblyAnalyzerARM::resolveValidBasicBlock(CFGNode &node) {
 void SectionDisassemblyAnalyzerARM::resolveCFGConflicts
     (CFGNode &node) {
     // Conflicts between predecessors needs to be resolved.
+    std::cout << "resolving conflicts for node:" << node.id() << std::endl;
     std::vector<size_t> assigned_predecessors;
     assigned_predecessors.resize(node.getDirectPredecessors().size(), 0);
     int valid_bb_idx = 0;
@@ -346,14 +364,8 @@ void SectionDisassemblyAnalyzerARM::resolveCFGConflicts
     for (auto pred_iter = node.getDirectPredecessors().cbegin();
          pred_iter < node.getDirectPredecessors().cend(); ++pred_iter, ++j) {
         if (assigned_predecessors[j] != valid_bb_idx) {
-//            auto addrs = node.getMaximalBlock()->
-//                getBasicBlockAt(valid_bb_idx).getInstructionAddresses();
-//            if (!std::binary_search(addrs.begin(),
-//                                    addrs.end(),
-//                                    (*pred_iter).second)) {
             // set predecessor to data
             (*pred_iter).first->setToDataAndInvalidatePredecessors();
-//            }
         }
     }
 }

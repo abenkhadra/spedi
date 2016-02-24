@@ -57,7 +57,7 @@ public:
 
     const MaximalBlock *getMaximalBlock() const;
     const CFGNode *getOverlapNode() const;
-    unsigned int id() const noexcept;
+    size_t id() const noexcept;
 
     void addDirectPredecessor(CFGNode *predecessor, addr_t target_addr);
     /*
@@ -86,6 +86,7 @@ public:
     std::vector<const MCInst *> getCandidateInstructions() const;
     std::vector<const MCInst *> getCandidateInstructionsSatisfying
         (std::function<bool(const MCInst *inst)> predicate) const;
+    size_t getCountOfCandidateInstructions() const noexcept;
     addr_t getCandidateStartAddr() const noexcept;
     void setCandidateStartAddr(addr_t candidate_start) noexcept;
     void setType(const BlockCFGNodeType type);

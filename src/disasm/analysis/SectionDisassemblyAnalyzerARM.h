@@ -31,8 +31,8 @@ public:
         (const SectionDisassemblyAnalyzerARM &src) = default;
     SectionDisassemblyAnalyzerARM
         &operator=(const SectionDisassemblyAnalyzerARM &src) = default;
-    SectionDisassemblyAnalyzerARM(SectionDisassemblyAnalyzerARM &&src) =
-    default;
+    SectionDisassemblyAnalyzerARM
+        (SectionDisassemblyAnalyzerARM &&src) = default;
 
     void buildCFG();
     void refineCFG();
@@ -40,8 +40,7 @@ public:
     /*
      * Search in CFG to find direct successor
      */
-    CFGNode *findNextDirectSuccessor
-        (const CFGNode &cfg_node) noexcept;
+    CFGNode *findNextDirectSuccessor(const CFGNode &cfg_node) noexcept;
     /*
      * Search in CFG to find remote successor matching target
      */
@@ -56,8 +55,17 @@ public:
      */
     CFGNode *findCFGNodeAffectedByLoadStartingFrom
         (const CFGNode &node, addr_t target) noexcept;
-
+    /*
+     * returns the sum of instruction count of all predecessors in addition to
+     * instruction count of current node.
+     */
     size_t calculateNodeWeight(const CFGNode *node) const noexcept;
+    /*
+     * returns the sum of instruction count of all predecessors that are
+     * not of type data in addition to instruction count of given basic block.
+     */
+    size_t calculateBasicBlockWeight
+        (const CFGNode &node, const BasicBlock &basic_block) const noexcept;
 
     bool isSwitchStatement(const CFGNode &node) const noexcept;
 
@@ -76,7 +84,7 @@ private:
 
 private:
     // call graph related methods
-    void buildProcedureStartingFrom(CFGNode & entry_node);
+    void buildProcedureStartingFrom(CFGNode &entry_node);
 
 private:
     SectionDisassemblyARM *m_sec_disassembly;

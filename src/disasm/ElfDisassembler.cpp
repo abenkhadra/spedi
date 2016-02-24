@@ -393,16 +393,16 @@ void ElfDisassembler::prettyPrintValidCFGNode
     if (cfg_node->isCandidateStartAddressSet()) {
         auto max_block = cfg_node->getMaximalBlock();
         printf("**************************************\n");
-        printf("MB No. %u, Type: %u. Starts at %#6x",
+        printf("MB No. %lu, Type: %u. Starts at %#6x",
                cfg_node->id(), cfg_node->getType(),
                static_cast<unsigned >(max_block->addrOfFirstInst()));
         printf(" / BB count. %lu, Total inst count %lu: \n",
                max_block->getBasicBlocksCount(),
                max_block->instructionsCount());
-        printf("Direct successor: %d, ",
+        printf("Direct successor: %lu, ",
                (cfg_node->getImmediateSuccessor() != nullptr)
                ? cfg_node->getImmediateSuccessor()->id() : 0);
-        printf("Remote successor: %d\n",
+        printf("Remote successor: %lu\n",
                (cfg_node->getRemoteSuccessor() != nullptr)
                ? cfg_node->getRemoteSuccessor()->id() : 0);
         printf("Predecessors: ");
@@ -414,7 +414,7 @@ void ElfDisassembler::prettyPrintValidCFGNode
             }
         } else {
             for (auto &pred : cfg_node->getDirectPredecessors()) {
-                printf("%u ", pred.first->id());
+                printf("%lu ", pred.first->id());
             }
             printf("\n");
         }
