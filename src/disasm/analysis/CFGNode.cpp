@@ -110,7 +110,7 @@ void CFGNode::setCandidateStartAddr(addr_t candidate_start) noexcept {
     // match it.
     for (auto &inst : m_max_block->getAllInstructions()) {
         if (candidate_start <= inst.addr()) {
-            m_candidate_start_addr = candidate_start;
+            m_candidate_start_addr = inst.addr();
             break;
         }
     }

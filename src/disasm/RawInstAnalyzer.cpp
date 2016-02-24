@@ -40,7 +40,6 @@ bool RawInstAnalyzer::isBranch(const cs_insn *inst) const {
 }
 
 bool RawInstAnalyzer::isValid(const cs_insn *inst) const {
-
     for (int i = 0; i < inst->detail->arm.op_count; ++i) {
         if (inst->detail->arm.operands[i].type == ARM_OP_REG) {
             if (inst->detail->arm.operands[i].reg == ARM_REG_PC) {
@@ -51,14 +50,16 @@ bool RawInstAnalyzer::isValid(const cs_insn *inst) const {
                 // PC usage restrictions based on manual A2-46
                 // and Table D9.5 details.
 
-                // use of pc in 16 bit add is deprecated D9.5
+                // XXX: use of pc in 16 bit add is deprecated D9.5
                 switch (inst->id) {
                     case ARM_INS_ADD:
+                    case ARM_INS_ADDW:
                     case ARM_INS_ADR:
                     case ARM_INS_BX:
                     case ARM_INS_BLX:
                     case ARM_INS_MOV:
                     case ARM_INS_SUB:
+                    case ARM_INS_SUBW:
                     case ARM_INS_SUBS:
                     case ARM_INS_MOVS:
                     case ARM_INS_POP:

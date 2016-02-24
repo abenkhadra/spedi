@@ -393,13 +393,13 @@ void SectionDisassemblyAnalyzerARM::resolveLoadConflicts(CFGNode &node) {
         }
         // XXX: no weight analysis is applied here, that should be handled
         shortenToCandidateAddressOrSetToData((*target_node), target + 4);
-        printf("Node %u shortens node %u\n", node.id(), target_node->id());
+        printf("Node %lu shortens node %lu\n", node.id(), target_node->id());
         if (target_node->isData()) {
             // XXX: might cause out_of_bound exception in very rare situations
             auto next_node =
                 m_sec_cfg.ptrToNodeAt(target_node->id() + 1);
             if (next_node->getCandidateStartAddr() < target + 4) {
-                printf("Inner: node %u shortens node %u\n",
+                printf("Inner: node %lu shortens node %lu\n",
                        node.id(),
                        target_node->id());
                 shortenToCandidateAddressOrSetToData(*next_node, target + 4);
