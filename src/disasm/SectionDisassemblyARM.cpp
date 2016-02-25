@@ -64,6 +64,7 @@ void SectionDisassemblyARM::add(MaximalBlock &&max_block) {
 const MaximalBlock &SectionDisassemblyARM::back() const {
     return m_max_blocks.back();
 }
+
 addr_t SectionDisassemblyARM::virtualAddrOf(const uint8_t *ptr) const {
     assert(ptrToData() <= ptr
                && ptr < ptrToData() + sectionSize()

@@ -40,11 +40,11 @@ public:
     /*
      * Search in CFG to find direct successor
      */
-    CFGNode *findNextDirectSuccessor(const CFGNode &cfg_node) noexcept;
+    CFGNode *findImmediateSuccessor(const CFGNode &cfg_node) noexcept;
     /*
      * Search in CFG to find remote successor matching target
      */
-    CFGNode *findRemoteDirectSuccessor(addr_t target) noexcept;
+    CFGNode *findRemoteSuccessor(addr_t target) noexcept;
 
     void RefineMaximalBlocks(const std::vector<addr_t> &known_code_addrs);
     bool isValidCodeAddr(addr_t addr) const noexcept;
@@ -75,12 +75,17 @@ private:
      * do not target it.
      */
     void resolveValidBasicBlock(CFGNode &node);
+    void addConditionalBranchToCFG(CFGNode &node);
     void resolveOverlapBetweenCFGNodes(CFGNode &node);
-    void resolveCFGConflicts(CFGNode &node);
+    void resolveCFGConflicts
+        (CFGNode &node,
+         const std::vector<std::pair<CFGNode *, addr_t>> &valid_predecessors);
     void resolveLoadConflicts(CFGNode &node);
     void resolveSwitchStmtsAndLoadConflicts(CFGNode &node);
     void shortenToCandidateAddressOrSetToData
         (CFGNode &node, addr_t addr) noexcept;
+    bool isConditionalBranchAffectedByNodeOverlap
+        (const CFGNode &node) const noexcept;
 
 private:
     // call graph related methods

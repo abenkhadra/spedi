@@ -20,9 +20,7 @@ namespace disasm {
  */
 class MaximalBlock {
 public:
-    /**
-     */
-    MaximalBlock() = default;
+    MaximalBlock();
     virtual ~MaximalBlock() = default;
     MaximalBlock(const MaximalBlock &src) = default;
     MaximalBlock &operator=(const MaximalBlock &src) = default;

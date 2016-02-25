@@ -11,7 +11,6 @@
 #include <cassert>
 #include <array>
 #include <cstring>
-#include <capstone/capstone.h>
 
 namespace disasm {
 
@@ -90,6 +89,7 @@ MaximalBlock MaximalBlockBuilder::buildResultFromValidBasicBlocks
         + result.m_insts.back().size();
     return result;
 }
+
 MaximalBlock MaximalBlockBuilder::build() {
     if (!m_buildable) {
         //  return an invalid maximal block!

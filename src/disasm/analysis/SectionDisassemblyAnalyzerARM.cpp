@@ -110,29 +110,16 @@ void SectionDisassemblyAnalyzerARM::buildCFG() {
             continue;
         }
         auto current_block = (*node_iter).getMaximalBlock();
-        if (current_block->getBranch().isConditional()) {
-            auto succ = findNextDirectSuccessor(*node_iter);
-            if (succ != nullptr) {
-                (*node_iter).setImmediateSuccessor(succ);
-                succ->addDirectPredecessor(&(*node_iter),
-                                           current_block->endAddr());
-//                std::cout << "MaximalBlock: " << (*block_iter).id()
-//                    << " Points to: " << (*succ).id() << "\n";
-            } else {
-                // a conditional branch without a direct successor is data
-                (*node_iter).setToDataAndInvalidatePredecessors();
-            }
-        }
         if (current_block->getBranch().isDirect()) {
             auto branch_target = current_block->getBranch().target();
-            if (!m_sec_disassembly->isWithinSectionAddressSpace(
-                branch_target)) {
+            if (!m_sec_disassembly->
+                isWithinSectionAddressSpace(branch_target)) {
                 // a valid direct branch can happen to an executable section
                 // other than this section.
                 continue;
             }
-            auto succ = findRemoteDirectSuccessor(branch_target);
-            if (succ != nullptr) {
+            auto succ = findRemoteSuccessor(branch_target);
+            if (succ != nullptr && !succ->isData()) {
                 (*node_iter).setRemoteSuccessor(succ);
                 succ->addDirectPredecessor(&(*node_iter), branch_target);
 //                    std::cout << "MaximalBlock: " << (*node_iter).id()
@@ -151,7 +138,7 @@ bool SectionDisassemblyAnalyzerARM::isValidCodeAddr(addr_t addr) const noexcept 
     return (m_exec_addr_start <= addr) && (addr < m_exec_addr_end);
 }
 
-CFGNode *SectionDisassemblyAnalyzerARM::findNextDirectSuccessor
+CFGNode *SectionDisassemblyAnalyzerARM::findImmediateSuccessor
     (const CFGNode &cfg_node) noexcept {
     // no direct successor to last cfg node
     if (m_sec_cfg.isLast(&cfg_node)) {
@@ -171,7 +158,7 @@ CFGNode *SectionDisassemblyAnalyzerARM::findNextDirectSuccessor
     return nullptr;
 }
 
-CFGNode *SectionDisassemblyAnalyzerARM::findRemoteDirectSuccessor
+CFGNode *SectionDisassemblyAnalyzerARM::findRemoteSuccessor
     (addr_t target) noexcept {
 
     // binary search to find the remote MB that is targeted.
@@ -219,10 +206,10 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
             continue;
         }
         resolveOverlapBetweenCFGNodes(*node_iter);
-        if ((*node_iter).getDirectPredecessors().size() > 0) {
-            // find maximally valid BB and resolves conflicts between MBs
-            resolveValidBasicBlock((*node_iter));
-        }
+        addConditionalBranchToCFG(*node_iter);
+        // find maximally valid BB and resolves conflicts between MBs
+        resolveValidBasicBlock((*node_iter));
+
     }
     // PC relative-loads introduce additional conflicts
 //    for (auto node_iter = m_sec_cfg.m_cfg.begin();
@@ -267,32 +254,34 @@ void SectionDisassemblyAnalyzerARM::resolveOverlapBetweenCFGNodes(CFGNode &node)
             }
         }
     }
-
-    if (!node.isCandidateStartAddressSet()) {
-        // with no objections we take the first instruction
-        node.setCandidateStartAddr
-            (node.getMaximalBlock()->addrOfFirstInst());
-    }
 }
 
 void SectionDisassemblyAnalyzerARM::resolveValidBasicBlock(CFGNode &node) {
-
-    if (node.getMaximalBlock()->getBasicBlocksCount() == 1) {
-        // In case there is only one basic block then its the valid one
+    if (!node.isCandidateStartAddressSet()) {
+        // with no objections we take the first instruction
+        node.setCandidateStartAddr(node.getMaximalBlock()->addrOfFirstInst());
+    }
+    if (node.getMaximalBlock()->getBasicBlocksCount() == 1
+        || node.getDirectPredecessors().size() == 0) {
+        // nothing more to do
         return;
+    }
+    std::vector<std::pair<CFGNode *, addr_t>> valid_predecessors;
+    for (auto &pred_iter: node.getDirectPredecessors()) {
+        if (!(pred_iter).first->isData()) {
+            valid_predecessors.push_back(pred_iter);
+        }
     }
     // The common case where all branches target the same basic block
     for (auto bblock_iter = node.getMaximalBlock()->getBasicBlocks().begin();
          bblock_iter < node.getMaximalBlock()->getBasicBlocks().end();
          ++bblock_iter) {
         unsigned target_count = 0;
-        for (auto pred_iter = node.getDirectPredecessors().cbegin();
-             pred_iter < node.getDirectPredecessors().cend(); ++pred_iter) {
+        for (auto pred_iter = valid_predecessors.cbegin();
+             pred_iter < valid_predecessors.cend(); ++pred_iter) {
             for (addr_t addr : (*bblock_iter).getInstructionAddresses()) {
                 if ((*pred_iter).second == addr) {
-                    if ((*pred_iter).second < node.getCandidateStartAddr() &&
-                        !(*pred_iter).first->isData()) {
-//                        printf("Overlap-CFG conflict at node %u\n", node.id());
+                    if ((*pred_iter).second < node.getCandidateStartAddr()) {
                         auto overlap_pred =
                             m_sec_cfg.ptrToNodeAt(node.id() - 1);
                         if (calculateNodeWeight((*pred_iter).first) <
@@ -308,28 +297,29 @@ void SectionDisassemblyAnalyzerARM::resolveValidBasicBlock(CFGNode &node) {
                 }
             }
         }
-        if (target_count == node.getDirectPredecessors().size()) {
+        if (target_count == valid_predecessors.size()) {
             if (node.getCandidateStartAddr() < (*bblock_iter).startAddr()) {
-                if (node.getCountOfCandidateInstructions() <
-                    calculateBasicBlockWeight(node, (*bblock_iter))) {
-                    // we advance candidate start address only for
-                    // valid predecessors
-                    node.setCandidateStartAddr((*bblock_iter).startAddr());
-                }
+//                if (node.getCountOfCandidateInstructions() <
+//                    calculateBasicBlockWeight(node, (*bblock_iter))) {
+//                    // we advance candidate start address only for
+//                    // valid predecessors
+                node.setCandidateStartAddr((*bblock_iter).startAddr());
+//                }
             }
             return;
         }
     }
     // No basic block satisfies all targets then conflicts should be resolved
-    resolveCFGConflicts(node);
+    resolveCFGConflicts(node, valid_predecessors);
 }
 
 void SectionDisassemblyAnalyzerARM::resolveCFGConflicts
-    (CFGNode &node) {
+    (CFGNode &node,
+     const std::vector<std::pair<CFGNode *, addr_t>> &valid_predecessors) {
     // Conflicts between predecessors needs to be resolved.
     std::cout << "resolving conflicts for node:" << node.id() << std::endl;
     std::vector<size_t> assigned_predecessors;
-    assigned_predecessors.resize(node.getDirectPredecessors().size(), 0);
+    assigned_predecessors.resize(valid_predecessors.size(), 0);
     int valid_bb_idx = 0;
     {
         size_t maximum_weight = 0;
@@ -341,8 +331,8 @@ void SectionDisassemblyAnalyzerARM::resolveCFGConflicts
             size_t current_weight = node.getMaximalBlock()->
                 getBasicBlockAt(i).instructionCount();
             size_t j = 0;
-            for (auto pred_iter = node.getDirectPredecessors().cbegin();
-                 pred_iter < node.getDirectPredecessors().cend();
+            for (auto pred_iter = valid_predecessors.cbegin();
+                 pred_iter < valid_predecessors.cend();
                  ++pred_iter, ++j) {
                 // basic block weight = calculate predecessor instruction count
                 //                      + instruction count of BB
@@ -354,15 +344,15 @@ void SectionDisassemblyAnalyzerARM::resolveCFGConflicts
                     current_weight += calculateNodeWeight((*pred_iter).first);
                 }
             }
-            if (current_weight > maximum_weight) {
+            if (current_weight >= maximum_weight) {
                 valid_bb_idx = i;
                 maximum_weight = current_weight;
             }
         }
     }
     unsigned j = 0;
-    for (auto pred_iter = node.getDirectPredecessors().cbegin();
-         pred_iter < node.getDirectPredecessors().cend(); ++pred_iter, ++j) {
+    for (auto pred_iter = valid_predecessors.cbegin();
+         pred_iter < valid_predecessors.cend(); ++pred_iter, ++j) {
         if (assigned_predecessors[j] != valid_bb_idx) {
             // set predecessor to data
             (*pred_iter).first->setToDataAndInvalidatePredecessors();
@@ -470,5 +460,53 @@ bool SectionDisassemblyAnalyzerARM::isSwitchStatement
 
 
     return false;
+}
+
+void SectionDisassemblyAnalyzerARM::addConditionalBranchToCFG(CFGNode &node) {
+    if (!node.getMaximalBlock()->getBranch().isConditional()) {
+        return;
+    }
+    if (!isConditionalBranchAffectedByNodeOverlap(node)) {
+        // a conditional branch should be valid
+        auto succ = findImmediateSuccessor(node);
+        if (succ != nullptr && !succ->isData()) {
+            node.setImmediateSuccessor(succ);
+            succ->addDirectPredecessor
+                (&node, node.getMaximalBlock()->endAddr());
+        } else {
+            // a conditional branch without a direct successor is data
+            node.setToDataAndInvalidatePredecessors();
+        }
+    }
+}
+
+bool SectionDisassemblyAnalyzerARM::isConditionalBranchAffectedByNodeOverlap
+    (const CFGNode &node) const noexcept {
+    if (!node.isCandidateStartAddressSet()
+        || node.getMaximalBlock()->getBranchInstruction()->id() == ARM_INS_CBZ
+        || node.getMaximalBlock()->getBranchInstruction()->id()
+            == ARM_INS_CBNZ) {
+        // if there was no overlap or branches are not affected by context.
+        // additionally larger nodes are not affected (heuristic)
+        return false;
+    } else {
+        for (auto inst_iter =
+            node.getMaximalBlock()->getAllInstructions().cbegin();
+             inst_iter < node.getMaximalBlock()->getAllInstructions().cend();
+             inst_iter++) {
+            if ((*inst_iter).id() == ARM_INS_CMP
+                || (*inst_iter).id() == ARM_INS_CMN
+                || (*inst_iter).id() == ARM_INS_IT) {
+                // if there was a conditional execution instruction eliminated
+                //  by overlap analysis then we won't consider the block.
+                // TODO: check if a conditional execution instruction actually
+                // affects the branch instruction
+                return true;
+            }
+            if ((*inst_iter).addr() > node.getCandidateStartAddr()) {
+                return false;
+            }
+        }
+    }
 }
 }
