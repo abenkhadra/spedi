@@ -60,6 +60,7 @@ public:
      * instruction count of current node.
      */
     size_t calculateNodeWeight(const CFGNode *node) const noexcept;
+
     /*
      * returns the sum of instruction count of all predecessors that are
      * not of type data in addition to instruction count of given basic block.
@@ -67,7 +68,10 @@ public:
     size_t calculateBasicBlockWeight
         (const CFGNode &node, const BasicBlock &basic_block) const noexcept;
 
-    bool isSwitchStatement(const CFGNode &node) const noexcept;
+    /*
+     * returns true if given node is definitely not a switch statement.
+     */
+    bool isNotSwitchStatement(const CFGNode &node) const noexcept;
 
 private:
     /*
@@ -81,12 +85,14 @@ private:
         (CFGNode &node,
          const std::vector<std::pair<CFGNode *, addr_t>> &valid_predecessors);
     void resolveLoadConflicts(CFGNode &node);
-    void resolveSwitchStmtsAndLoadConflicts(CFGNode &node);
+    void resolveSwitchStatements(CFGNode &node);
     void shortenToCandidateAddressOrSetToData
         (CFGNode &node, addr_t addr) noexcept;
     bool isConditionalBranchAffectedByNodeOverlap
         (const CFGNode &node) const noexcept;
-
+    void recoverTBBSwitchTable(CFGNode &node);
+    void recoverTBHSwitchTable(CFGNode &node);
+    void recoverLDRSwitchTable(CFGNode &node);
 private:
     // call graph related methods
     void buildProcedureStartingFrom(CFGNode &entry_node);
@@ -98,5 +104,7 @@ private:
     addr_t m_exec_addr_end;
     DisassemblyCFG m_sec_cfg;
     DisassemblyCallGraph m_call_graph;
+    CFGNode * findSwitchTargetStartingFromNode
+        (CFGNode &node, addr_t target_addr);
 };
 }

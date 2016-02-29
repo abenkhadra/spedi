@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
             // analyzer.buildCallGraph();
             disassembler.prettyPrintSectionCFG
                 (&analyzer.getCFG(),
-                 disasm::PrettyPrintConfig::kHideDataNodes);
+                 disasm::PrettyPrintConfig::kDisplayDataNodes);
         } else {
             disassembler.disassembleCodeSpeculative();
         }

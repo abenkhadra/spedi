@@ -11,27 +11,27 @@
 
 namespace disasm {
 CFGNode::CFGNode() :
-    m_type{BlockCFGNodeType::kMaybe},
+    m_type{CFGNodeKind::kMaybe},
     m_candidate_start_addr{0},
     m_overlap_node{nullptr},
     m_procedure{nullptr},
     m_traversal_status{TraversalStatus::kUnvisited},
     m_immediate_successor{nullptr},
     m_remote_successor{nullptr},
-    m_max_block{nullptr},
-    m_possible_return{false}{
+    m_max_block{nullptr} {
+    m_indirect_preds = std::make_pair(nullptr, IndirectBranchType::kOther);
 }
 
 CFGNode::CFGNode(MaximalBlock *current_block) :
-    m_type{BlockCFGNodeType::kMaybe},
+    m_type{CFGNodeKind::kMaybe},
     m_candidate_start_addr{0},
     m_overlap_node{nullptr},
     m_procedure{nullptr},
     m_traversal_status{TraversalStatus::kUnvisited},
     m_immediate_successor{nullptr},
     m_remote_successor{nullptr},
-    m_max_block{current_block},
-    m_possible_return{false}{
+    m_max_block{current_block} {
+    m_indirect_preds = std::make_pair(nullptr, IndirectBranchType::kOther);
 }
 
 void CFGNode::addDirectPredecessor(CFGNode *predecessor, addr_t target_addr) {
@@ -59,18 +59,18 @@ const CFGNode *CFGNode::getOverlapNode() const {
 }
 
 bool CFGNode::isData() const {
-    return m_type == BlockCFGNodeType::kData;
+    return m_type == CFGNodeKind::kData;
 }
 
 bool CFGNode::isCode() const {
-    return m_type == BlockCFGNodeType::kCode;
+    return m_type == CFGNodeKind::kCode;
 }
 
-void CFGNode::setType(const BlockCFGNodeType type) {
+void CFGNode::setType(const CFGNodeKind type) {
     m_type = type;
 }
 
-BlockCFGNodeType CFGNode::getType() const {
+CFGNodeKind CFGNode::getType() const {
     return m_type;
 }
 
@@ -155,10 +155,10 @@ bool CFGNode::isCandidateStartAddressValid
 }
 
 void CFGNode::setToDataAndInvalidatePredecessors() {
-    if (m_type == BlockCFGNodeType::kData) {
+    if (m_type == CFGNodeKind::kData) {
         return;
     }
-    m_type = BlockCFGNodeType::kData;
+    m_type = CFGNodeKind::kData;
     for (auto pred_iter = m_direct_predecessors.begin();
          pred_iter < m_direct_predecessors.end(); ++pred_iter) {
         printf("CONFLICT: Invalidating %lu predecessor of %lu\n",
@@ -186,7 +186,8 @@ bool CFGNode::isPossibleCall() const noexcept {
 }
 
 bool CFGNode::isPossibleReturn() const noexcept {
-    return m_possible_return;
+    return m_indirect_preds.first != nullptr
+        && m_indirect_preds.second == IndirectBranchType::kCall;
 }
 
 size_t CFGNode::getCountOfCandidateInstructions() const noexcept {
@@ -199,5 +200,27 @@ size_t CFGNode::getCountOfCandidateInstructions() const noexcept {
         }
     }
     return result;
+}
+
+void CFGNode::setAsReturnNodeFrom(CFGNode *cfg_node) {
+    m_indirect_preds.first = cfg_node;
+    m_indirect_preds.second = IndirectBranchType::kCall;
+    cfg_node->m_indirect_succs.push_back(
+        std::make_pair(this, IndirectBranchType::kCall));
+}
+
+bool CFGNode::isSwitchStatement() const noexcept {
+    return m_indirect_succs.size() > 1;
+}
+
+bool CFGNode::isSwitchCaseStatement() const noexcept {
+    return m_indirect_preds.second == IndirectBranchType::kSwitchStatement;
+}
+
+void CFGNode::setAsSwitchCaseFor(CFGNode *cfg_node) {
+    m_indirect_preds.first = cfg_node;
+    m_indirect_preds.second = IndirectBranchType::kSwitchStatement;
+    cfg_node->m_indirect_succs.push_back(
+        std::make_pair(this, IndirectBranchType::kSwitchStatement));
 }
 }

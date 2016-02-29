@@ -386,7 +386,7 @@ void ElfDisassembler::prettyPrintCFGNode
 
 void ElfDisassembler::prettyPrintValidCFGNode
     (const CFGNode *cfg_node, const PrettyPrintConfig config) const {
-    if (cfg_node->getType() == BlockCFGNodeType::kData &&
+    if (cfg_node->getType() == CFGNodeKind::kData &&
         config == PrettyPrintConfig::kHideDataNodes) {
         return;
     }

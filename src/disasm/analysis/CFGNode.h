@@ -14,25 +14,22 @@
 namespace disasm {
 class ICFGNode;
 
-enum class BlockCFGNodeType: unsigned {
+enum class CFGNodeKind: unsigned char {
     kData = 1,
     kMaybe = 2,
     kCode = 4
 };
 
 /*
- * a special value used to identify indirect predecessors
+ * a special value used to identify types of indirect successors/predecessors
  */
-enum class PredecessorType: unsigned short {
-    kIndirectCall =
-    0,      // control reaches this node through indirect call node
-    kSwitchStatement = 1,   // control reaches this node from a switch statement
-    kCallNode =
-    2,          // control reaches this node after returning from call
+enum class IndirectBranchType: unsigned char {
+    kCall = 0,      // control reaches a node after a possible call
+    kSwitchStatement = 1,   // control reaches a node after a possible switch
     kOther = 3              // none of the above
 };
 
-enum class TraversalStatus: unsigned short {
+enum class TraversalStatus: unsigned char {
     kUnvisited,
     kVisited,
     kFinished
@@ -89,12 +86,13 @@ public:
     size_t getCountOfCandidateInstructions() const noexcept;
     addr_t getCandidateStartAddr() const noexcept;
     void setCandidateStartAddr(addr_t candidate_start) noexcept;
-    void setType(const BlockCFGNodeType type);
+    void setType(const CFGNodeKind type);
     void setToDataAndInvalidatePredecessors();
     void resetCandidateStartAddress();
-    BlockCFGNodeType getType() const;
+    CFGNodeKind getType() const;
     bool isData() const;
     bool isCode() const;
+    bool isSwitchCaseStatement() const noexcept;
     /*
      * returns true if the branch instruction belongs to the call_group of
      * ARM which is BL and BLX.
@@ -104,15 +102,20 @@ public:
      * returns true if immediate predecessor is a PossibleCall
      */
     bool isPossibleReturn() const noexcept;
-
+    /*
+     * returns a valid value only after recovering switch tables.
+     */
+    bool isSwitchStatement() const noexcept;
     bool isCandidateStartAddressValid(addr_t candidate_addr) const noexcept;
     bool isAssignedToProcedure() const noexcept;
     friend class SectionDisassemblyAnalyzerARM;
 private:
     void setMaximalBlock(MaximalBlock *maximal_block) noexcept;
     CFGNode *getOverlapNodePtr() const noexcept;
+    void setAsReturnNodeFrom(CFGNode *cfg_node);
+    void setAsSwitchCaseFor(CFGNode *cfg_node);
 private:
-    BlockCFGNodeType m_type;
+    CFGNodeKind m_type;
     addr_t m_candidate_start_addr;
     CFGNode *m_overlap_node;
     ICFGNode *m_procedure;
@@ -121,6 +124,7 @@ private:
     CFGNode *m_remote_successor;
     MaximalBlock *m_max_block;
     std::vector<std::pair<CFGNode *, addr_t>> m_direct_predecessors;
-    bool m_possible_return;
+    std::pair<CFGNode *, IndirectBranchType> m_indirect_preds;
+    std::vector<std::pair<CFGNode *, IndirectBranchType>> m_indirect_succs;
 };
 }

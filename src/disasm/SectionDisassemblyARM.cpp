@@ -44,8 +44,7 @@ SectionDisassemblyARM::sectionSize() const {
     return m_section->size();
 }
 
-const uint8_t *
-SectionDisassemblyARM::ptrToData() const {
+const uint8_t *SectionDisassemblyARM::ptrToData() const {
     return static_cast<const uint8_t *>(m_section->data());
 }
 
@@ -66,8 +65,8 @@ const MaximalBlock &SectionDisassemblyARM::back() const {
 }
 
 addr_t SectionDisassemblyARM::virtualAddrOf(const uint8_t *ptr) const {
-    assert(ptrToData() <= ptr
-               && ptr < ptrToData() + sectionSize()
+    assert(ptr < static_cast<const uint8_t *>(ptrToData()) + sectionSize()
+               && ptrToData() <= ptr
                && "Invalid pointer !!!");
     return startAddr() + (ptr - ptrToData());
 }
