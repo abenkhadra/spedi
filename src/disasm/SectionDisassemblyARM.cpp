@@ -55,8 +55,6 @@ void SectionDisassemblyARM::add(const MaximalBlock &max_block) {
 }
 
 void SectionDisassemblyARM::add(MaximalBlock &&max_block) {
-    assert(m_max_blocks.size() == max_block.id()
-               && "invalid index of maximal block");
     m_max_blocks.emplace_back(max_block);
 }
 
@@ -65,7 +63,7 @@ const MaximalBlock &SectionDisassemblyARM::back() const {
 }
 
 addr_t SectionDisassemblyARM::virtualAddrOf(const uint8_t *ptr) const {
-    assert(ptr < static_cast<const uint8_t *>(ptrToData()) + sectionSize()
+    assert(ptr < ptrToData() + sectionSize()
                && ptrToData() <= ptr
                && "Invalid pointer !!!");
     return startAddr() + (ptr - ptrToData());

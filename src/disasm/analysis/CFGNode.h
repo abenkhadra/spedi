@@ -108,6 +108,7 @@ public:
     bool isSwitchStatement() const noexcept;
     bool isCandidateStartAddressValid(addr_t candidate_addr) const noexcept;
     bool isAssignedToProcedure() const noexcept;
+    addr_t getMinTargetAddrOfValidPredecessor() const noexcept;
     friend class SectionDisassemblyAnalyzerARM;
 private:
     void setMaximalBlock(MaximalBlock *maximal_block) noexcept;

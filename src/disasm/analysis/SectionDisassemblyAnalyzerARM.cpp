@@ -313,7 +313,7 @@ void SectionDisassemblyAnalyzerARM::resolveCFGConflicts
     (CFGNode &node,
      const std::vector<std::pair<CFGNode *, addr_t>> &valid_predecessors) {
     // Conflicts between predecessors needs to be resolved.
-    std::cout << "resolving conflicts for node:" << node.id() << std::endl;
+//    std::cout << "resolving conflicts for node:" << node.id() << std::endl;
     std::vector<size_t> assigned_predecessors;
     assigned_predecessors.resize(valid_predecessors.size(), 0);
     int valid_bb_idx = 0;
@@ -566,16 +566,21 @@ void SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
     CFGNode *earliest_switch_table_node = nullptr;
     addr_t current_addr = base_addr;
     addr_t last_target = 0;
+    bool is_jump_table_bounded = true;
     while (current_addr < minimum_switch_case_addr) {
         addr_t target = base_addr +
             (*(reinterpret_cast<const uint16_t *>(code_ptr))) * 2;
         if (last_target != target) {
             auto target_node = findSwitchTargetStartingFromNode(node, target);
             if (target_node == nullptr) {
-                // switch table looks invalid!
-                return;
+                // switch table looks invalid or unbounded!
+                is_jump_table_bounded = false;
+                break;
             }
             if (!target_node->isSwitchCaseStatement()) {
+                // is settable to switch case
+                // if target = candidate -> true, target < candidate_start->false
+                // target > candidate start validate predecessors.
                 // there are many redundancies in a switch table
                 target_node->setAsSwitchCaseFor(&node);
             }
@@ -589,17 +594,26 @@ void SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
         current_addr += 2;
         last_target = target;
     }
-    // clean-up
-    if (earliest_switch_table_node != nullptr) {
-        earliest_switch_table_node->
-            setCandidateStartAddr(minimum_switch_case_addr);
-        for (auto node_iter = m_sec_cfg.m_cfg.begin() + node.id() + 1;
-             node_iter
-                 < m_sec_cfg.m_cfg.begin() + earliest_switch_table_node->id();
-             ++node_iter) {
-            (*node_iter).setType(CFGNodeKind::kData);
+    if (!is_jump_table_bounded) {
+        earliest_switch_table_node =
+            findCFGNodeAffectedByLoadStartingFrom(node, current_addr);
+        if (earliest_switch_table_node == nullptr
+            || earliest_switch_table_node->id() == node.id()) {
+            return;
         }
+        minimum_switch_case_addr =
+            earliest_switch_table_node->getMinTargetAddrOfValidPredecessor();
     }
+    // clean-up
+    earliest_switch_table_node->
+        setCandidateStartAddr(minimum_switch_case_addr);
+    for (auto node_iter = m_sec_cfg.m_cfg.begin() + node.id() + 1;
+         node_iter
+             < m_sec_cfg.m_cfg.begin() + earliest_switch_table_node->id();
+         ++node_iter) {
+        (*node_iter).setType(CFGNodeKind::kData);
+    }
+
 }
 
 void SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable(CFGNode &node) {
@@ -653,7 +667,8 @@ void SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable(CFGNode &node) {
 
 CFGNode *SectionDisassemblyAnalyzerARM::findSwitchTargetStartingFromNode
     (CFGNode &node, addr_t target_addr) {
-    printf("Node: %lu Target: %lx\n", node.id(), target_addr);
+    printf("Node: %lu at %lx Target: %lx\n", node.id(),
+           node.getCandidateStartAddr(), target_addr);
     if (target_addr < m_exec_addr_start || target_addr > m_exec_addr_end) {
         return nullptr;
     }

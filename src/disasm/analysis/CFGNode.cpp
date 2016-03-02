@@ -223,4 +223,17 @@ void CFGNode::setAsSwitchCaseFor(CFGNode *cfg_node) {
     cfg_node->m_indirect_succs.push_back(
         std::make_pair(this, IndirectBranchType::kSwitchStatement));
 }
+
+addr_t CFGNode::getMinTargetAddrOfValidPredecessor() const noexcept {
+    if (m_direct_predecessors.size() == 0) {
+        return 0;
+    }
+    addr_t minimum_addr = m_direct_predecessors[0].second;
+    for (auto &pred : m_direct_predecessors) {
+        if (pred.second < minimum_addr) {
+            minimum_addr = pred.second;
+        }
+    }
+    return minimum_addr;
+}
 }
