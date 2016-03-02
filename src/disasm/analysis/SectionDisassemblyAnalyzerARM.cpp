@@ -27,9 +27,9 @@ size_t SectionDisassemblyAnalyzerARM::calculateBasicBlockWeight
     unsigned pred_weight = 0;
     for (auto pred_iter = node.getDirectPredecessors().cbegin();
          pred_iter < node.getDirectPredecessors().cend(); ++pred_iter) {
-        if (!(*pred_iter).first->isData()) {
+        if (!(*pred_iter).node()->isData()) {
             pred_weight +=
-                (*pred_iter).first->getMaximalBlock()->instructionsCount();
+                (*pred_iter).node()->getMaximalBlock()->instructionsCount();
         }
     }
     return pred_weight + basic_block.instructionCount();
@@ -44,7 +44,7 @@ size_t SectionDisassemblyAnalyzerARM::calculateNodeWeight
     for (auto pred_iter = node->getDirectPredecessors().cbegin();
          pred_iter < node->getDirectPredecessors().cend(); ++pred_iter) {
         pred_weight +=
-            (*pred_iter).first->getMaximalBlock()->instructionsCount();
+            (*pred_iter).node()->getMaximalBlock()->instructionsCount();
     }
     return node->getMaximalBlock()->instructionsCount() + pred_weight;
 }
@@ -86,7 +86,9 @@ void SectionDisassemblyAnalyzerARM::buildCFG() {
             if ((*rev_cfg_node_iter).isPossibleCall()
                 && (*rev_cfg_node_iter).getMaximalBlock()->
                     isAppendableBy(*(*node_iter).getMaximalBlock())) {
-                (*node_iter).setAsReturnNodeFrom(&(*rev_cfg_node_iter));
+                (*node_iter).setAsReturnNodeFrom
+                    (&(*rev_cfg_node_iter),
+                     (*rev_cfg_node_iter).getMaximalBlock()->endAddr());
             }
             // check for overlap MB
             for (; rev_cfg_node_iter >= m_sec_cfg.m_cfg.begin();
@@ -121,7 +123,7 @@ void SectionDisassemblyAnalyzerARM::buildCFG() {
             auto succ = findRemoteSuccessor(branch_target);
             if (succ != nullptr && !succ->isData()) {
                 (*node_iter).setRemoteSuccessor(succ);
-                succ->addDirectPredecessor(&(*node_iter), branch_target);
+                succ->addRemotePredecessor(&(*node_iter), branch_target);
 //                    std::cout << "MaximalBlock: " << (*node_iter).id()
 //                        << " Points to: " << (*succ).id() << "\n";
             } else {
@@ -258,9 +260,9 @@ void SectionDisassemblyAnalyzerARM::resolveValidBasicBlock(CFGNode &node) {
         // nothing more to do
         return;
     }
-    std::vector<std::pair<CFGNode *, addr_t>> valid_predecessors;
+    std::vector<CFGEdge> valid_predecessors;
     for (auto &pred_iter: node.getDirectPredecessors()) {
-        if (!(pred_iter).first->isData()) {
+        if (!(pred_iter).node()->isData()) {
             valid_predecessors.push_back(pred_iter);
         }
     }
@@ -272,13 +274,13 @@ void SectionDisassemblyAnalyzerARM::resolveValidBasicBlock(CFGNode &node) {
         for (auto pred_iter = valid_predecessors.cbegin();
              pred_iter < valid_predecessors.cend(); ++pred_iter) {
             for (addr_t addr : (*bblock_iter).getInstructionAddresses()) {
-                if ((*pred_iter).second == addr) {
-                    if ((*pred_iter).second < node.getCandidateStartAddr()) {
+                if ((*pred_iter).targetAddr() == addr) {
+                    if ((*pred_iter).targetAddr() < node.getCandidateStartAddr()) {
                         auto overlap_pred =
                             m_sec_cfg.ptrToNodeAt(node.id() - 1);
-                        if (calculateNodeWeight((*pred_iter).first) <
+                        if (calculateNodeWeight((*pred_iter).node()) <
                             calculateNodeWeight(overlap_pred)) {
-                            (*pred_iter).first->setToDataAndInvalidatePredecessors();
+                            (*pred_iter).node()->setToDataAndInvalidatePredecessors();
                         } else {
                             overlap_pred->setToDataAndInvalidatePredecessors();
                         }
@@ -303,8 +305,7 @@ void SectionDisassemblyAnalyzerARM::resolveValidBasicBlock(CFGNode &node) {
 }
 
 void SectionDisassemblyAnalyzerARM::resolveCFGConflicts
-    (CFGNode &node,
-     const std::vector<std::pair<CFGNode *, addr_t>> &valid_predecessors) {
+    (CFGNode &node, const std::vector<CFGEdge> &valid_predecessors) {
     // Conflicts between predecessors needs to be resolved.
 //    std::cout << "resolving conflicts for node:" << node.id() << std::endl;
     std::vector<size_t> assigned_predecessors;
@@ -327,10 +328,10 @@ void SectionDisassemblyAnalyzerARM::resolveCFGConflicts
                 //                      + instruction count of BB
                 auto addrs = node.getMaximalBlock()->
                     getBasicBlockAt(i).getInstructionAddresses();
-                if (std::find(addrs.begin(), addrs.end(), (*pred_iter).second)
+                if (std::find(addrs.begin(), addrs.end(), (*pred_iter).targetAddr())
                     != addrs.end()) {
                     assigned_predecessors[j] = static_cast<size_t>(i);
-                    current_weight += calculateNodeWeight((*pred_iter).first);
+                    current_weight += calculateNodeWeight((*pred_iter).node());
                 }
             }
             if (current_weight >= maximum_weight) {
@@ -344,7 +345,7 @@ void SectionDisassemblyAnalyzerARM::resolveCFGConflicts
          pred_iter < valid_predecessors.cend(); ++pred_iter, ++j) {
         if (assigned_predecessors[j] != valid_bb_idx) {
             // set predecessor to data
-            (*pred_iter).first->setToDataAndInvalidatePredecessors();
+            (*pred_iter).node()->setToDataAndInvalidatePredecessors();
         }
     }
 }
@@ -470,7 +471,7 @@ void SectionDisassemblyAnalyzerARM::addConditionalBranchToCFG(CFGNode &node) {
         auto succ = findImmediateSuccessor(node);
         if (succ != nullptr && !succ->isData()) {
             node.setImmediateSuccessor(succ);
-            succ->addDirectPredecessor
+            succ->addImmediatePredecessor
                 (&node, node.getMaximalBlock()->endAddr());
         } else {
             // a conditional branch without a direct successor is data
@@ -531,7 +532,7 @@ void SectionDisassemblyAnalyzerARM::recoverTBBSwitchTable(CFGNode &node) {
             }
             if (!target_node->isSwitchCaseStatement()) {
                 // there are many redundancies in a switch table
-                target_node->setAsSwitchCaseFor(&node);
+                target_node->setAsSwitchCaseFor(&node, 0);
             }
             if (target < minimum_switch_case_addr
                 && target > node.getCandidateStartAddr()) {
@@ -546,10 +547,6 @@ void SectionDisassemblyAnalyzerARM::recoverTBBSwitchTable(CFGNode &node) {
     if (!is_jump_table_bounded) {
         earliest_switch_table_node =
             findCFGNodeAffectedByLoadStartingFrom(node, current_addr);
-        if (earliest_switch_table_node == nullptr
-            || earliest_switch_table_node->id() == node.id()) {
-            return;
-        }
         minimum_switch_case_addr =
             earliest_switch_table_node->getMinTargetAddrOfValidPredecessor();
     }
@@ -561,7 +558,7 @@ void SectionDisassemblyAnalyzerARM::recoverTBBSwitchTable(CFGNode &node) {
              node_iter
                  < m_sec_cfg.m_cfg.begin() + earliest_switch_table_node->id();
              ++node_iter) {
-            (*node_iter).setType(CFGNodeKind::kData);
+            (*node_iter).setType(CFGNodeType::kData);
         }
     }
 }
@@ -593,7 +590,7 @@ void SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
                 // if target = candidate -> true, target < candidate_start->false
                 // target > candidate start validate predecessors.
                 // there are many redundancies in a switch table
-                target_node->setAsSwitchCaseFor(&node);
+                target_node->setAsSwitchCaseFor(&node, 0);
             }
             if (target < minimum_switch_case_addr
                 && target > node.getCandidateStartAddr()) {
@@ -608,10 +605,6 @@ void SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
     if (!is_jump_table_bounded) {
         earliest_switch_table_node =
             findCFGNodeAffectedByLoadStartingFrom(node, current_addr);
-        if (earliest_switch_table_node == nullptr
-            || earliest_switch_table_node->id() == node.id()) {
-            return;
-        }
         minimum_switch_case_addr =
             earliest_switch_table_node->getMinTargetAddrOfValidPredecessor();
     }
@@ -622,7 +615,7 @@ void SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
          node_iter
              < m_sec_cfg.m_cfg.begin() + earliest_switch_table_node->id();
          ++node_iter) {
-        (*node_iter).setType(CFGNodeKind::kData);
+        (*node_iter).setType(CFGNodeType::kData);
     }
 
 }
@@ -652,7 +645,7 @@ void SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable
             }
             if (!target_node->isSwitchCaseStatement()) {
                 // there are many redundancies in a switch table
-                target_node->setAsSwitchCaseFor(&node);
+                target_node->setAsSwitchCaseFor(&node, 0);
             }
             if (target < minimum_switch_case_addr
                 && target > node.getCandidateStartAddr()) {
@@ -672,7 +665,7 @@ void SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable
              node_iter
                  < m_sec_cfg.m_cfg.begin() + earliest_switch_table_node->id();
              ++node_iter) {
-            (*node_iter).setType(CFGNodeKind::kData);
+            (*node_iter).setType(CFGNodeType::kData);
         }
     }
 }

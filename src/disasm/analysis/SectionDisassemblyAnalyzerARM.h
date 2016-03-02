@@ -82,8 +82,7 @@ private:
     void addConditionalBranchToCFG(CFGNode &node);
     void resolveOverlapBetweenCFGNodes(CFGNode &node);
     void resolveCFGConflicts
-        (CFGNode &node,
-         const std::vector<std::pair<CFGNode *, addr_t>> &valid_predecessors);
+        (CFGNode &node, const std::vector<CFGEdge> &valid_predecessors);
     void resolveLoadConflicts(CFGNode &node);
     void resolveSwitchStatements(CFGNode &node);
     void shortenToCandidateAddressOrSetToData

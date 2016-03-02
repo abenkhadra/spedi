@@ -61,7 +61,8 @@ add_library(
         disasm/analysis/ICFGNode.cpp
         disasm/analysis/ICFGNode.h
         disasm/analysis/DisassemblyCallGraph.cpp
-        disasm/analysis/DisassemblyCallGraph.h)
+        disasm/analysis/DisassemblyCallGraph.h
+        disasm/analysis/CFGEdge.h)
 
 #target_compile_options(disasm PRIVATE -fsanitize=address)
 add_dependencies(disasm elf++ dwarf++)

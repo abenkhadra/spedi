@@ -9,24 +9,16 @@
 #pragma once
 #include "disasm/common.h"
 #include "disasm/MaximalBlock.h"
+#include "CFGEdge.h"
 #include <functional>
 
 namespace disasm {
 class ICFGNode;
 
-enum class CFGNodeKind: unsigned char {
+enum class CFGNodeType: unsigned char {
     kData = 1,
     kMaybe = 2,
     kCode = 4
-};
-
-/*
- * a special value used to identify types of indirect successors/predecessors
- */
-enum class IndirectBranchType: unsigned char {
-    kCall = 0,      // control reaches a node after a possible call
-    kSwitchStatement = 1,   // control reaches a node after a possible switch
-    kOther = 3              // none of the above
 };
 
 enum class TraversalStatus: unsigned char {
@@ -56,7 +48,8 @@ public:
     const CFGNode *getOverlapNode() const;
     size_t id() const noexcept;
 
-    void addDirectPredecessor(CFGNode *predecessor, addr_t target_addr);
+    void addRemotePredecessor(CFGNode *predecessor, addr_t target_addr);
+    void addImmediatePredecessor(CFGNode *predecessor, addr_t target_addr);
     /*
      * should be set only for conditional branches
      */
@@ -71,8 +64,7 @@ public:
     void setRemoteSuccessor(CFGNode *successor);
     const CFGNode *getRemoteSuccessor() const;
 
-    const std::vector<std::pair<CFGNode *, addr_t>> &
-        getDirectPredecessors() const noexcept;
+    const std::vector<CFGEdge> &getDirectPredecessors() const noexcept;
     bool hasOverlapWithOtherNode() const noexcept;
     bool isCandidateStartAddressSet() const noexcept;
 
@@ -86,10 +78,10 @@ public:
     size_t getCountOfCandidateInstructions() const noexcept;
     addr_t getCandidateStartAddr() const noexcept;
     void setCandidateStartAddr(addr_t candidate_start) noexcept;
-    void setType(const CFGNodeKind type);
+    void setType(const CFGNodeType type);
     void setToDataAndInvalidatePredecessors();
     void resetCandidateStartAddress();
-    CFGNodeKind getType() const;
+    CFGNodeType getType() const;
     bool isData() const;
     bool isCode() const;
     bool isSwitchCaseStatement() const noexcept;
@@ -108,15 +100,16 @@ public:
     bool isSwitchStatement() const noexcept;
     bool isCandidateStartAddressValid(addr_t candidate_addr) const noexcept;
     bool isAssignedToProcedure() const noexcept;
+    bool isImmediateSuccessorSet() const noexcept;
     addr_t getMinTargetAddrOfValidPredecessor() const noexcept;
     friend class SectionDisassemblyAnalyzerARM;
 private:
     void setMaximalBlock(MaximalBlock *maximal_block) noexcept;
     CFGNode *getOverlapNodePtr() const noexcept;
-    void setAsReturnNodeFrom(CFGNode *cfg_node);
-    void setAsSwitchCaseFor(CFGNode *cfg_node);
+    void setAsReturnNodeFrom(CFGNode *cfg_node, const addr_t target_addr);
+    void setAsSwitchCaseFor(CFGNode *cfg_node, const addr_t target_addr);
 private:
-    CFGNodeKind m_type;
+    CFGNodeType m_type;
     addr_t m_candidate_start_addr;
     CFGNode *m_overlap_node;
     ICFGNode *m_procedure;
@@ -124,8 +117,9 @@ private:
     CFGNode *m_immediate_successor;
     CFGNode *m_remote_successor;
     MaximalBlock *m_max_block;
-    std::vector<std::pair<CFGNode *, addr_t>> m_direct_predecessors;
-    std::pair<CFGNode *, IndirectBranchType> m_indirect_preds;
-    std::vector<std::pair<CFGNode *, IndirectBranchType>> m_indirect_succs;
+    std::vector<CFGEdge> m_direct_predecessors;
+    std::vector<CFGEdge> m_indirect_predecessors;
+    std::vector<CFGEdge> m_indirect_successors;
+
 };
 }

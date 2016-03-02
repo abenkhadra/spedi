@@ -25,17 +25,11 @@ public:
     MCInstAnalyzerARM(const MCInstAnalyzerARM &src) = default;
     MCInstAnalyzerARM &operator=(const MCInstAnalyzerARM &src) = default;
     MCInstAnalyzerARM(MCInstAnalyzerARM &&src) = default;
-
     bool modifySP(const MCInst *inst) const;
-
     std::vector<const MCInst *> getPCRelativeLoadsInstructions
         (const CFGNode *cfg_node) const noexcept;
-
     unsigned recoverSwitchLDROffset(const CFGNode &node) const;
 private:
     ISAType m_isa;
 };
 }
-
-
-

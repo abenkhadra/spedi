@@ -386,7 +386,7 @@ void ElfDisassembler::prettyPrintCFGNode
 
 void ElfDisassembler::prettyPrintValidCFGNode
     (const CFGNode *cfg_node, const PrettyPrintConfig config) const {
-    if (cfg_node->getType() == CFGNodeKind::kData &&
+    if (cfg_node->getType() == CFGNodeType::kData &&
         config == PrettyPrintConfig::kHideDataNodes) {
         return;
     }
@@ -414,7 +414,7 @@ void ElfDisassembler::prettyPrintValidCFGNode
             }
         } else {
             for (auto &pred : cfg_node->getDirectPredecessors()) {
-                printf("%lu ", pred.first->id());
+                printf("%lu ", pred.node()->id());
             }
             printf("\n");
         }

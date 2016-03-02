@@ -11,7 +11,7 @@
 
 namespace disasm {
 CFGNode::CFGNode() :
-    m_type{CFGNodeKind::kMaybe},
+    m_type{CFGNodeType::kMaybe},
     m_candidate_start_addr{0},
     m_overlap_node{nullptr},
     m_procedure{nullptr},
@@ -19,11 +19,10 @@ CFGNode::CFGNode() :
     m_immediate_successor{nullptr},
     m_remote_successor{nullptr},
     m_max_block{nullptr} {
-    m_indirect_preds = std::make_pair(nullptr, IndirectBranchType::kOther);
 }
 
 CFGNode::CFGNode(MaximalBlock *current_block) :
-    m_type{CFGNodeKind::kMaybe},
+    m_type{CFGNodeType::kMaybe},
     m_candidate_start_addr{0},
     m_overlap_node{nullptr},
     m_procedure{nullptr},
@@ -31,15 +30,17 @@ CFGNode::CFGNode(MaximalBlock *current_block) :
     m_immediate_successor{nullptr},
     m_remote_successor{nullptr},
     m_max_block{current_block} {
-    m_indirect_preds = std::make_pair(nullptr, IndirectBranchType::kOther);
 }
 
-void CFGNode::addDirectPredecessor(CFGNode *predecessor, addr_t target_addr) {
-    assert(m_max_block->isWithinAddressSpace(target_addr)
-               && "Invalid target address");
-    m_direct_predecessors.emplace_back(std::pair<CFGNode *, addr_t>(
-        predecessor,
-        target_addr));
+void CFGNode::addRemotePredecessor(CFGNode *predecessor, addr_t target_addr) {
+    m_direct_predecessors.emplace_back
+        (CFGEdge(CFGEdgeType::kDirect, predecessor, target_addr));
+}
+
+void CFGNode::addImmediatePredecessor
+    (CFGNode *predecessor, addr_t target_addr) {
+    m_direct_predecessors.emplace_back
+        (CFGEdge(CFGEdgeType::kConditional, predecessor, target_addr));
 }
 
 void CFGNode::setImmediateSuccessor(CFGNode *successor) {
@@ -59,18 +60,18 @@ const CFGNode *CFGNode::getOverlapNode() const {
 }
 
 bool CFGNode::isData() const {
-    return m_type == CFGNodeKind::kData;
+    return m_type == CFGNodeType::kData;
 }
 
 bool CFGNode::isCode() const {
-    return m_type == CFGNodeKind::kCode;
+    return m_type == CFGNodeType::kCode;
 }
 
-void CFGNode::setType(const CFGNodeKind type) {
+void CFGNode::setType(const CFGNodeType type) {
     m_type = type;
 }
 
-CFGNodeKind CFGNode::getType() const {
+CFGNodeType CFGNode::getType() const {
     return m_type;
 }
 
@@ -124,7 +125,7 @@ const CFGNode *CFGNode::getRemoteSuccessor() const {
     return m_remote_successor;
 }
 
-const std::vector<std::pair<CFGNode *, addr_t>> &
+const std::vector<CFGEdge> &
 CFGNode::getDirectPredecessors() const noexcept {
     return m_direct_predecessors;
 }
@@ -155,16 +156,18 @@ bool CFGNode::isCandidateStartAddressValid
 }
 
 void CFGNode::setToDataAndInvalidatePredecessors() {
-    if (m_type == CFGNodeKind::kData) {
+    if (m_type == CFGNodeType::kData) {
         return;
     }
-    m_type = CFGNodeKind::kData;
+    m_type = CFGNodeType::kData;
     for (auto pred_iter = m_direct_predecessors.begin();
          pred_iter < m_direct_predecessors.end(); ++pred_iter) {
+        if ((*pred_iter).type() == CFGEdgeType::kDirect
+            ||(*pred_iter).type() == CFGEdgeType::kConditional) {
+        }
         printf("CONFLICT: Invalidating %lu predecessor of %lu\n",
-               (*pred_iter).first->id(),
-               id());
-        (*pred_iter).first->setToDataAndInvalidatePredecessors();
+               (*pred_iter).node()->id(), this->id());
+        (*pred_iter).node()->setToDataAndInvalidatePredecessors();
     }
 }
 
@@ -186,8 +189,11 @@ bool CFGNode::isPossibleCall() const noexcept {
 }
 
 bool CFGNode::isPossibleReturn() const noexcept {
-    return m_indirect_preds.first != nullptr
-        && m_indirect_preds.second == IndirectBranchType::kCall;
+    for (auto &cfg_edge : m_indirect_predecessors) {
+        if (cfg_edge.type() == CFGEdgeType::kReturn)
+            return true;
+    }
+    return false;
 }
 
 size_t CFGNode::getCountOfCandidateInstructions() const noexcept {
@@ -202,40 +208,48 @@ size_t CFGNode::getCountOfCandidateInstructions() const noexcept {
     return result;
 }
 
-void CFGNode::setAsReturnNodeFrom(CFGNode *cfg_node) {
-    m_indirect_preds.first = cfg_node;
-    m_indirect_preds.second = IndirectBranchType::kCall;
-    cfg_node->m_indirect_succs.push_back(
-        std::make_pair(this, IndirectBranchType::kCall));
+void CFGNode::setAsReturnNodeFrom(CFGNode *cfg_node, const addr_t target_addr) {
+    m_indirect_predecessors.emplace_back
+        (CFGEdge(CFGEdgeType::kReturn, cfg_node, target_addr));
+    cfg_node->m_indirect_successors.emplace_back
+        (CFGEdge(CFGEdgeType::kReturn, this, target_addr));
+}
+
+void CFGNode::setAsSwitchCaseFor(CFGNode *cfg_node, const addr_t target_addr) {
+    m_indirect_predecessors.emplace_back
+        (CFGEdge(CFGEdgeType::kSwitchTable, cfg_node, target_addr));
+    cfg_node->m_indirect_successors.emplace_back
+        (CFGEdge(CFGEdgeType::kSwitchTable, this, target_addr));
 }
 
 bool CFGNode::isSwitchStatement() const noexcept {
-    return m_indirect_succs.size() > 1;
+    return m_indirect_successors.size() > 1;
 }
 
 bool CFGNode::isSwitchCaseStatement() const noexcept {
-    return m_indirect_preds.second == IndirectBranchType::kSwitchStatement;
-}
-
-void CFGNode::setAsSwitchCaseFor(CFGNode *cfg_node) {
-    m_indirect_preds.first = cfg_node;
-    m_indirect_preds.second = IndirectBranchType::kSwitchStatement;
-    cfg_node->m_indirect_succs.push_back(
-        std::make_pair(this, IndirectBranchType::kSwitchStatement));
+    for (auto &cfg_edge : m_indirect_predecessors) {
+        if (cfg_edge.type() == CFGEdgeType::kSwitchTable)
+            return true;
+    }
+    return false;
 }
 
 addr_t CFGNode::getMinTargetAddrOfValidPredecessor() const noexcept {
     addr_t minimum_addr = UINT64_MAX;
     for (auto &pred : m_direct_predecessors) {
-        if (pred.second < minimum_addr
-            && pred.first->getType() != CFGNodeKind::kData
-            && pred.first->id() != id() - 1) {
-            minimum_addr = pred.second;
+        if (pred.targetAddr() < minimum_addr
+            && pred.node()->getType() != CFGNodeType::kData
+            && pred.node()->id() != id() - 1) {
+            minimum_addr = pred.targetAddr();
         }
     }
     if (minimum_addr == UINT64_MAX) {
         return 0;
     }
     return minimum_addr;
+}
+
+bool CFGNode::isImmediateSuccessorSet() const noexcept {
+    return m_immediate_successor != nullptr;
 }
 }
