@@ -211,14 +211,7 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
         resolveValidBasicBlock((*node_iter));
 
     }
-    // PC relative-loads introduce additional conflicts
-    for (auto node_iter = m_sec_cfg.m_cfg.begin();
-         node_iter < m_sec_cfg.m_cfg.end(); ++node_iter) {
-        if ((*node_iter).isData()) {
-            continue;
-        }
-        resolveSwitchStatements(*node_iter);
-    }
+    // PC relative-loads introduce additional data
 }
 
 void SectionDisassemblyAnalyzerARM::resolveOverlapBetweenCFGNodes(CFGNode &node) {
@@ -370,8 +363,7 @@ void SectionDisassemblyAnalyzerARM::resolveLoadConflicts(CFGNode &node) {
         CFGNode *target_node =
             findCFGNodeAffectedByLoadStartingFrom(node, target);
         if (target_node == nullptr) {
-            shortenToCandidateAddressOrSetToData
-                (node, inst_ptr->endAddr());
+            shortenToCandidateAddressOrSetToData(node, inst_ptr->endAddr());
             continue;
         }
         if (target + 4 <= target_node->getCandidateStartAddr()) {
@@ -421,6 +413,13 @@ void SectionDisassemblyAnalyzerARM::shortenToCandidateAddressOrSetToData
 }
 
 void SectionDisassemblyAnalyzerARM::buildCallGraph() {
+    for (auto node_iter = m_sec_cfg.m_cfg.begin();
+         node_iter < m_sec_cfg.m_cfg.end(); ++node_iter) {
+        if ((*node_iter).isData()) {
+            continue;
+        }
+        resolveSwitchStatements(*node_iter);
+    }
     // for each node
     // if assigned to procedure
     //     continue
@@ -443,7 +442,7 @@ void SectionDisassemblyAnalyzerARM::resolveSwitchStatements
         recoverTBHSwitchTable(node);
     }
     if (node.getMaximalBlock()->getBranchInstruction()->id() == ARM_INS_LDR) {
-        recoverLDRSwitchTable(node);
+        recoverLDRSwitchTable(node, m_analyzer.recoverSwitchLDROffset(node));
     }
 }
 
@@ -520,13 +519,15 @@ void SectionDisassemblyAnalyzerARM::recoverTBBSwitchTable(CFGNode &node) {
     CFGNode *earliest_switch_table_node = nullptr;
     addr_t current_addr = base_addr;
     addr_t last_target = 0;
+    bool is_jump_table_bounded = true;
     while (current_addr < minimum_switch_case_addr) {
         addr_t target = base_addr + (*code_ptr) * 2;
         if (last_target != target) {
             auto target_node = findSwitchTargetStartingFromNode(node, target);
             if (target_node == nullptr) {
-                // switch table looks invalid!
-                return;
+                // switch table looks padded or invalid!
+                is_jump_table_bounded = false;
+                break;
             }
             if (!target_node->isSwitchCaseStatement()) {
                 // there are many redundancies in a switch table
@@ -541,6 +542,16 @@ void SectionDisassemblyAnalyzerARM::recoverTBBSwitchTable(CFGNode &node) {
         code_ptr++;
         current_addr++;
         last_target = target;
+    }
+    if (!is_jump_table_bounded) {
+        earliest_switch_table_node =
+            findCFGNodeAffectedByLoadStartingFrom(node, current_addr);
+        if (earliest_switch_table_node == nullptr
+            || earliest_switch_table_node->id() == node.id()) {
+            return;
+        }
+        minimum_switch_case_addr =
+            earliest_switch_table_node->getMinTargetAddrOfValidPredecessor();
     }
     // clean-up
     if (earliest_switch_table_node != nullptr) {
@@ -573,7 +584,7 @@ void SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
         if (last_target != target) {
             auto target_node = findSwitchTargetStartingFromNode(node, target);
             if (target_node == nullptr) {
-                // switch table looks invalid or unbounded!
+                // switch table looks padded or invalid!
                 is_jump_table_bounded = false;
                 break;
             }
@@ -616,12 +627,13 @@ void SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
 
 }
 
-void SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable(CFGNode &node) {
-    const uint8_t *code_ptr = (m_sec_disassembly->ptrToData() + 4 +
-        +(node.getMaximalBlock()->getBranchInstruction()->addr()
+void SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable
+    (CFGNode &node, unsigned offset) {
+    const uint8_t *code_ptr = (m_sec_disassembly->ptrToData() + 4 + offset
+        + (node.getMaximalBlock()->getBranchInstruction()->addr()
             - m_sec_disassembly->startAddr()));
     addr_t current_addr =
-        node.getMaximalBlock()->getBranchInstruction()->addr() + 4;
+        node.getMaximalBlock()->getBranchInstruction()->addr() + 4 + offset;
     if (current_addr % 4 != 0) {
         code_ptr += 2;
         current_addr += 2;

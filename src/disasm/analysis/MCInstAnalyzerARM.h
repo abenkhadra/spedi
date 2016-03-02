@@ -31,6 +31,7 @@ public:
     std::vector<const MCInst *> getPCRelativeLoadsInstructions
         (const CFGNode *cfg_node) const noexcept;
 
+    unsigned recoverSwitchLDROffset(const CFGNode &node) const;
 private:
     ISAType m_isa;
 };

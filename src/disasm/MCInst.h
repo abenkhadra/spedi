@@ -37,7 +37,6 @@ public:
     bool operator==(MCInst &other) const noexcept;
 
     const std::string &mnemonic() const noexcept;
-
     const std::string &operands() const noexcept;
 
 private:

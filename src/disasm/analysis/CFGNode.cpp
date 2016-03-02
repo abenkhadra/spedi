@@ -225,14 +225,16 @@ void CFGNode::setAsSwitchCaseFor(CFGNode *cfg_node) {
 }
 
 addr_t CFGNode::getMinTargetAddrOfValidPredecessor() const noexcept {
-    if (m_direct_predecessors.size() == 0) {
-        return 0;
-    }
-    addr_t minimum_addr = m_direct_predecessors[0].second;
+    addr_t minimum_addr = UINT64_MAX;
     for (auto &pred : m_direct_predecessors) {
-        if (pred.second < minimum_addr) {
+        if (pred.second < minimum_addr
+            && pred.first->getType() != CFGNodeKind::kData
+            && pred.first->id() != id() - 1) {
             minimum_addr = pred.second;
         }
+    }
+    if (minimum_addr == UINT64_MAX) {
+        return 0;
     }
     return minimum_addr;
 }

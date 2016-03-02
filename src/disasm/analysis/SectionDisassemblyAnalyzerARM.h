@@ -92,7 +92,7 @@ private:
         (const CFGNode &node) const noexcept;
     void recoverTBBSwitchTable(CFGNode &node);
     void recoverTBHSwitchTable(CFGNode &node);
-    void recoverLDRSwitchTable(CFGNode &node);
+    void recoverLDRSwitchTable(CFGNode &node, unsigned offset);
 private:
     // call graph related methods
     void buildProcedureStartingFrom(CFGNode &entry_node);
