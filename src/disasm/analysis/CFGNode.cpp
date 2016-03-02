@@ -235,11 +235,15 @@ bool CFGNode::isSwitchCaseStatement() const noexcept {
 }
 
 addr_t CFGNode::getMinTargetAddrOfValidPredecessor() const noexcept {
+    if (m_indirect_predecessors.size() > 0
+        && m_indirect_predecessors[0].type() == CFGEdgeType::kSwitchTable) {
+        return m_indirect_predecessors[0].targetAddr();
+    }
     addr_t minimum_addr = UINT64_MAX;
     for (auto &pred : m_direct_predecessors) {
         if (pred.targetAddr() < minimum_addr
             && pred.node()->getType() != CFGNodeType::kData
-            && pred.node()->id() != id() - 1) {
+            && pred.type() != CFGEdgeType::kConditional) {
             minimum_addr = pred.targetAddr();
         }
     }

@@ -33,7 +33,7 @@ public:
         m_type{CFGEdgeType::kDirect},
         m_target_node{target_node},
         m_target_addr{target_addr} { };
-    CFGEdge(CFGEdgeType type, CFGNode *target_node, addr_t target_addr):
+    CFGEdge(CFGEdgeType type, CFGNode *target_node, addr_t target_addr) :
         m_type{type},
         m_target_node{target_node},
         m_target_addr{target_addr} { };

@@ -92,6 +92,8 @@ private:
     void recoverTBBSwitchTable(CFGNode &node);
     void recoverTBHSwitchTable(CFGNode &node);
     void recoverLDRSwitchTable(CFGNode &node, unsigned offset);
+    void switchTableCleanUp
+        (CFGNode &node, bool is_bounded, CFGNode *current_node);
 private:
     // call graph related methods
     void buildProcedureStartingFrom(CFGNode &entry_node);
@@ -103,7 +105,7 @@ private:
     addr_t m_exec_addr_end;
     DisassemblyCFG m_sec_cfg;
     DisassemblyCallGraph m_call_graph;
-    CFGNode * findSwitchTargetStartingFromNode
-        (CFGNode &node, addr_t target_addr);
+    CFGNode *findSwitchTargetStartingFromNode
+        (const CFGNode &node, addr_t target_addr);
 };
 }

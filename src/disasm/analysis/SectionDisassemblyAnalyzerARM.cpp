@@ -275,7 +275,8 @@ void SectionDisassemblyAnalyzerARM::resolveValidBasicBlock(CFGNode &node) {
              pred_iter < valid_predecessors.cend(); ++pred_iter) {
             for (addr_t addr : (*bblock_iter).getInstructionAddresses()) {
                 if ((*pred_iter).targetAddr() == addr) {
-                    if ((*pred_iter).targetAddr() < node.getCandidateStartAddr()) {
+                    if ((*pred_iter).targetAddr()
+                        < node.getCandidateStartAddr()) {
                         auto overlap_pred =
                             m_sec_cfg.ptrToNodeAt(node.id() - 1);
                         if (calculateNodeWeight((*pred_iter).node()) <
@@ -328,7 +329,9 @@ void SectionDisassemblyAnalyzerARM::resolveCFGConflicts
                 //                      + instruction count of BB
                 auto addrs = node.getMaximalBlock()->
                     getBasicBlockAt(i).getInstructionAddresses();
-                if (std::find(addrs.begin(), addrs.end(), (*pred_iter).targetAddr())
+                if (std::find(addrs.begin(),
+                              addrs.end(),
+                              (*pred_iter).targetAddr())
                     != addrs.end()) {
                     assigned_predecessors[j] = static_cast<size_t>(i);
                     current_weight += calculateNodeWeight((*pred_iter).node());
@@ -532,7 +535,7 @@ void SectionDisassemblyAnalyzerARM::recoverTBBSwitchTable(CFGNode &node) {
             }
             if (!target_node->isSwitchCaseStatement()) {
                 // there are many redundancies in a switch table
-                target_node->setAsSwitchCaseFor(&node, 0);
+                target_node->setAsSwitchCaseFor(&node, target);
             }
             if (target < minimum_switch_case_addr
                 && target > node.getCandidateStartAddr()) {
@@ -544,23 +547,8 @@ void SectionDisassemblyAnalyzerARM::recoverTBBSwitchTable(CFGNode &node) {
         current_addr++;
         last_target = target;
     }
-    if (!is_jump_table_bounded) {
-        earliest_switch_table_node =
-            findCFGNodeAffectedByLoadStartingFrom(node, current_addr);
-        minimum_switch_case_addr =
-            earliest_switch_table_node->getMinTargetAddrOfValidPredecessor();
-    }
-    // clean-up
-    if (earliest_switch_table_node != nullptr) {
-        earliest_switch_table_node->
-            setCandidateStartAddr(minimum_switch_case_addr);
-        for (auto node_iter = m_sec_cfg.m_cfg.begin() + node.id() + 1;
-             node_iter
-                 < m_sec_cfg.m_cfg.begin() + earliest_switch_table_node->id();
-             ++node_iter) {
-            (*node_iter).setType(CFGNodeType::kData);
-        }
-    }
+    switchTableCleanUp
+        (node, is_jump_table_bounded, earliest_switch_table_node);
 }
 
 void SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
@@ -590,7 +578,7 @@ void SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
                 // if target = candidate -> true, target < candidate_start->false
                 // target > candidate start validate predecessors.
                 // there are many redundancies in a switch table
-                target_node->setAsSwitchCaseFor(&node, 0);
+                target_node->setAsSwitchCaseFor(&node, target);
             }
             if (target < minimum_switch_case_addr
                 && target > node.getCandidateStartAddr()) {
@@ -602,22 +590,8 @@ void SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
         current_addr += 2;
         last_target = target;
     }
-    if (!is_jump_table_bounded) {
-        earliest_switch_table_node =
-            findCFGNodeAffectedByLoadStartingFrom(node, current_addr);
-        minimum_switch_case_addr =
-            earliest_switch_table_node->getMinTargetAddrOfValidPredecessor();
-    }
-    // clean-up
-    earliest_switch_table_node->
-        setCandidateStartAddr(minimum_switch_case_addr);
-    for (auto node_iter = m_sec_cfg.m_cfg.begin() + node.id() + 1;
-         node_iter
-             < m_sec_cfg.m_cfg.begin() + earliest_switch_table_node->id();
-         ++node_iter) {
-        (*node_iter).setType(CFGNodeType::kData);
-    }
-
+    switchTableCleanUp
+        (node, is_jump_table_bounded, earliest_switch_table_node);
 }
 
 void SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable
@@ -634,14 +608,16 @@ void SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable
     addr_t minimum_switch_case_addr = m_exec_addr_end;
     CFGNode *earliest_switch_table_node = nullptr;
     addr_t last_target = 0;
+    bool is_bounded = true;
     while (current_addr < minimum_switch_case_addr) {
         uint32_t target = *(reinterpret_cast<const uint32_t *>(code_ptr))
             & 0xFFFFFFFE;
         if (last_target != target) {
             auto target_node = findSwitchTargetStartingFromNode(node, target);
             if (target_node == nullptr) {
-                // switch table looks invalid!
-                return;
+                // switch table looks padded or invalid!
+                is_bounded = false;
+                break;
             }
             if (!target_node->isSwitchCaseStatement()) {
                 // there are many redundancies in a switch table
@@ -658,20 +634,40 @@ void SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable
         last_target = target;
     }
     // clean-up
-    if (earliest_switch_table_node != nullptr) {
-        earliest_switch_table_node->
-            setCandidateStartAddr(minimum_switch_case_addr);
+    switchTableCleanUp
+        (node, is_bounded, earliest_switch_table_node);
+}
+
+void SectionDisassemblyAnalyzerARM::switchTableCleanUp
+    (CFGNode &node, bool is_bounded, CFGNode *current_node) {
+    if (is_bounded) {
+        current_node->setCandidateStartAddr
+            (current_node->getMinTargetAddrOfValidPredecessor());
         for (auto node_iter = m_sec_cfg.m_cfg.begin() + node.id() + 1;
-             node_iter
-                 < m_sec_cfg.m_cfg.begin() + earliest_switch_table_node->id();
+             node_iter < m_sec_cfg.m_cfg.begin() + current_node->id();
              ++node_iter) {
             (*node_iter).setType(CFGNodeType::kData);
+        }
+        return;
+    }
+    for (auto node_iter = m_sec_cfg.m_cfg.begin() + node.id() + 1;
+         node_iter < m_sec_cfg.m_cfg.begin() + current_node->id();
+         ++node_iter) {
+        if ((*node_iter).getType() == CFGNodeType::kData) {
+            continue;
+        }
+        if ((*node_iter).getMinTargetAddrOfValidPredecessor() == 0) {
+            (*node_iter).setType(CFGNodeType::kData);
+        } else {
+            (*node_iter).setCandidateStartAddr
+                ((*node_iter).getMinTargetAddrOfValidPredecessor());
+            break;
         }
     }
 }
 
 CFGNode *SectionDisassemblyAnalyzerARM::findSwitchTargetStartingFromNode
-    (CFGNode &node, addr_t target_addr) {
+    (const CFGNode &node, addr_t target_addr) {
     printf("Node: %lu at %lx Target: %lx\n", node.id(),
            node.getCandidateStartAddr(), target_addr);
     if (target_addr < m_exec_addr_start || target_addr > m_exec_addr_end) {
