@@ -10,6 +10,7 @@
 #include "disasm/SectionDisassemblyARM.h"
 #include <iostream>
 #include <algorithm>
+#include <unordered_map>
 
 namespace disasm {
 
@@ -522,21 +523,20 @@ void SectionDisassemblyAnalyzerARM::recoverTBBSwitchTable(CFGNode &node) {
     addr_t minimum_switch_case_addr = m_exec_addr_end;
     CFGNode *earliest_switch_table_node = nullptr;
     addr_t current_addr = base_addr;
-    addr_t last_target = 0;
     bool is_jump_table_bounded = true;
+    std::unordered_map<addr_t, bool> target_map;
     while (current_addr < minimum_switch_case_addr) {
         addr_t target = base_addr + (*code_ptr) * 2;
-        if (last_target != target) {
+        auto insert_result = target_map.insert({target, false});
+        // there are many redundancies in a switch table
+        if (insert_result.second) {
             auto target_node = findSwitchTargetStartingFromNode(node, target);
             if (target_node == nullptr) {
                 // switch table looks padded or invalid!
                 is_jump_table_bounded = false;
                 break;
             }
-            if (!target_node->isSwitchCaseStatement()) {
-                // there are many redundancies in a switch table
-                target_node->setAsSwitchCaseFor(&node, target);
-            }
+            target_node->setAsSwitchCaseFor(&node, target);
             if (target < minimum_switch_case_addr
                 && target > node.getCandidateStartAddr()) {
                 minimum_switch_case_addr = target;
@@ -545,7 +545,6 @@ void SectionDisassemblyAnalyzerARM::recoverTBBSwitchTable(CFGNode &node) {
         }
         code_ptr++;
         current_addr++;
-        last_target = target;
     }
     switchTableCleanUp
         (node, is_jump_table_bounded, earliest_switch_table_node);
@@ -561,25 +560,21 @@ void SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
     addr_t minimum_switch_case_addr = m_exec_addr_end;
     CFGNode *earliest_switch_table_node = nullptr;
     addr_t current_addr = base_addr;
-    addr_t last_target = 0;
     bool is_jump_table_bounded = true;
+    std::unordered_map<addr_t, bool> target_map;
     while (current_addr < minimum_switch_case_addr) {
         addr_t target = base_addr +
             (*(reinterpret_cast<const uint16_t *>(code_ptr))) * 2;
-        if (last_target != target) {
+        auto insert_result = target_map.insert({target, false});
+        if (insert_result.second) {
+            // there are many redundancies in a switch table
             auto target_node = findSwitchTargetStartingFromNode(node, target);
             if (target_node == nullptr) {
                 // switch table looks padded or invalid!
                 is_jump_table_bounded = false;
                 break;
             }
-            if (!target_node->isSwitchCaseStatement()) {
-                // is settable to switch case
-                // if target = candidate -> true, target < candidate_start->false
-                // target > candidate start validate predecessors.
-                // there are many redundancies in a switch table
-                target_node->setAsSwitchCaseFor(&node, target);
-            }
+            target_node->setAsSwitchCaseFor(&node, target);
             if (target < minimum_switch_case_addr
                 && target > node.getCandidateStartAddr()) {
                 minimum_switch_case_addr = target;
@@ -588,7 +583,6 @@ void SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
         }
         code_ptr += 2;
         current_addr += 2;
-        last_target = target;
     }
     switchTableCleanUp
         (node, is_jump_table_bounded, earliest_switch_table_node);
@@ -607,12 +601,14 @@ void SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable
     }
     addr_t minimum_switch_case_addr = m_exec_addr_end;
     CFGNode *earliest_switch_table_node = nullptr;
-    addr_t last_target = 0;
     bool is_bounded = true;
+    std::unordered_map<addr_t, bool> target_map;
     while (current_addr < minimum_switch_case_addr) {
         uint32_t target = *(reinterpret_cast<const uint32_t *>(code_ptr))
             & 0xFFFFFFFE;
-        if (last_target != target) {
+        auto insert_result = target_map.insert({target, false});
+        // there are many redundancies in a switch table
+        if (insert_result.second) {
             auto target_node = findSwitchTargetStartingFromNode(node, target);
             if (target_node == nullptr) {
                 // switch table looks padded or invalid!
@@ -631,7 +627,6 @@ void SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable
         }
         code_ptr += 4;
         current_addr += 4;
-        last_target = target;
     }
     // clean-up
     switchTableCleanUp
