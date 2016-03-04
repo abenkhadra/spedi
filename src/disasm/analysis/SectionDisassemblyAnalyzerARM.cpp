@@ -224,10 +224,9 @@ void SectionDisassemblyAnalyzerARM::resolveOverlapBetweenCFGNodes(CFGNode &node)
             coversAddressSpaceOf(node.getMaximalBlock())) {
             if (calculateNodeWeight(&node) <
                 calculateNodeWeight(node.getOverlapNode())) {
-                if (node.getMaximalBlock()->addrOfFirstInst() ==
-                    m_sec_cfg.previous(node).getMaximalBlock()->endAddr()) {
+                if (m_sec_cfg.previous(node).isAppendableBy(&node)) {
                     // XXX: heuristic applied when this node aligns with previous
-                    // what if previous is data? what if next is one instruction?
+                    // what if next is one instruction?
                     node.getOverlapNodePtr()->
                         setCandidateStartAddr(node.getMaximalBlock()->endAddr());
                 } else {
@@ -237,8 +236,15 @@ void SectionDisassemblyAnalyzerARM::resolveOverlapBetweenCFGNodes(CFGNode &node)
         } else {
             if (node.getOverlapNodePtr()->
                 isCandidateStartAddressValid(node.getMaximalBlock()->endAddr())) {
-                node.getOverlapNodePtr()->
-                    setCandidateStartAddr(node.getMaximalBlock()->endAddr());
+                auto nested_overlap =
+                    node.getOverlapNodePtr()->getOverlapNodePtr();
+                if (nested_overlap != nullptr
+                    && node.isAppendableBy(nested_overlap)) {
+                    node.getOverlapNodePtr()->setToDataAndInvalidatePredecessors();
+                } else {
+                    node.getOverlapNodePtr()->
+                        setCandidateStartAddr(node.getMaximalBlock()->endAddr());
+                }
             } else if (calculateNodeWeight(&node) <
                 calculateNodeWeight(node.getOverlapNode())) {
                 node.setToDataAndInvalidatePredecessors();
@@ -517,6 +523,7 @@ bool SectionDisassemblyAnalyzerARM::isConditionalBranchAffectedByNodeOverlap
             }
         }
     }
+    return false;
 }
 
 void SectionDisassemblyAnalyzerARM::recoverTBBSwitchTable(CFGNode &node) {

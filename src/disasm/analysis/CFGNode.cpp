@@ -161,8 +161,7 @@ bool CFGNode::isCandidateStartAddressSet() const noexcept {
 
 bool CFGNode::isCandidateStartAddressValid
     (addr_t candidate_addr) const noexcept {
-    return candidate_addr <= m_max_block->addrOfFirstInst() &&
-        candidate_addr <= m_max_block->addrOfLastInst();
+    return candidate_addr <= m_max_block->addrOfLastInst();
 }
 
 void CFGNode::setToDataAndInvalidatePredecessors() {
@@ -272,5 +271,10 @@ addr_t CFGNode::getMinTargetAddrOfValidPredecessor() const noexcept {
 
 bool CFGNode::isImmediateSuccessorSet() const noexcept {
     return m_immediate_successor != nullptr;
+}
+
+bool CFGNode::isAppendableBy(const CFGNode *cfg_node) const {
+    return m_max_block->endAddr() ==
+        cfg_node->getMaximalBlock()->addrOfFirstInst();
 }
 }

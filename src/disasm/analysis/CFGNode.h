@@ -105,6 +105,7 @@ public:
     bool isImmediateSuccessorSet() const noexcept;
     addr_t getMinTargetAddrOfValidPredecessor() const noexcept;
     CFGNode *getNearestSwitchTargetAfterThis();
+    bool isAppendableBy(const CFGNode *cfg_node) const;
     friend class SectionDisassemblyAnalyzerARM;
 private:
     void setMaximalBlock(MaximalBlock *maximal_block) noexcept;
