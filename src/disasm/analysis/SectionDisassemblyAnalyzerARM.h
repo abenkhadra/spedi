@@ -84,16 +84,17 @@ private:
     void resolveCFGConflicts
         (CFGNode &node, const std::vector<CFGEdge> &valid_predecessors);
     void resolveLoadConflicts(CFGNode &node);
-    void resolveSwitchStatements(CFGNode &node);
+    void recoverSwitchStatements();
     void shortenToCandidateAddressOrSetToData
         (CFGNode &node, addr_t addr) noexcept;
     bool isConditionalBranchAffectedByNodeOverlap
         (const CFGNode &node) const noexcept;
     void recoverTBBSwitchTable(CFGNode &node);
     void recoverTBHSwitchTable(CFGNode &node);
-    void recoverLDRSwitchTable(CFGNode &node, unsigned offset);
+    void recoverLDRSwitchTable
+        (CFGNode &node, const addr_t jump_table_base_addr);
     void switchTableCleanUp
-        (CFGNode &node, bool is_bounded, CFGNode *current_node);
+        (const CFGNode &node);
 private:
     // call graph related methods
     void buildProcedureStartingFrom(CFGNode &entry_node);
@@ -105,7 +106,7 @@ private:
     addr_t m_exec_addr_end;
     DisassemblyCFG m_sec_cfg;
     DisassemblyCallGraph m_call_graph;
-    CFGNode *findSwitchTargetStartingFromNode
-        (const CFGNode &node, addr_t target_addr);
+    CFGNode *findSwitchTableTarget
+        (addr_t target_addr);
 };
 }

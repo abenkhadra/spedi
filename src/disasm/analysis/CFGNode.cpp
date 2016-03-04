@@ -78,7 +78,7 @@ CFGNodeType CFGNode::getType() const {
 std::vector<const MCInst *> CFGNode::getCandidateInstructions() const {
     std::vector<const MCInst *> result;
     addr_t current = m_candidate_start_addr;
-    for (auto &inst : m_max_block->getAllInstructions()) {
+    for (const auto &inst : m_max_block->getAllInstructions()) {
         if (inst.addr() == current) {
             result.push_back(&inst);
             current += inst.size();
@@ -91,7 +91,7 @@ std::vector<const MCInst *> CFGNode::getCandidateInstructionsSatisfying
     (std::function<bool(const MCInst *)> predicate) const {
     std::vector<const MCInst *> result;
     addr_t current = m_candidate_start_addr;
-    for (auto &inst : m_max_block->getAllInstructions()) {
+    for (const auto &inst : m_max_block->getAllInstructions()) {
         if (inst.addr() == current) {
             if (predicate(&inst)) {
                 result.push_back(&inst);
@@ -109,7 +109,7 @@ addr_t CFGNode::getCandidateStartAddr() const noexcept {
 void CFGNode::setCandidateStartAddr(addr_t candidate_start) noexcept {
     // a candidate start address should be set to the first instruction that can
     // match it.
-    for (auto &inst : m_max_block->getAllInstructions()) {
+    for (const auto &inst : m_max_block->getAllInstructions()) {
         if (candidate_start <= inst.addr()) {
             m_candidate_start_addr = inst.addr();
             break;
@@ -128,6 +128,15 @@ const CFGNode *CFGNode::getRemoteSuccessor() const {
 const std::vector<CFGEdge> &
 CFGNode::getDirectPredecessors() const noexcept {
     return m_direct_predecessors;
+}
+
+const std::vector<CFGEdge> &
+CFGNode::getIndirectPredecessors() const noexcept {
+    return m_indirect_predecessors;
+}
+
+const std::vector<CFGEdge> &CFGNode::getIndirectSuccessors() const noexcept {
+    return m_indirect_successors;
 }
 
 void CFGNode::setMaximalBlock(MaximalBlock *maximal_block) noexcept {
@@ -152,7 +161,8 @@ bool CFGNode::isCandidateStartAddressSet() const noexcept {
 
 bool CFGNode::isCandidateStartAddressValid
     (addr_t candidate_addr) const noexcept {
-    return candidate_addr <= m_max_block->addrOfLastInst();
+    return candidate_addr <= m_max_block->addrOfFirstInst() &&
+        candidate_addr <= m_max_block->addrOfLastInst();
 }
 
 void CFGNode::setToDataAndInvalidatePredecessors() {
@@ -163,10 +173,10 @@ void CFGNode::setToDataAndInvalidatePredecessors() {
     for (auto pred_iter = m_direct_predecessors.begin();
          pred_iter < m_direct_predecessors.end(); ++pred_iter) {
         if ((*pred_iter).type() == CFGEdgeType::kDirect
-            ||(*pred_iter).type() == CFGEdgeType::kConditional) {
+            || (*pred_iter).type() == CFGEdgeType::kConditional) {
         }
-        printf("CONFLICT: Invalidating %lu predecessor of %lu\n",
-               (*pred_iter).node()->id(), this->id());
+//        printf("CONFLICT: Invalidating %lu predecessor of %lu\n",
+//               (*pred_iter).node()->id(), this->id());
         (*pred_iter).node()->setToDataAndInvalidatePredecessors();
     }
 }
@@ -189,7 +199,7 @@ bool CFGNode::isPossibleCall() const noexcept {
 }
 
 bool CFGNode::isPossibleReturn() const noexcept {
-    for (auto &cfg_edge : m_indirect_predecessors) {
+    for (const auto &cfg_edge : m_indirect_predecessors) {
         if (cfg_edge.type() == CFGEdgeType::kReturn)
             return true;
     }
@@ -199,7 +209,7 @@ bool CFGNode::isPossibleReturn() const noexcept {
 size_t CFGNode::getCountOfCandidateInstructions() const noexcept {
     size_t result = 0;
     addr_t current = m_candidate_start_addr;
-    for (auto &inst : m_max_block->getAllInstructions()) {
+    for (const auto &inst : m_max_block->getAllInstructions()) {
         if (inst.addr() == current) {
             current += inst.size();
             result++;
@@ -216,6 +226,8 @@ void CFGNode::setAsReturnNodeFrom(CFGNode *cfg_node, const addr_t target_addr) {
 }
 
 void CFGNode::setAsSwitchCaseFor(CFGNode *cfg_node, const addr_t target_addr) {
+    printf("Node: %lu at %lx Target: %lx\n", cfg_node->id(),
+           cfg_node->getMaximalBlock()->endAddr(), target_addr);
     m_indirect_predecessors.emplace_back
         (CFGEdge(CFGEdgeType::kSwitchTable, cfg_node, target_addr));
     cfg_node->m_indirect_successors.emplace_back
@@ -226,8 +238,8 @@ bool CFGNode::isSwitchStatement() const noexcept {
     return m_indirect_successors.size() > 1;
 }
 
-bool CFGNode::isSwitchCaseStatement() const noexcept {
-    for (auto &cfg_edge : m_indirect_predecessors) {
+bool CFGNode::isSwitchBranchTarget() const noexcept {
+    for (const auto &cfg_edge : m_indirect_predecessors) {
         if (cfg_edge.type() == CFGEdgeType::kSwitchTable)
             return true;
     }
@@ -236,7 +248,7 @@ bool CFGNode::isSwitchCaseStatement() const noexcept {
 
 addr_t CFGNode::getMinTargetAddrOfValidPredecessor() const noexcept {
     addr_t minimum_addr = UINT64_MAX;
-    for (auto &pred : m_indirect_predecessors) {
+    for (const auto &pred : m_indirect_predecessors) {
         if (pred.targetAddr() < minimum_addr) {
             minimum_addr = pred.targetAddr();
         }
@@ -244,10 +256,11 @@ addr_t CFGNode::getMinTargetAddrOfValidPredecessor() const noexcept {
     if (minimum_addr != UINT64_MAX) {
         return minimum_addr;
     }
-    for (auto &pred : m_direct_predecessors) {
+    for (const auto &pred : m_direct_predecessors) {
         if (pred.targetAddr() < minimum_addr
             && pred.node()->getType() != CFGNodeType::kData
-            && pred.type() != CFGEdgeType::kConditional) {
+            && pred.type() != CFGEdgeType::kConditional
+            && pred.node()->id() != this->id()) {
             minimum_addr = pred.targetAddr();
         }
     }

@@ -33,16 +33,25 @@ std::vector<const MCInst *> MCInstAnalyzerARM::getPCRelativeLoadsInstructions
     return cfg_node->getCandidateInstructionsSatisfying(predicate);
 }
 
-unsigned MCInstAnalyzerARM::recoverSwitchLDROffset(const CFGNode &node) const {
-    auto base_reg = node.getMaximalBlock()->getBranchInstruction()->
-        detail().arm.operands[1].mem.base;
-    if (base_reg == ARM_REG_PC) {
-        return 0;
+addr_t MCInstAnalyzerARM::recoverLDRSwitchBaseAddr
+    (const CFGNode &node) const {
+    const auto &switch_inst = node.getMaximalBlock()->getBranchInstruction();
+    if (switch_inst->detail().arm.operands[1].mem.base == ARM_REG_PC) {
+        if (switch_inst->addr() % 4 == 0) {
+            return switch_inst->addr() + 4;
+        } else {
+            return switch_inst->addr() + 6;
+        }
     } else {
-        for (auto &inst:node.getMaximalBlock()->getAllInstructions()) {
+        for (const auto &inst:node.getMaximalBlock()->getAllInstructions()) {
             if (inst.id() == ARM_INS_ADR
-                && inst.detail().arm.operands[0].reg == base_reg) {
-                return static_cast<unsigned>(inst.detail().arm.operands[1].imm);
+                && (inst.detail().arm.operands[0].reg
+                    == switch_inst->detail().arm.operands[1].mem.base)) {
+                if (inst.addr() % 4 == 0) {
+                    return inst.addr() + inst.detail().arm.operands[1].imm + 8;
+                } else {
+                    return inst.addr() + inst.detail().arm.operands[1].imm + 10;
+                }
             }
         }
         return 0;

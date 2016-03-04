@@ -65,6 +65,8 @@ public:
     const CFGNode *getRemoteSuccessor() const;
 
     const std::vector<CFGEdge> &getDirectPredecessors() const noexcept;
+    const std::vector<CFGEdge> &getIndirectPredecessors() const noexcept;
+    const std::vector<CFGEdge> &getIndirectSuccessors() const noexcept;
     bool hasOverlapWithOtherNode() const noexcept;
     bool isCandidateStartAddressSet() const noexcept;
 
@@ -84,7 +86,7 @@ public:
     CFGNodeType getType() const;
     bool isData() const;
     bool isCode() const;
-    bool isSwitchCaseStatement() const noexcept;
+    bool isSwitchBranchTarget() const noexcept;
     /*
      * returns true if the branch instruction belongs to the call_group of
      * ARM which is BL and BLX.
@@ -102,6 +104,7 @@ public:
     bool isAssignedToProcedure() const noexcept;
     bool isImmediateSuccessorSet() const noexcept;
     addr_t getMinTargetAddrOfValidPredecessor() const noexcept;
+    CFGNode *getNearestSwitchTargetAfterThis();
     friend class SectionDisassemblyAnalyzerARM;
 private:
     void setMaximalBlock(MaximalBlock *maximal_block) noexcept;

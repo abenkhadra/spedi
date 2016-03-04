@@ -399,26 +399,27 @@ void ElfDisassembler::prettyPrintValidCFGNode
         printf(" / BB count. %lu, Total inst count %lu: \n",
                max_block->getBasicBlocksCount(),
                max_block->instructionsCount());
-        printf("Direct successor: %lu, ",
+        printf("Direct succ: %lu",
                (cfg_node->getImmediateSuccessor() != nullptr)
                ? cfg_node->getImmediateSuccessor()->id() : 0);
-        printf("Remote successor: %lu\n",
+        printf(" /Remote succ: %lu\n",
                (cfg_node->getRemoteSuccessor() != nullptr)
                ? cfg_node->getRemoteSuccessor()->id() : 0);
-        printf("Predecessors: ");
-        if (cfg_node->getDirectPredecessors().size() == 0) {
-            if (cfg_node->isPossibleReturn()) {
-                printf("return\n");
-            } else {
-                printf("none\n");
-            }
-        } else {
-            for (auto &pred : cfg_node->getDirectPredecessors()) {
-                printf("%lu ", pred.node()->id());
-            }
-            printf("\n");
+        printf("Indirect succ: ");
+        for (const auto &indirect_succ : cfg_node->getIndirectSuccessors()) {
+            printf("%lu ", indirect_succ.node()->id());
         }
-        for (auto inst : cfg_node->getCandidateInstructions()) {
+        printf("\n");
+        printf("Direct pred: ");
+        for (const auto &direct_pred : cfg_node->getDirectPredecessors()) {
+            printf("%lu ", direct_pred.node()->id());
+        }
+        printf(" /Indirect pred: ");
+        for (const auto &indirect_pred : cfg_node->getIndirectPredecessors()) {
+            printf("%lu ", indirect_pred.node()->id());
+        }
+        printf("\n");
+        for (const auto inst : cfg_node->getCandidateInstructions()) {
             printf("0x%" PRIx64 ":\t%s\t\t%s ",
                    inst->addr(),
                    inst->mnemonic().c_str(),
