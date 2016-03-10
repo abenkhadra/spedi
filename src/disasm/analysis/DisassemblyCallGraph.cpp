@@ -7,10 +7,15 @@
 // Copyright (c) 2016 University of Kaiserslautern.
 
 #include "DisassemblyCallGraph.h"
-namespace disasm{
+namespace disasm {
 
-void DisassemblyCallGraph::addProcedure(CFGNode *entry_node) {
-    m_call_graph.emplace_back(ICFGNode(m_global_idx, entry_node));
-    m_global_idx++;
+ICFGNode *DisassemblyCallGraph::addProcedure
+    (const addr_t entry_addr, CFGNode *entry_node) {
+    auto result = m_call_graph_map.insert({entry_addr, entry_node});
+    if (result.second) {
+        m_graph_vec.emplace_back(ICFGNode(entry_addr, entry_node));
+        return &(m_graph_vec.back());
+    }
+    return nullptr;
 }
 }

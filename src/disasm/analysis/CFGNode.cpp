@@ -11,22 +11,24 @@
 
 namespace disasm {
 CFGNode::CFGNode() :
-    m_type{CFGNodeType::kMaybe},
+    m_type{CFGNodeType::kUnknown},
+    m_traversal_status{TraversalStatus::kUnvisited},
+    m_role_in_procedure{CFGNodeRoleInProcedure::kUnknown},
     m_candidate_start_addr{0},
     m_overlap_node{nullptr},
-    m_procedure{nullptr},
-    m_traversal_status{TraversalStatus::kUnvisited},
+    m_procedure_entry_addr{0},
     m_immediate_successor{nullptr},
     m_remote_successor{nullptr},
     m_max_block{nullptr} {
 }
 
 CFGNode::CFGNode(MaximalBlock *current_block) :
-    m_type{CFGNodeType::kMaybe},
+    m_type{CFGNodeType::kUnknown},
+    m_traversal_status{TraversalStatus::kUnvisited},
+    m_role_in_procedure{CFGNodeRoleInProcedure::kUnknown},
     m_candidate_start_addr{0},
     m_overlap_node{nullptr},
-    m_procedure{nullptr},
-    m_traversal_status{TraversalStatus::kUnvisited},
+    m_procedure_entry_addr{0},
     m_immediate_successor{nullptr},
     m_remote_successor{nullptr},
     m_max_block{current_block} {
@@ -51,7 +53,7 @@ void CFGNode::setRemoteSuccessor(CFGNode *successor) {
     m_remote_successor = successor;
 }
 
-const MaximalBlock *CFGNode::getMaximalBlock() const {
+const MaximalBlock *CFGNode::maximalBlock() const {
     return m_max_block;
 }
 
@@ -117,11 +119,11 @@ void CFGNode::setCandidateStartAddr(addr_t candidate_start) noexcept {
     }
 }
 
-const CFGNode *CFGNode::getImmediateSuccessor() const {
+const CFGNode *CFGNode::immediateSuccessor() const {
     return m_immediate_successor;
 }
 
-const CFGNode *CFGNode::getRemoteSuccessor() const {
+const CFGNode *CFGNode::remoteSuccessor() const {
     return m_remote_successor;
 }
 
@@ -165,18 +167,16 @@ bool CFGNode::isCandidateStartAddressValid
 }
 
 void CFGNode::setToDataAndInvalidatePredecessors() {
-    if (m_type == CFGNodeType::kData) {
-        return;
-    }
     m_type = CFGNodeType::kData;
     for (auto pred_iter = m_direct_predecessors.begin();
          pred_iter < m_direct_predecessors.end(); ++pred_iter) {
-        if ((*pred_iter).type() == CFGEdgeType::kDirect
+        if (!(*pred_iter).node()->isData()
+            && (*pred_iter).type() == CFGEdgeType::kDirect
             || (*pred_iter).type() == CFGEdgeType::kConditional) {
-        }
 //        printf("CONFLICT: Invalidating %lu predecessor of %lu\n",
 //               (*pred_iter).node()->id(), this->id());
-        (*pred_iter).node()->setToDataAndInvalidatePredecessors();
+            (*pred_iter).node()->setToDataAndInvalidatePredecessors();
+        }
     }
 }
 
@@ -189,12 +189,12 @@ bool CFGNode::operator==(const CFGNode &src) const noexcept {
 }
 
 bool CFGNode::isAssignedToProcedure() const noexcept {
-    return m_procedure != nullptr;
+    return m_procedure_entry_addr != 0;
 }
 
-bool CFGNode::isPossibleCall() const noexcept {
-    return m_max_block->getBranchInstruction()->id() == ARM_INS_BLX
-        || m_max_block->getBranchInstruction()->id() == ARM_INS_BL;
+bool CFGNode::isCall() const noexcept {
+    return m_max_block->branchInstruction()->id() == ARM_INS_BLX
+        || m_max_block->branchInstruction()->id() == ARM_INS_BL;
 }
 
 bool CFGNode::isPossibleReturn() const noexcept {
@@ -225,8 +225,8 @@ void CFGNode::setAsReturnNodeFrom(CFGNode *cfg_node, const addr_t target_addr) {
 }
 
 void CFGNode::setAsSwitchCaseFor(CFGNode *cfg_node, const addr_t target_addr) {
-    printf("Node: %lu at %lx Target: %lx\n", cfg_node->id(),
-           cfg_node->getMaximalBlock()->endAddr(), target_addr);
+//    printf("Node: %lu at %lx Target: %lx\n", cfg_node->id(),
+//           cfg_node->maximalBlock()->endAddr(), target_addr);
     m_indirect_predecessors.emplace_back
         (CFGEdge(CFGEdgeType::kSwitchTable, cfg_node, target_addr));
     cfg_node->m_indirect_successors.emplace_back
@@ -275,6 +275,6 @@ bool CFGNode::isImmediateSuccessorSet() const noexcept {
 
 bool CFGNode::isAppendableBy(const CFGNode *cfg_node) const {
     return m_max_block->endAddr() ==
-        cfg_node->getMaximalBlock()->addrOfFirstInst();
+        cfg_node->maximalBlock()->addrOfFirstInst();
 }
 }

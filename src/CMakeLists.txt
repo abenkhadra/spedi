@@ -56,8 +56,8 @@ add_library(
         disasm/analysis/SectionDisassemblyAnalyzerARM.h
         disasm/analysis/DisassemblyCFG.cpp
         disasm/analysis/DisassemblyCFG.h
-        disasm/analysis/MCInstAnalyzerARM.cpp
-        disasm/analysis/MCInstAnalyzerARM.h
+        disasm/analysis/DisassemblyAnalyzerHelperARM.cpp
+        disasm/analysis/DisassemblyAnalyzerHelperARM.h
         disasm/analysis/ICFGNode.cpp
         disasm/analysis/ICFGNode.h
         disasm/analysis/DisassemblyCallGraph.cpp

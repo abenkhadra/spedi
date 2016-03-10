@@ -17,8 +17,15 @@ class ICFGNode;
 
 enum class CFGNodeType: unsigned char {
     kData = 1,
-    kMaybe = 2,
+    kUnknown = 2,
     kCode = 4
+};
+
+enum class CFGNodeRoleInProcedure: unsigned char {
+    kUnknown,
+    kEntry,
+    kExit,
+    kBody
 };
 
 enum class TraversalStatus: unsigned char {
@@ -44,7 +51,7 @@ public:
     CFGNode(CFGNode &&src) = default;
     bool operator==(const CFGNode &src) const noexcept;
 
-    const MaximalBlock *getMaximalBlock() const;
+    const MaximalBlock *maximalBlock() const;
     const CFGNode *getOverlapNode() const;
     size_t id() const noexcept;
 
@@ -57,12 +64,12 @@ public:
     /*
      * should be valid only for conditional branches
      */
-    const CFGNode *getImmediateSuccessor() const;
+    const CFGNode *immediateSuccessor() const;
     /*
      * should be set for direct branches (conditional/unconditional)
      */
     void setRemoteSuccessor(CFGNode *successor);
-    const CFGNode *getRemoteSuccessor() const;
+    const CFGNode *remoteSuccessor() const;
 
     const std::vector<CFGEdge> &getDirectPredecessors() const noexcept;
     const std::vector<CFGEdge> &getIndirectPredecessors() const noexcept;
@@ -91,7 +98,7 @@ public:
      * returns true if the branch instruction belongs to the call_group of
      * ARM which is BL and BLX.
      */
-    bool isPossibleCall() const noexcept;
+    bool isCall() const noexcept;
     /*
      * returns true if immediate predecessor is a PossibleCall
      */
@@ -104,9 +111,9 @@ public:
     bool isAssignedToProcedure() const noexcept;
     bool isImmediateSuccessorSet() const noexcept;
     addr_t getMinTargetAddrOfValidPredecessor() const noexcept;
-    CFGNode *getNearestSwitchTargetAfterThis();
     bool isAppendableBy(const CFGNode *cfg_node) const;
     friend class SectionDisassemblyAnalyzerARM;
+    friend class ICFGNode;
 private:
     void setMaximalBlock(MaximalBlock *maximal_block) noexcept;
     CFGNode *getOverlapNodePtr() const noexcept;
@@ -114,10 +121,11 @@ private:
     void setAsSwitchCaseFor(CFGNode *cfg_node, const addr_t target_addr);
 private:
     CFGNodeType m_type;
+    TraversalStatus m_traversal_status;
+    CFGNodeRoleInProcedure m_role_in_procedure;
     addr_t m_candidate_start_addr;
     CFGNode *m_overlap_node;
-    ICFGNode *m_procedure;
-    TraversalStatus m_traversal_status;
+    addr_t m_procedure_entry_addr;
     CFGNode *m_immediate_successor;
     CFGNode *m_remote_successor;
     MaximalBlock *m_max_block;

@@ -74,7 +74,7 @@ public:
     bool startOverlapsWith(const MaximalBlock *prev_block) const;
     bool coversAddressSpaceOf(const MaximalBlock &block) const;
     bool coversAddressSpaceOf(const MaximalBlock *block) const;
-    const MCInst * getBranchInstruction() const noexcept;
+    const MCInst *branchInstruction() const noexcept;
     // returns true if this block aligns with the first (or second) instruction
     // of the given block.
     bool isAppendableBy(const MaximalBlock &block) const noexcept;

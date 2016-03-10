@@ -350,7 +350,7 @@ void ElfDisassembler::prettyPrintMaximalBlock
 
 void ElfDisassembler::prettyPrintCFGNode
     (const CFGNode *cfg_node) const {
-    auto mblock = cfg_node->getMaximalBlock();
+    auto mblock = cfg_node->maximalBlock();
     printf("**************************************\n");
     printf("MB No. %lu, Type: %u. Starts at %#6x",
            mblock->id(), cfg_node->getType(),
@@ -391,7 +391,7 @@ void ElfDisassembler::prettyPrintValidCFGNode
         return;
     }
     if (cfg_node->isCandidateStartAddressSet()) {
-        auto max_block = cfg_node->getMaximalBlock();
+        auto max_block = cfg_node->maximalBlock();
         printf("**************************************\n");
         printf("MB No. %lu, Type: %u. Starts at %#6x",
                cfg_node->id(), cfg_node->getType(),
@@ -400,11 +400,11 @@ void ElfDisassembler::prettyPrintValidCFGNode
                max_block->getBasicBlocksCount(),
                max_block->instructionsCount());
         printf("Direct succ: %lu",
-               (cfg_node->getImmediateSuccessor() != nullptr)
-               ? cfg_node->getImmediateSuccessor()->id() : 0);
+               (cfg_node->immediateSuccessor() != nullptr)
+               ? cfg_node->immediateSuccessor()->id() : 0);
         printf(" /Remote succ: %lu\n",
-               (cfg_node->getRemoteSuccessor() != nullptr)
-               ? cfg_node->getRemoteSuccessor()->id() : 0);
+               (cfg_node->remoteSuccessor() != nullptr)
+               ? cfg_node->remoteSuccessor()->id() : 0);
         printf("Indirect succ: ");
         for (const auto &indirect_succ : cfg_node->getIndirectSuccessors()) {
             printf("%lu ", indirect_succ.node()->id());

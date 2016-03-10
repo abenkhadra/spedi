@@ -9,7 +9,8 @@
 #pragma once
 #include "DisassemblyCFG.h"
 #include "DisassemblyCallGraph.h"
-#include "MCInstAnalyzerARM.h"
+#include "DisassemblyAnalyzerHelperARM.h"
+#include <unordered_map>
 
 namespace disasm {
 
@@ -97,11 +98,20 @@ private:
         (const CFGNode &node);
 private:
     // call graph related methods
-    void buildProcedureStartingFrom(CFGNode &entry_node);
+    using AddrCFGNodePairVec = std::vector<std::pair<addr_t, const CFGNode *>>;
+    using AddrICFGNodeMap = std::unordered_map<addr_t, ICFGNode>;
+    void buildProcedure(ICFGNode &proc_node);
+    void traverseProcedureNode
+        (ICFGNode &proc_node, CFGNode *cfg_node, CFGNode *predecessor);
+    std::vector<std::pair<addr_t, const CFGNode *>>
+        recoverDirectCallSites() const noexcept;
+    void buildInitialCallGraph
+        (const AddrCFGNodePairVec &call_sites) noexcept;
+
 
 private:
     SectionDisassemblyARM *m_sec_disassembly;
-    MCInstAnalyzerARM m_analyzer;
+    DisassemblyAnalyzerHelperARM m_analyzer;
     addr_t m_exec_addr_start;
     addr_t m_exec_addr_end;
     DisassemblyCFG m_sec_cfg;

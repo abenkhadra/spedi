@@ -8,6 +8,7 @@
 
 #pragma once
 #include "ICFGNode.h"
+#include <unordered_map>
 
 namespace disasm {
 /**
@@ -28,12 +29,14 @@ public:
 
     std::vector<ICFGNode *> getCallers(const ICFGNode& node) const;
     std::vector<ICFGNode *> getCallees(const ICFGNode& node) const;
-
-    void addProcedure(CFGNode *entry_node);
-
-    bool valid() const { return false; }
+    /*
+     * Constructs a new procedure and returns a pointer to it. Returns nullptr
+     * If entry_addr was already used.
+     */
+    ICFGNode *addProcedure(const addr_t entry_addr, CFGNode *entry_node);
+    friend class SectionDisassemblyAnalyzerARM;
 private:
-    std::vector<ICFGNode> m_call_graph;
-    unsigned m_global_idx = 0;
+    std::vector<ICFGNode> m_graph_vec;
+    std::unordered_map<addr_t, CFGNode *> m_call_graph_map;
 };
 }

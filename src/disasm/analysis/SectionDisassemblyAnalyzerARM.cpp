@@ -10,7 +10,7 @@
 #include "disasm/SectionDisassemblyARM.h"
 #include <iostream>
 #include <algorithm>
-#include <unordered_map>
+#include <cassert>
 
 namespace disasm {
 
@@ -30,7 +30,7 @@ size_t SectionDisassemblyAnalyzerARM::calculateBasicBlockWeight
          pred_iter < node.getDirectPredecessors().cend(); ++pred_iter) {
         if (!(*pred_iter).node()->isData()) {
             pred_weight +=
-                (*pred_iter).node()->getMaximalBlock()->instructionsCount();
+                (*pred_iter).node()->maximalBlock()->instructionsCount();
         }
     }
     return pred_weight + basic_block.instructionCount();
@@ -45,9 +45,9 @@ size_t SectionDisassemblyAnalyzerARM::calculateNodeWeight
     for (auto pred_iter = node->getDirectPredecessors().cbegin();
          pred_iter < node->getDirectPredecessors().cend(); ++pred_iter) {
         pred_weight +=
-            (*pred_iter).node()->getMaximalBlock()->instructionsCount();
+            (*pred_iter).node()->maximalBlock()->instructionsCount();
     }
-    return node->getMaximalBlock()->instructionsCount() + pred_weight;
+    return node->maximalBlock()->instructionsCount() + pred_weight;
 }
 
 void SectionDisassemblyAnalyzerARM::buildCFG() {
@@ -84,18 +84,18 @@ void SectionDisassemblyAnalyzerARM::buildCFG() {
                 continue;
             }
             auto rev_cfg_node_iter = (node_iter) - 1;
-            if ((*rev_cfg_node_iter).isPossibleCall()
-                && (*rev_cfg_node_iter).getMaximalBlock()->
-                    isAppendableBy(*(*node_iter).getMaximalBlock())) {
+            if ((*rev_cfg_node_iter).isCall()
+                && (*rev_cfg_node_iter).maximalBlock()->
+                    isAppendableBy(*(*node_iter).maximalBlock())) {
                 (*node_iter).setAsReturnNodeFrom
                     (&(*rev_cfg_node_iter),
-                     (*rev_cfg_node_iter).getMaximalBlock()->endAddr());
+                     (*rev_cfg_node_iter).maximalBlock()->endAddr());
             }
             // check for overlap MB
             for (; rev_cfg_node_iter >= m_sec_cfg.m_cfg.begin();
                    --rev_cfg_node_iter) {
-                if ((*rev_cfg_node_iter).getMaximalBlock()->endAddr() <=
-                    (*node_iter).getMaximalBlock()->addrOfFirstInst()) {
+                if ((*rev_cfg_node_iter).maximalBlock()->endAddr() <=
+                    (*node_iter).maximalBlock()->addrOfFirstInst()) {
                     // there is no MB overlap
                     break;
                 }
@@ -112,7 +112,7 @@ void SectionDisassemblyAnalyzerARM::buildCFG() {
         if ((*node_iter).isData()) {
             continue;
         }
-        auto current_block = (*node_iter).getMaximalBlock();
+        auto current_block = (*node_iter).maximalBlock();
         if (current_block->getBranch().isDirect()) {
             auto branch_target = current_block->getBranch().target();
             if (!m_sec_disassembly->
@@ -149,13 +149,13 @@ CFGNode *SectionDisassemblyAnalyzerARM::findImmediateSuccessor
     }
     auto direct_succ =
         &(*(m_sec_cfg.m_cfg.begin() + cfg_node.id() + 1));
-    if (direct_succ->getMaximalBlock()->
-        isAddressOfInstruction(cfg_node.getMaximalBlock()->endAddr())) {
+    if (direct_succ->maximalBlock()->
+        isAddressOfInstruction(cfg_node.maximalBlock()->endAddr())) {
         return direct_succ;
     }
     auto overlap_node = direct_succ->getOverlapNodePtr();
-    if (overlap_node != nullptr && overlap_node->getMaximalBlock()->
-        isAddressOfInstruction(cfg_node.getMaximalBlock()->endAddr())) {
+    if (overlap_node != nullptr && overlap_node->maximalBlock()->
+        isAddressOfInstruction(cfg_node.maximalBlock()->endAddr())) {
         return overlap_node;
     }
     return nullptr;
@@ -189,7 +189,7 @@ CFGNode *SectionDisassemblyAnalyzerARM::findRemoteSuccessor
     // Handle overlap MBs.
     auto overlap_node = m_sec_cfg.getNodeAt(last).getOverlapNode();
     if (overlap_node != nullptr &&
-        overlap_node->getMaximalBlock()->isAddressOfInstruction(target)) {
+        overlap_node->maximalBlock()->isAddressOfInstruction(target)) {
         return m_sec_cfg.ptrToNodeAt(overlap_node->id());
     }
     return nullptr;
@@ -218,40 +218,40 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
 
 void SectionDisassemblyAnalyzerARM::resolveOverlapBetweenCFGNodes(CFGNode &node) {
     // resolve overlap between MBs by shrinking the next or converting this to data
-    if (node.hasOverlapWithOtherNode()
-        && !node.getOverlapNode()->isData()) {
-        if (node.getOverlapNode()->getMaximalBlock()->
-            coversAddressSpaceOf(node.getMaximalBlock())) {
-            if (calculateNodeWeight(&node) <
-                calculateNodeWeight(node.getOverlapNode())) {
-                if (m_sec_cfg.previous(node).isAppendableBy(&node)) {
-                    // XXX: heuristic applied when this node aligns with previous
-                    // what if next is one instruction?
-                    node.getOverlapNodePtr()->
-                        setCandidateStartAddr(node.getMaximalBlock()->endAddr());
-                } else {
-                    node.setToDataAndInvalidatePredecessors();
-                }
-            }
-        } else {
-            if (node.getOverlapNodePtr()->
-                isCandidateStartAddressValid(node.getMaximalBlock()->endAddr())) {
-                auto nested_overlap =
-                    node.getOverlapNodePtr()->getOverlapNodePtr();
-                if (nested_overlap != nullptr
-                    && node.isAppendableBy(nested_overlap)) {
-                    node.getOverlapNodePtr()->setToDataAndInvalidatePredecessors();
-                } else {
-                    node.getOverlapNodePtr()->
-                        setCandidateStartAddr(node.getMaximalBlock()->endAddr());
-                }
-            } else if (calculateNodeWeight(&node) <
-                calculateNodeWeight(node.getOverlapNode())) {
-                node.setToDataAndInvalidatePredecessors();
+    if (!node.hasOverlapWithOtherNode() || node.getOverlapNode()->isData()) {
+        return;
+    }
+    if (node.getOverlapNode()->maximalBlock()->
+        coversAddressSpaceOf(node.maximalBlock())) {
+        if (calculateNodeWeight(&node) <
+            calculateNodeWeight(node.getOverlapNode())) {
+            if (m_sec_cfg.previous(node).isAppendableBy(&node)) {
+                // XXX: heuristic applied when this node aligns with previous
+                // what if next is one instruction?
+                node.getOverlapNodePtr()->
+                    setCandidateStartAddr(node.maximalBlock()->endAddr());
             } else {
-                // overlapping node consists of only one instruction?
-                node.getOverlapNodePtr()->setToDataAndInvalidatePredecessors();
+                node.setToDataAndInvalidatePredecessors();
             }
+        }
+    } else {
+        if (node.getOverlapNodePtr()->
+            isCandidateStartAddressValid(node.maximalBlock()->endAddr())) {
+            auto nested_overlap =
+                node.getOverlapNodePtr()->getOverlapNodePtr();
+            if (nested_overlap != nullptr
+                && node.isAppendableBy(nested_overlap)) {
+                node.getOverlapNodePtr()->setToDataAndInvalidatePredecessors();
+            } else {
+                node.getOverlapNodePtr()->
+                    setCandidateStartAddr(node.maximalBlock()->endAddr());
+            }
+        } else if (calculateNodeWeight(&node) <
+            calculateNodeWeight(node.getOverlapNode())) {
+            node.setToDataAndInvalidatePredecessors();
+        } else {
+            // overlapping node consists of only one instruction?
+            node.getOverlapNodePtr()->setToDataAndInvalidatePredecessors();
         }
     }
 }
@@ -259,9 +259,9 @@ void SectionDisassemblyAnalyzerARM::resolveOverlapBetweenCFGNodes(CFGNode &node)
 void SectionDisassemblyAnalyzerARM::resolveValidBasicBlock(CFGNode &node) {
     if (!node.isCandidateStartAddressSet()) {
         // with no objections we take the first instruction
-        node.setCandidateStartAddr(node.getMaximalBlock()->addrOfFirstInst());
+        node.setCandidateStartAddr(node.maximalBlock()->addrOfFirstInst());
     }
-    if (node.getMaximalBlock()->getBasicBlocksCount() == 1
+    if (node.maximalBlock()->getBasicBlocksCount() == 1
         || node.getDirectPredecessors().size() == 0) {
         // nothing more to do
         return;
@@ -273,8 +273,8 @@ void SectionDisassemblyAnalyzerARM::resolveValidBasicBlock(CFGNode &node) {
         }
     }
     // The common case where all branches target the same basic block
-    for (auto bblock_iter = node.getMaximalBlock()->getBasicBlocks().begin();
-         bblock_iter < node.getMaximalBlock()->getBasicBlocks().end();
+    for (auto bblock_iter = node.maximalBlock()->getBasicBlocks().begin();
+         bblock_iter < node.maximalBlock()->getBasicBlocks().end();
          ++bblock_iter) {
         unsigned target_count = 0;
         for (auto pred_iter = valid_predecessors.cbegin();
@@ -323,9 +323,9 @@ void SectionDisassemblyAnalyzerARM::resolveCFGConflicts
         // find the basic block with maximum weight giving priority to
         // earlier BB.
         for (int i =
-            static_cast<int>(node.getMaximalBlock()->getBasicBlocksCount() - 1);
+            static_cast<int>(node.maximalBlock()->getBasicBlocksCount() - 1);
              i >= 0; --i) {
-            size_t current_weight = node.getMaximalBlock()->
+            size_t current_weight = node.maximalBlock()->
                 getBasicBlockAt(i).instructionCount();
             size_t j = 0;
             for (auto pred_iter = valid_predecessors.cbegin();
@@ -333,7 +333,7 @@ void SectionDisassemblyAnalyzerARM::resolveCFGConflicts
                  ++pred_iter, ++j) {
                 // basic block weight = calculate predecessor instruction count
                 //                      + instruction count of BB
-                auto addrs = node.getMaximalBlock()->
+                auto addrs = node.maximalBlock()->
                     getBasicBlockAt(i).getInstructionAddresses();
                 if (std::find(addrs.begin(),
                               addrs.end(),
@@ -381,14 +381,14 @@ void SectionDisassemblyAnalyzerARM::resolveLoadConflicts(CFGNode &node) {
         }
         // XXX: no weight analysis is applied here, that should be handled
         shortenToCandidateAddressOrSetToData((*target_node), target + 4);
-        printf("Node %lu shortens node %lu\n", node.id(), target_node->id());
+//        printf("Node %lu shortens node %lu\n", node.id(), target_node->id());
         if (target_node->isData()) {
             auto next_node =
                 m_sec_cfg.ptrToNodeAt(target_node->id() + 1);
             if (next_node->getCandidateStartAddr() < target + 4) {
-                printf("Inner: node %lu shortens node %lu\n",
-                       node.id(),
-                       target_node->id());
+//                printf("Inner: node %lu shortens node %lu\n",
+//                       node.id(),
+//                       target_node->id());
                 shortenToCandidateAddressOrSetToData(*next_node, target + 4);
             }
         }
@@ -398,7 +398,7 @@ void SectionDisassemblyAnalyzerARM::resolveLoadConflicts(CFGNode &node) {
 CFGNode *SectionDisassemblyAnalyzerARM::findCFGNodeAffectedByLoadStartingFrom
     (const CFGNode &node, addr_t target) noexcept {
     // TODO: compare this with another version that does binary search
-    if (target < node.getMaximalBlock()->endAddr()
+    if (target < node.maximalBlock()->endAddr()
         || target > m_exec_addr_end) {
         // A PC-relative load can't target its same MB or load an external address
         return nullptr;
@@ -406,7 +406,7 @@ CFGNode *SectionDisassemblyAnalyzerARM::findCFGNodeAffectedByLoadStartingFrom
     for (auto node_iter = m_sec_cfg.m_cfg.begin() + node.id() + 1;
          node_iter < m_sec_cfg.m_cfg.end(); ++node_iter) {
         // we only care about affected instructions
-        if (target <= (*node_iter).getMaximalBlock()->addrOfLastInst()) {
+        if (target <= (*node_iter).maximalBlock()->addrOfLastInst()) {
             return &(*node_iter);
         }
     }
@@ -422,36 +422,24 @@ void SectionDisassemblyAnalyzerARM::shortenToCandidateAddressOrSetToData
     }
 }
 
-void SectionDisassemblyAnalyzerARM::buildCallGraph() {
-    // for each node
-    // if assigned to procedure
-    //     continue
-    // buildProcedureStartingFrom (node)
-}
-
-void SectionDisassemblyAnalyzerARM::buildProcedureStartingFrom(
-    CFGNode &entry_node) {
-
-}
-
 void SectionDisassemblyAnalyzerARM::recoverSwitchStatements() {
     std::vector<const CFGNode *> switch_nodes;
     for (auto node_iter = m_sec_cfg.m_cfg.begin();
          node_iter < m_sec_cfg.m_cfg.end(); ++node_iter) {
         if ((*node_iter).isData() || isNotSwitchStatement(*node_iter))
             continue;
-        if ((*node_iter).getMaximalBlock()->
-            getBranchInstruction()->id() == ARM_INS_TBB) {
+        if ((*node_iter).maximalBlock()->
+            branchInstruction()->id() == ARM_INS_TBB) {
             switch_nodes.push_back(&(*node_iter));
             recoverTBBSwitchTable((*node_iter));
         }
-        if ((*node_iter).getMaximalBlock()->
-            getBranchInstruction()->id() == ARM_INS_TBH) {
+        if ((*node_iter).maximalBlock()->
+            branchInstruction()->id() == ARM_INS_TBH) {
             switch_nodes.push_back(&(*node_iter));
             recoverTBHSwitchTable((*node_iter));
         }
-        if ((*node_iter).getMaximalBlock()->
-            getBranchInstruction()->id() == ARM_INS_LDR) {
+        if ((*node_iter).maximalBlock()->
+            branchInstruction()->id() == ARM_INS_LDR) {
             switch_nodes.push_back(&(*node_iter));
             recoverLDRSwitchTable
                 (*node_iter, m_analyzer.recoverLDRSwitchBaseAddr(*node_iter));
@@ -464,21 +452,21 @@ void SectionDisassemblyAnalyzerARM::recoverSwitchStatements() {
 
 bool SectionDisassemblyAnalyzerARM::isNotSwitchStatement
     (const CFGNode &node) const noexcept {
-    if (node.getMaximalBlock()->getBranch().isDirect()
-        || node.getMaximalBlock()->getBranch().isConditional())
+    if (node.maximalBlock()->getBranch().isDirect()
+        || node.maximalBlock()->getBranch().isConditional())
         // a switch stmt can't be direct or conditional
         return true;
-    if (node.getMaximalBlock()->getBranchInstruction()->id() == ARM_INS_POP
-        || node.getMaximalBlock()->getBranchInstruction()->id() == ARM_INS_BLX
-        || node.getMaximalBlock()->getBranchInstruction()->id() == ARM_INS_BL
-        || node.getMaximalBlock()->getBranchInstruction()->id() == ARM_INS_BX) {
+    if (node.maximalBlock()->branchInstruction()->id() == ARM_INS_POP
+        || node.maximalBlock()->branchInstruction()->id() == ARM_INS_BLX
+        || node.maximalBlock()->branchInstruction()->id() == ARM_INS_BL
+        || node.maximalBlock()->branchInstruction()->id() == ARM_INS_BX) {
         return true;
     }
     return false;
 }
 
 void SectionDisassemblyAnalyzerARM::addConditionalBranchToCFG(CFGNode &node) {
-    if (!node.getMaximalBlock()->getBranch().isConditional()) {
+    if (!node.maximalBlock()->getBranch().isConditional()) {
         return;
     }
     if (!isConditionalBranchAffectedByNodeOverlap(node)) {
@@ -487,7 +475,7 @@ void SectionDisassemblyAnalyzerARM::addConditionalBranchToCFG(CFGNode &node) {
         if (succ != nullptr && !succ->isData()) {
             node.setImmediateSuccessor(succ);
             succ->addImmediatePredecessor
-                (&node, node.getMaximalBlock()->endAddr());
+                (&node, node.maximalBlock()->endAddr());
         } else {
             // a conditional branch without a direct successor is data
             node.setToDataAndInvalidatePredecessors();
@@ -498,16 +486,16 @@ void SectionDisassemblyAnalyzerARM::addConditionalBranchToCFG(CFGNode &node) {
 bool SectionDisassemblyAnalyzerARM::isConditionalBranchAffectedByNodeOverlap
     (const CFGNode &node) const noexcept {
     if (!node.isCandidateStartAddressSet()
-        || node.getMaximalBlock()->getBranchInstruction()->id() == ARM_INS_CBZ
-        || node.getMaximalBlock()->getBranchInstruction()->id()
+        || node.maximalBlock()->branchInstruction()->id() == ARM_INS_CBZ
+        || node.maximalBlock()->branchInstruction()->id()
             == ARM_INS_CBNZ) {
         // if there was no overlap or branches are not affected by context.
         // additionally larger nodes are not affected (heuristic)
         return false;
     } else {
         for (auto inst_iter =
-            node.getMaximalBlock()->getAllInstructions().cbegin();
-             inst_iter < node.getMaximalBlock()->getAllInstructions().cend();
+            node.maximalBlock()->getAllInstructions().cbegin();
+             inst_iter < node.maximalBlock()->getAllInstructions().cend();
              inst_iter++) {
             if ((*inst_iter).id() == ARM_INS_CMP
                 || (*inst_iter).id() == ARM_INS_CMN
@@ -529,7 +517,7 @@ bool SectionDisassemblyAnalyzerARM::isConditionalBranchAffectedByNodeOverlap
 void SectionDisassemblyAnalyzerARM::recoverTBBSwitchTable(CFGNode &node) {
     // assuming TBB is always based on PC
     const addr_t base_addr =
-        node.getMaximalBlock()->getBranchInstruction()->addr() + 4;
+        node.maximalBlock()->branchInstruction()->addr() + 4;
     const uint8_t *code_ptr = m_sec_disassembly->physicalAddrOf(base_addr);
     addr_t minimum_switch_case_addr = m_exec_addr_end;
     addr_t current_addr = base_addr;
@@ -560,7 +548,7 @@ void SectionDisassemblyAnalyzerARM::recoverTBBSwitchTable(CFGNode &node) {
 void SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
     // assuming TBH is always based on PC
     const addr_t base_addr =
-        node.getMaximalBlock()->getBranchInstruction()->addr() + 4;
+        node.maximalBlock()->branchInstruction()->addr() + 4;
     const uint8_t *code_ptr = m_sec_disassembly->physicalAddrOf(base_addr);
     addr_t minimum_switch_case_addr = m_exec_addr_end;
     addr_t current_addr = base_addr;
@@ -630,8 +618,8 @@ void SectionDisassemblyAnalyzerARM::switchTableCleanUp
         }
         if ((*node_iter).getMinTargetAddrOfValidPredecessor() == 0) {
             (*node_iter).setType(CFGNodeType::kData);
-            printf("Switch clean up at node %lu invalidating node %lu\n",
-                   node.id(), (*node_iter).id());
+//            printf("Switch clean up at node %lu invalidating node %lu\n",
+//                   node.id(), (*node_iter).id());
         } else {
             (*node_iter).setCandidateStartAddr
                 ((*node_iter).getMinTargetAddrOfValidPredecessor());
@@ -672,5 +660,186 @@ CFGNode *SectionDisassemblyAnalyzerARM::findSwitchTableTarget
         return m_sec_cfg.ptrToNodeAt(first);
     }
     return nullptr;
+}
+
+void SectionDisassemblyAnalyzerARM::buildCallGraph() {
+    // for each node
+    // if assigned to procedure
+    //     continue
+    // buildProcedure (node)
+    // recoverEntryNodes
+    //   for each call create ICFGNode and set entry point and
+    auto call_sites = recoverDirectCallSites();
+    std::sort(call_sites.begin(), call_sites.end());
+    buildInitialCallGraph(call_sites);
+    for (auto &proc : m_call_graph.m_graph_vec) {
+        buildProcedure(proc);
+    }
+
+    // each external call site should be added to call graph as external
+    // each internal site should be traversed to check that it's actually a procedure
+    // the traversal should return one of the following results
+    // valid: all paths return to caller
+    // non-return: some
+
+}
+
+void SectionDisassemblyAnalyzerARM::buildProcedure
+    (ICFGNode &proc_node) {
+    if (proc_node.m_proc_type == ICFGProcedureType::kExternal) {
+        return;
+    }
+    assert(proc_node.m_entry_node->maximalBlock()->getBranch().isDirect()
+               && "Invalid entry node with indirect branch!!");
+    if (proc_node.m_entry_node->maximalBlock()->getBranch().isConditional()) {
+        traverseProcedureNode(proc_node,
+                              proc_node.m_entry_node->m_immediate_successor,
+                              proc_node.m_entry_node);
+    }
+    traverseProcedureNode(proc_node,
+                          proc_node.m_entry_node->m_remote_successor,
+                          proc_node.m_entry_node);
+    // loop over exit nodes
+    // set caller & callees for each ICFG
+    // check if last address belongs to a direct call and revert accordingly.
+}
+
+void SectionDisassemblyAnalyzerARM::traverseProcedureNode
+    (ICFGNode &proc_node, CFGNode *cfg_node, CFGNode *predecessor) {
+    if (cfg_node == nullptr) {
+        // a call to an external procedure
+        if (predecessor->isCall()) {
+            proc_node.m_exit_nodes.push_back
+                ({ICFGExitNodeType::kCall, predecessor});
+        } else {
+            proc_node.m_exit_nodes.push_back
+                ({ICFGExitNodeType::kTailCall, predecessor});
+        }
+        predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
+        return;
+    }
+    if (cfg_node->isAssignedToProcedure()) {
+        if (proc_node.m_entry_addr != cfg_node->m_procedure_entry_addr) {
+            // visiting a node already assigned to another procedure
+            if (cfg_node->m_role_in_procedure
+                == CFGNodeRoleInProcedure::kEntry) {
+                if (predecessor->isCall()) {
+                    proc_node.m_exit_nodes.push_back
+                        ({ICFGExitNodeType::kCall, predecessor});
+                } else {
+                    proc_node.m_exit_nodes.push_back
+                        ({ICFGExitNodeType::kTailCall, predecessor});
+                }
+            } else {
+                proc_node.m_exit_nodes.push_back
+                    ({ICFGExitNodeType::kOverlap, predecessor});
+            }
+            predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
+        }
+        return;
+    }
+    if (!proc_node.isWithinAddressSpace(cfg_node->getCandidateStartAddr())) {
+        // visiting a node outside designated address space
+        if (cfg_node->m_role_in_procedure == CFGNodeRoleInProcedure::kEntry) {
+            if (predecessor->isCall()) {
+                proc_node.m_exit_nodes.push_back
+                    ({ICFGExitNodeType::kCall, predecessor});
+            } else {
+                proc_node.m_exit_nodes.push_back
+                    ({ICFGExitNodeType::kTailCall, predecessor});
+            }
+        } else {
+            proc_node.m_exit_nodes.push_back
+                ({ICFGExitNodeType::kOverlap, predecessor});
+        }
+        predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
+        return;
+    }
+    // if invalid stack manipulation return
+    if (proc_node.m_lr_store_idx == 0) {
+        proc_node.m_lr_store_idx = m_analyzer.getLRStackStoreIndex(cfg_node);
+    } else if (m_analyzer.getLRStackStoreIndex(cfg_node) != 0) {
+        // doing double stack allocation for LR is not valid
+        predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
+        proc_node.m_exit_nodes.push_back
+            ({ICFGExitNodeType::kInvalidLR, predecessor});
+    }
+    // cfg node is now assigned to this procedure
+    printf("CFG visited node %lu at loc_%lx\n",
+           cfg_node->id(),
+           cfg_node->getCandidateStartAddr());
+    cfg_node->m_procedure_entry_addr = proc_node.m_entry_addr;
+    if (cfg_node->maximalBlock()->getBranch().isDirect()) {
+        cfg_node->m_role_in_procedure = CFGNodeRoleInProcedure::kBody;
+        if (cfg_node->maximalBlock()->getBranch().isConditional()) {
+            traverseProcedureNode
+                (proc_node, cfg_node->m_immediate_successor, cfg_node);
+        }
+        traverseProcedureNode
+            (proc_node, cfg_node->m_remote_successor, cfg_node);
+    } else {
+        if (cfg_node->isSwitchStatement()) {
+            cfg_node->m_role_in_procedure = CFGNodeRoleInProcedure::kBody;
+            for (auto &item : cfg_node->m_indirect_successors) {
+                traverseProcedureNode
+                    (proc_node, item.node(), cfg_node);
+            }
+            return;
+        }
+        cfg_node->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
+        if (cfg_node->isCall()) {
+            proc_node.m_exit_nodes.push_back
+                ({ICFGExitNodeType::kIndirectCall, cfg_node});
+            return;
+        }
+        if (m_analyzer.isReturn(cfg_node->maximalBlock()->branchInstruction())) {
+            // TODO: what if a return doesn't match the same LR
+            proc_node.m_exit_nodes.push_back
+                ({ICFGExitNodeType::kReturn, cfg_node});
+            return;
+        } else {
+            proc_node.m_exit_nodes.push_back
+                ({ICFGExitNodeType::kTailCall, cfg_node});
+        }
+    }
+}
+
+std::vector<std::pair<addr_t, const CFGNode *>>
+SectionDisassemblyAnalyzerARM::recoverDirectCallSites() const noexcept {
+    std::vector<std::pair<addr_t, const CFGNode *>> call_sites;
+    for (const auto &cfg_node :m_sec_cfg.m_cfg) {
+        if (cfg_node.isData()) {
+            continue;
+        }
+        if (cfg_node.isCall()
+            && cfg_node.maximalBlock()->getBranch().isDirect()) {
+            call_sites.push_back
+                (std::make_pair(cfg_node.maximalBlock()->getBranch().target(),
+                                &cfg_node));
+        }
+    }
+    return call_sites;
+}
+
+void SectionDisassemblyAnalyzerARM::buildInitialCallGraph
+    (const AddrCFGNodePairVec &call_sites) noexcept {
+    assert(call_sites.size() > 2 && "Too few calls");
+    ICFGNode *current_proc;
+    {
+        current_proc = m_call_graph.addProcedure
+            ((*call_sites.begin()).first,
+             (*(call_sites.begin())).second->m_remote_successor);
+    }
+    for (auto call_site_iter = call_sites.cbegin() + 1;
+         call_site_iter < call_sites.cend(); ++call_site_iter) {
+        if ((*(call_site_iter - 1)).first != (*call_site_iter).first) {
+            current_proc->m_end_addr = (*call_site_iter).first;
+            current_proc =
+                m_call_graph.addProcedure
+                    ((*call_site_iter).first,
+                     (*call_site_iter).second->m_remote_successor);
+        }
+    }
+    current_proc->m_end_addr = m_exec_addr_end;
 }
 }

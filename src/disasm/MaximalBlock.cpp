@@ -147,7 +147,7 @@ bool MaximalBlock::operator==(const MaximalBlock &src) const noexcept {
     return this->id() == src.id();
 }
 
-const MCInst *MaximalBlock::getBranchInstruction() const noexcept {
+const MCInst *MaximalBlock::branchInstruction() const noexcept {
     return &(m_insts.back());
 }
 
