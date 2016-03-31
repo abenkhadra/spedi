@@ -44,7 +44,7 @@ private:
     CFGNode *ptrToNodeAt(size_t index);
 
 private:
-    bool m_valid;
+    bool m_valid = false;
     std::vector<CFGNode> m_cfg;
 };
 }

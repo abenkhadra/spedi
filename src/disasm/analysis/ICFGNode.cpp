@@ -63,7 +63,7 @@ ICFGNode::ICFGNode(CFGNode *entry_node) :
 
 bool ICFGNode::isWithinAddressSpace(const addr_t addr) const noexcept {
     return addr < m_end_addr
-        && addr <= m_entry_node->getCandidateStartAddr();
+        && addr >= m_entry_addr;
 }
 
 void ICFGNode::addCaller(const CFGNode *caller) noexcept {
@@ -72,5 +72,32 @@ void ICFGNode::addCaller(const CFGNode *caller) noexcept {
 
 bool ICFGNode::operator==(const ICFGNode &src) const noexcept {
     return this->m_entry_addr == src.m_entry_addr;
+}
+
+CFGNode *ICFGNode::entryNode() const noexcept {
+    return m_entry_node;
+}
+
+addr_t ICFGNode::entryAddr() const noexcept {
+    return m_entry_addr;
+}
+
+const std::string &ICFGNode::name() const noexcept {
+    return m_name;
+}
+
+ICFGProcedureType ICFGNode::type() const noexcept {
+    return m_proc_type;
+}
+
+void ICFGNode::finalize() noexcept {
+//    m_entry_node->setCandidateStartAddr(m_entry_addr);
+    addr_t max_end_addr = 0;
+    for (const auto &node_pair : m_exit_nodes) {
+        if (max_end_addr < node_pair.second->maximalBlock()->endAddr()) {
+            max_end_addr = node_pair.second->maximalBlock()->endAddr();
+        }
+    }
+    m_end_addr = max_end_addr;
 }
 }

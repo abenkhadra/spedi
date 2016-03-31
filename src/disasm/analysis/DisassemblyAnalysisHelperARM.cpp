@@ -6,22 +6,21 @@
 // 
 // Copyright (c) 2016 University of Kaiserslautern.
 
-#include "DisassemblyAnalyzerHelperARM.h"
+#include "DisassemblyAnalysisHelperARM.h"
 #include "CFGNode.h"
-#include <cassert>
 
 namespace disasm {
 
-DisassemblyAnalyzerHelperARM::DisassemblyAnalyzerHelperARM() :
+DisassemblyAnalysisHelperARM::DisassemblyAnalysisHelperARM() :
     m_isa{ISAType::kThumb} {
 }
 
-DisassemblyAnalyzerHelperARM::DisassemblyAnalyzerHelperARM(ISAType isa) :
+DisassemblyAnalysisHelperARM::DisassemblyAnalysisHelperARM(ISAType isa) :
     m_isa{isa} {
 }
 
 std::vector<const MCInst *>
-DisassemblyAnalyzerHelperARM::getPCRelativeLoadsInstructions
+DisassemblyAnalysisHelperARM::getPCRelativeLoadsInstructions
     (const CFGNode *cfg_node) const noexcept {
     // XXX: assuming pc-relative loads can happen only in LDR, VLDR, and LDRD
     auto predicate = [](const MCInst *inst) -> bool {
@@ -35,7 +34,7 @@ DisassemblyAnalyzerHelperARM::getPCRelativeLoadsInstructions
     return cfg_node->getCandidateInstructionsSatisfying(predicate);
 }
 
-addr_t DisassemblyAnalyzerHelperARM::recoverLDRSwitchBaseAddr
+addr_t DisassemblyAnalysisHelperARM::recoverLDRSwitchBaseAddr
     (const CFGNode &node) const {
     const auto &switch_inst = node.maximalBlock()->branchInstruction();
     if (switch_inst->detail().arm.operands[1].mem.base == ARM_REG_PC) {
@@ -60,7 +59,7 @@ addr_t DisassemblyAnalyzerHelperARM::recoverLDRSwitchBaseAddr
     }
 }
 
-unsigned DisassemblyAnalyzerHelperARM::getLRStackStoreIndex
+unsigned DisassemblyAnalysisHelperARM::getLRStackStoreIndex
     (const CFGNode *cfg_node) const noexcept {
     auto predicate = [](const MCInst *inst) -> bool {
         if (inst->id() == ARM_INS_PUSH) {
@@ -69,19 +68,19 @@ unsigned DisassemblyAnalyzerHelperARM::getLRStackStoreIndex
         return false;
     };
     auto stack_pushes = cfg_node->getCandidateInstructionsSatisfying(predicate);
-    assert(stack_pushes.size() < 2
-               && "Too many stack allocations in a single MB!!");
+    // LR is normally the last one to be saved
     for (const auto inst_ptr: stack_pushes) {
-        for (unsigned char i = 0; i < inst_ptr->detail().arm.op_count; ++i) {
+        for (int i = (inst_ptr->detail().arm.op_count - 1);
+             i > -1; --i) {
             if (inst_ptr->detail().arm.operands[i].reg == ARM_REG_LR) {
-                return i + 1;
+                return (unsigned) i + 1;
             }
         }
     }
     return 0;
 }
 
-bool DisassemblyAnalyzerHelperARM::isReturn(const MCInst *inst) const noexcept {
+bool DisassemblyAnalysisHelperARM::isReturn(const MCInst *inst) const noexcept {
     if (inst->id() == ARM_INS_B || inst->id() == ARM_INS_BX) {
         if (inst->detail().arm.operands[0].reg == ARM_REG_LR) {
             return true;
@@ -97,7 +96,7 @@ bool DisassemblyAnalyzerHelperARM::isReturn(const MCInst *inst) const noexcept {
     return false;
 }
 
-bool DisassemblyAnalyzerHelperARM::isCall(const MCInst *inst) const noexcept {
+bool DisassemblyAnalysisHelperARM::isCall(const MCInst *inst) const noexcept {
     return inst->id() == ARM_INS_BLX || inst->id() == ARM_INS_BL;
 }
 }

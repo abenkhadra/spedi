@@ -10,6 +10,7 @@
 #include <vector>
 #include <disasm/common.h>
 #include <string>
+#include "CFGNode.h"
 
 namespace disasm {
 class CFGNode;
@@ -18,6 +19,7 @@ enum class ICFGExitNodeType: unsigned char {
     kCall,  // direct call to an entry node, we expect it to return
     kTailCall,    // call to an entry, we expect the callee to return to original caller
     kOverlap, // direct branch/call to a node other than entry node
+    kPossibleOverlap,
     kReturn,
     kIndirectCall,
     kInvalidLR
@@ -69,6 +71,11 @@ public:
     std::vector<CFGNode *> &getUniqueCFGNodes() const noexcept;
     bool hasOverlapWithOtherProcedure() const noexcept;
     bool isWithinAddressSpace(const addr_t addr) const noexcept;
+    CFGNode *entryNode() const noexcept;
+    addr_t entryAddr() const noexcept;
+    const std::string &name() const noexcept;
+    ICFGProcedureType type() const noexcept;
+    void finalize() noexcept;
     friend class DisassemblyCallGraph;
     friend class SectionDisassemblyAnalyzerARM;
 private:

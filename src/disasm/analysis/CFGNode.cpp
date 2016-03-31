@@ -12,6 +12,7 @@
 namespace disasm {
 CFGNode::CFGNode() :
     m_type{CFGNodeType::kUnknown},
+    m_is_call{false},
     m_traversal_status{TraversalStatus::kUnvisited},
     m_role_in_procedure{CFGNodeRoleInProcedure::kUnknown},
     m_candidate_start_addr{0},
@@ -24,6 +25,7 @@ CFGNode::CFGNode() :
 
 CFGNode::CFGNode(MaximalBlock *current_block) :
     m_type{CFGNodeType::kUnknown},
+    m_is_call{false},
     m_traversal_status{TraversalStatus::kUnvisited},
     m_role_in_procedure{CFGNodeRoleInProcedure::kUnknown},
     m_candidate_start_addr{0},
@@ -193,8 +195,7 @@ bool CFGNode::isAssignedToProcedure() const noexcept {
 }
 
 bool CFGNode::isCall() const noexcept {
-    return m_max_block->branchInstruction()->id() == ARM_INS_BLX
-        || m_max_block->branchInstruction()->id() == ARM_INS_BL;
+    return m_is_call;
 }
 
 bool CFGNode::isPossibleReturn() const noexcept {
@@ -222,6 +223,7 @@ void CFGNode::setAsReturnNodeFrom(CFGNode *cfg_node, const addr_t target_addr) {
         (CFGEdge(CFGEdgeType::kReturn, cfg_node, target_addr));
     cfg_node->m_indirect_successors.emplace_back
         (CFGEdge(CFGEdgeType::kReturn, this, target_addr));
+    cfg_node->m_is_call = true;
 }
 
 void CFGNode::setAsSwitchCaseFor(CFGNode *cfg_node, const addr_t target_addr) {
@@ -276,5 +278,16 @@ bool CFGNode::isImmediateSuccessorSet() const noexcept {
 bool CFGNode::isAppendableBy(const CFGNode *cfg_node) const {
     return m_max_block->endAddr() ==
         cfg_node->maximalBlock()->addrOfFirstInst();
+}
+
+CFGNode *CFGNode::getReturnSuccessorNode() const noexcept {
+    if (m_indirect_successors.size() == 1
+        && m_indirect_successors[0].type() == CFGEdgeType::kReturn) {
+        return m_indirect_successors[0].node();
+    }
+    return nullptr;
+}
+bool CFGNode::isRoleInProcedureSet() const noexcept {
+    return m_role_in_procedure != CFGNodeRoleInProcedure::kUnknown;
 }
 }

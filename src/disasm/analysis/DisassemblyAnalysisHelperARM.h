@@ -15,18 +15,18 @@ class MCInst;
 class CFGNode;
 
 /**
- * DisassemblyAnalyzerHelperARM
+ * DisassemblyAnalysisHelperARM
  */
-class DisassemblyAnalyzerHelperARM {
+class DisassemblyAnalysisHelperARM {
 public:
-    DisassemblyAnalyzerHelperARM();
-    DisassemblyAnalyzerHelperARM(ISAType isa);
-    virtual ~DisassemblyAnalyzerHelperARM() = default;
-    DisassemblyAnalyzerHelperARM(const DisassemblyAnalyzerHelperARM &src) =
+    DisassemblyAnalysisHelperARM();
+    DisassemblyAnalysisHelperARM(ISAType isa);
+    virtual ~DisassemblyAnalysisHelperARM() = default;
+    DisassemblyAnalysisHelperARM(const DisassemblyAnalysisHelperARM &src) =
     default;
-    DisassemblyAnalyzerHelperARM
-        &operator=(const DisassemblyAnalyzerHelperARM &src) = default;
-    DisassemblyAnalyzerHelperARM(DisassemblyAnalyzerHelperARM &&src) = default;
+    DisassemblyAnalysisHelperARM
+        &operator=(const DisassemblyAnalysisHelperARM &src) = default;
+    DisassemblyAnalysisHelperARM(DisassemblyAnalysisHelperARM &&src) = default;
     bool modifySP(const MCInst *inst) const;
     std::vector<const MCInst *> getPCRelativeLoadsInstructions
         (const CFGNode *cfg_node) const noexcept;

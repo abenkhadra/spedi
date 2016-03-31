@@ -109,9 +109,11 @@ public:
     bool isSwitchStatement() const noexcept;
     bool isCandidateStartAddressValid(addr_t candidate_addr) const noexcept;
     bool isAssignedToProcedure() const noexcept;
+    bool isRoleInProcedureSet() const noexcept;
     bool isImmediateSuccessorSet() const noexcept;
     addr_t getMinTargetAddrOfValidPredecessor() const noexcept;
     bool isAppendableBy(const CFGNode *cfg_node) const;
+    CFGNode *getReturnSuccessorNode() const noexcept;
     friend class SectionDisassemblyAnalyzerARM;
     friend class ICFGNode;
 private:
@@ -121,6 +123,7 @@ private:
     void setAsSwitchCaseFor(CFGNode *cfg_node, const addr_t target_addr);
 private:
     CFGNodeType m_type;
+    bool m_is_call;
     TraversalStatus m_traversal_status;
     CFGNodeRoleInProcedure m_role_in_procedure;
     addr_t m_candidate_start_addr;

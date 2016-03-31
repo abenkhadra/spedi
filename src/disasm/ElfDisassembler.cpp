@@ -94,10 +94,6 @@ SectionDisassemblyARM ElfDisassembler::disassembleSectionUsingSymbols
             if (m_analyzer.isBranch(inst_ptr)) {
                 max_block_builder.appendBranch(inst_ptr);
                 result.add(max_block_builder.build());
-                if (!max_block_builder.isCleanReset()) {
-                    printf("Overlap detected at MaxBlock %lu \n",
-                           result.back().id());
-                }
             } else {
                 max_block_builder.append(inst_ptr);
             }
@@ -121,7 +117,6 @@ SectionDisassemblyARM ElfDisassembler::disassembleSectionbyNameSpeculative
     for (auto &sec : m_elf_file->sections()) {
         if (sec.get_name() == sec_name) {
             return disassembleSectionSpeculative(sec);
-
         }
     }
     return SectionDisassemblyARM();
@@ -161,11 +156,7 @@ SectionDisassemblyARM ElfDisassembler::disassembleSectionSpeculative
                 if (m_analyzer.isBranch(inst_ptr)) {
                     max_block_builder.appendBranch(inst_ptr);
                     result.add(max_block_builder.build());
-//                    prettyPrintMaximalBlock(result.back());
-//                    if (!max_block_builder.isCleanReset()) {
-//                        printf("Overlap detected at MaxBlock %u \n",
-//                               result.back().id());
-//                    }
+//                    prettyPrintMaximalBlock(&result.back());
                 } else {
                     max_block_builder.append(inst_ptr);
                 }

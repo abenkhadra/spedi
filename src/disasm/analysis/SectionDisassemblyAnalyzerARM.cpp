@@ -84,7 +84,8 @@ void SectionDisassemblyAnalyzerARM::buildCFG() {
                 continue;
             }
             auto rev_cfg_node_iter = (node_iter) - 1;
-            if ((*rev_cfg_node_iter).isCall()
+            if (m_analyzer.isCall((*rev_cfg_node_iter).maximalBlock()
+                                      ->branchInstruction())
                 && (*rev_cfg_node_iter).maximalBlock()->
                     isAppendableBy(*(*node_iter).maximalBlock())) {
                 (*node_iter).setAsReturnNodeFrom
@@ -208,7 +209,7 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
         if ((*node_iter).isData()) {
             continue;
         }
-        resolveOverlapBetweenCFGNodes(*node_iter);
+        resolveOverlapBetweenNodes(*node_iter);
         addConditionalBranchToCFG(*node_iter);
         // find maximally valid BB and resolves conflicts between MBs
         resolveValidBasicBlock((*node_iter));
@@ -216,16 +217,17 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
     recoverSwitchStatements();
 }
 
-void SectionDisassemblyAnalyzerARM::resolveOverlapBetweenCFGNodes(CFGNode &node) {
-    // resolve overlap between MBs by shrinking the next or converting this to data
+void SectionDisassemblyAnalyzerARM::resolveOverlapBetweenNodes(CFGNode &node) {
     if (!node.hasOverlapWithOtherNode() || node.getOverlapNode()->isData()) {
         return;
     }
+    // resolve overlap between MBs by shrinking the next or converting this to data
     if (node.getOverlapNode()->maximalBlock()->
         coversAddressSpaceOf(node.maximalBlock())) {
         if (calculateNodeWeight(&node) <
             calculateNodeWeight(node.getOverlapNode())) {
-            if (m_sec_cfg.previous(node).isAppendableBy(&node)) {
+            if (m_sec_cfg.previous(node).isAppendableBy(&node)
+                && calculateNodeWeight(&m_sec_cfg.previous(node)) > 2) {
                 // XXX: heuristic applied when this node aligns with previous
                 // what if next is one instruction?
                 node.getOverlapNodePtr()->
@@ -439,7 +441,9 @@ void SectionDisassemblyAnalyzerARM::recoverSwitchStatements() {
             recoverTBHSwitchTable((*node_iter));
         }
         if ((*node_iter).maximalBlock()->
-            branchInstruction()->id() == ARM_INS_LDR) {
+            branchInstruction()->id() == ARM_INS_LDR
+            && (*node_iter).maximalBlock()->
+                branchInstruction()->detail().arm.op_count == 2) {
             switch_nodes.push_back(&(*node_iter));
             recoverLDRSwitchTable
                 (*node_iter, m_analyzer.recoverLDRSwitchBaseAddr(*node_iter));
@@ -497,6 +501,9 @@ bool SectionDisassemblyAnalyzerARM::isConditionalBranchAffectedByNodeOverlap
             node.maximalBlock()->getAllInstructions().cbegin();
              inst_iter < node.maximalBlock()->getAllInstructions().cend();
              inst_iter++) {
+            if ((*inst_iter).addr() >= node.getCandidateStartAddr()) {
+                return false;
+            }
             if ((*inst_iter).id() == ARM_INS_CMP
                 || (*inst_iter).id() == ARM_INS_CMN
                 || (*inst_iter).id() == ARM_INS_IT) {
@@ -505,9 +512,6 @@ bool SectionDisassemblyAnalyzerARM::isConditionalBranchAffectedByNodeOverlap
                 // TODO: check if a conditional execution instruction actually
                 // affects the branch instruction
                 return true;
-            }
-            if ((*inst_iter).addr() > node.getCandidateStartAddr()) {
-                return false;
             }
         }
     }
@@ -663,14 +667,11 @@ CFGNode *SectionDisassemblyAnalyzerARM::findSwitchTableTarget
 }
 
 void SectionDisassemblyAnalyzerARM::buildCallGraph() {
-    // for each node
-    // if assigned to procedure
-    //     continue
-    // buildProcedure (node)
-    // recoverEntryNodes
-    //   for each call create ICFGNode and set entry point and
+    // recover a map of target addresses and direct call sites
     auto call_sites = recoverDirectCallSites();
     std::sort(call_sites.begin(), call_sites.end());
+    // initial call graph where every directly reachable procedure is identified
+    //  together with its overestimated address space
     buildInitialCallGraph(call_sites);
     for (auto &proc : m_call_graph.m_graph_vec) {
         buildProcedure(proc);
@@ -687,27 +688,78 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
 void SectionDisassemblyAnalyzerARM::buildProcedure
     (ICFGNode &proc_node) {
     if (proc_node.m_proc_type == ICFGProcedureType::kExternal) {
+        // we do not traverse dynamically linked libraries
         return;
     }
-    assert(proc_node.m_entry_node->maximalBlock()->getBranch().isDirect()
-               && "Invalid entry node with indirect branch!!");
-    if (proc_node.m_entry_node->maximalBlock()->getBranch().isConditional()) {
+    proc_node.m_lr_store_idx =
+        m_analyzer.getLRStackStoreIndex(proc_node.m_entry_node);
+    if (proc_node.entryNode()->maximalBlock()->getBranch().isConditional()) {
         traverseProcedureNode(proc_node,
-                              proc_node.m_entry_node->m_immediate_successor,
-                              proc_node.m_entry_node);
+                              proc_node.entryNode()->m_immediate_successor,
+                              proc_node.entryNode());
+    }
+    if (proc_node.entryNode()->isCall()) {
+        traverseProcedureNode
+            (proc_node,
+             proc_node.entryNode()->getReturnSuccessorNode(),
+             proc_node.entryNode());
     }
     traverseProcedureNode(proc_node,
-                          proc_node.m_entry_node->m_remote_successor,
-                          proc_node.m_entry_node);
-    // loop over exit nodes
-    // set caller & callees for each ICFG
-    // check if last address belongs to a direct call and revert accordingly.
+                          proc_node.entryNode()->m_remote_successor,
+                          proc_node.entryNode());
+    proc_node.finalize();
+    std::cout << std::endl;
+    printf("Procedure %s built...\n", proc_node.name().c_str());
+    printf("Entry node %lu at: %lx \n",
+           proc_node.entryNode()->id(),
+           proc_node.entryNode()->getCandidateStartAddr());
+    for (auto &exitNodePair : proc_node.m_exit_nodes) {
+        switch (exitNodePair.first) {
+            case ICFGExitNodeType::kReturn:
+                printf("Exit_return node %lu at: %lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            case ICFGExitNodeType::kCall:
+                printf("Exit_call node %lu at: %lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            case ICFGExitNodeType::kIndirectCall:
+                printf("Exit_ind_call node %lu at: %lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            case ICFGExitNodeType::kInvalidLR:
+                printf("Exit_invalid node %lu at: %lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            case ICFGExitNodeType::kTailCall:
+                printf("Exit_tail_call node %lu at: %lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            case ICFGExitNodeType::kPossibleOverlap:
+                printf("Exit_pos_overlap node %lu at: %lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            default:
+                printf("Exit_overlap node %lu at: %lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+        }
+        printf("\n");
+    }
+    printf("Procedure end.\n");
 }
 
 void SectionDisassemblyAnalyzerARM::traverseProcedureNode
     (ICFGNode &proc_node, CFGNode *cfg_node, CFGNode *predecessor) {
     if (cfg_node == nullptr) {
         // a call to an external procedure
+//        printf("Exiting at ext succ of %lu\n", predecessor->id());
         if (predecessor->isCall()) {
             proc_node.m_exit_nodes.push_back
                 ({ICFGExitNodeType::kCall, predecessor});
@@ -715,12 +767,16 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
             proc_node.m_exit_nodes.push_back
                 ({ICFGExitNodeType::kTailCall, predecessor});
         }
-        predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
+        if (!predecessor->isRoleInProcedureSet())
+            predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
         return;
     }
     if (cfg_node->isAssignedToProcedure()) {
-        if (proc_node.m_entry_addr != cfg_node->m_procedure_entry_addr) {
+        if (proc_node.entryAddr() != cfg_node->m_procedure_entry_addr) {
             // visiting a node already assigned to another procedure
+//            printf("Exiting at %lu succ of %lu\n",
+//                   cfg_node->id(),
+//                   predecessor->id());
             if (cfg_node->m_role_in_procedure
                 == CFGNodeRoleInProcedure::kEntry) {
                 if (predecessor->isCall()) {
@@ -734,12 +790,17 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
                 proc_node.m_exit_nodes.push_back
                     ({ICFGExitNodeType::kOverlap, predecessor});
             }
-            predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
+            if (!predecessor->isRoleInProcedureSet())
+                predecessor->m_role_in_procedure =
+                    CFGNodeRoleInProcedure::kExit;
         }
         return;
     }
     if (!proc_node.isWithinAddressSpace(cfg_node->getCandidateStartAddr())) {
         // visiting a node outside designated address space
+//        printf("Exiting at %lu succ of %lu\n",
+//               cfg_node->id(),
+//               predecessor->id());
         if (cfg_node->m_role_in_procedure == CFGNodeRoleInProcedure::kEntry) {
             if (predecessor->isCall()) {
                 proc_node.m_exit_nodes.push_back
@@ -748,11 +809,15 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
                 proc_node.m_exit_nodes.push_back
                     ({ICFGExitNodeType::kTailCall, predecessor});
             }
-        } else {
+        } else if (cfg_node->isAssignedToProcedure()) {
             proc_node.m_exit_nodes.push_back
                 ({ICFGExitNodeType::kOverlap, predecessor});
+        } else {
+            proc_node.m_exit_nodes.push_back
+                ({ICFGExitNodeType::kPossibleOverlap, predecessor});
         }
-        predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
+        if (!predecessor->isRoleInProcedureSet())
+            predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
         return;
     }
     // if invalid stack manipulation return
@@ -760,15 +825,19 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
         proc_node.m_lr_store_idx = m_analyzer.getLRStackStoreIndex(cfg_node);
     } else if (m_analyzer.getLRStackStoreIndex(cfg_node) != 0) {
         // doing double stack allocation for LR is not valid
+//        printf("Exiting at %lu succ of %lu\n",
+//               cfg_node->id(),
+//               predecessor->id());
         predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
         proc_node.m_exit_nodes.push_back
             ({ICFGExitNodeType::kInvalidLR, predecessor});
     }
     // cfg node is now assigned to this procedure
-    printf("CFG visited node %lu at loc_%lx\n",
-           cfg_node->id(),
-           cfg_node->getCandidateStartAddr());
-    cfg_node->m_procedure_entry_addr = proc_node.m_entry_addr;
+//    printf("CFG visiting node %lu at loc_%lx succ of %lu\n",
+//           cfg_node->id(),
+//           cfg_node->getCandidateStartAddr(),
+//           predecessor->id());
+    cfg_node->m_procedure_entry_addr = proc_node.entryAddr();
     if (cfg_node->maximalBlock()->getBranch().isDirect()) {
         cfg_node->m_role_in_procedure = CFGNodeRoleInProcedure::kBody;
         if (cfg_node->maximalBlock()->getBranch().isConditional()) {
@@ -777,6 +846,10 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
         }
         traverseProcedureNode
             (proc_node, cfg_node->m_remote_successor, cfg_node);
+        if (cfg_node->isCall()) {
+            traverseProcedureNode
+                (proc_node, cfg_node->getReturnSuccessorNode(), cfg_node);
+        }
     } else {
         if (cfg_node->isSwitchStatement()) {
             cfg_node->m_role_in_procedure = CFGNodeRoleInProcedure::kBody;
@@ -790,6 +863,8 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
         if (cfg_node->isCall()) {
             proc_node.m_exit_nodes.push_back
                 ({ICFGExitNodeType::kIndirectCall, cfg_node});
+            traverseProcedureNode
+                (proc_node, cfg_node->getReturnSuccessorNode(), cfg_node);
             return;
         }
         if (m_analyzer.isReturn(cfg_node->maximalBlock()->branchInstruction())) {

@@ -133,8 +133,22 @@ MaximalBlock MaximalBlockBuilder::build() {
     }
     // Case of BB overlap then MB should maintain overlap BBs and their instructions.
     MaximalBlock result = buildResultFromValidBasicBlocks(valid_blocks);
+
+    if (overlap_blocks.size() + result.m_bblocks.size() == m_bblocks.size()
+        && result.m_insts.size() == 1) {
+        // optimization for the case of spurious branch instructions.
+        m_insts.pop_back();
+        m_bblocks.pop_back();
+        m_bb_idx = overlap_blocks.size();
+        m_end_addr = m_insts.back().addr() + m_insts.back().size();
+        m_buildable = false;
+        m_max_block_idx++;
+        return result;
+    }
+
     std::vector<MCInst> insts_buffer;
     std::vector<BasicBlock> bb_buffer;
+    // TODO: if valid block contain only one inst then optimize for that case
     // copy all overlap blocks
     for (auto block_iter = overlap_blocks.cbegin();
          block_iter < overlap_blocks.cend(); ++block_iter) {

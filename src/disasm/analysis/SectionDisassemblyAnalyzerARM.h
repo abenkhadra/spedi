@@ -9,7 +9,7 @@
 #pragma once
 #include "DisassemblyCFG.h"
 #include "DisassemblyCallGraph.h"
-#include "DisassemblyAnalyzerHelperARM.h"
+#include "DisassemblyAnalysisHelperARM.h"
 #include <unordered_map>
 
 namespace disasm {
@@ -81,7 +81,7 @@ private:
      */
     void resolveValidBasicBlock(CFGNode &node);
     void addConditionalBranchToCFG(CFGNode &node);
-    void resolveOverlapBetweenCFGNodes(CFGNode &node);
+    void resolveOverlapBetweenNodes(CFGNode &node);
     void resolveCFGConflicts
         (CFGNode &node, const std::vector<CFGEdge> &valid_predecessors);
     void resolveLoadConflicts(CFGNode &node);
@@ -111,7 +111,7 @@ private:
 
 private:
     SectionDisassemblyARM *m_sec_disassembly;
-    DisassemblyAnalyzerHelperARM m_analyzer;
+    DisassemblyAnalysisHelperARM m_analyzer;
     addr_t m_exec_addr_start;
     addr_t m_exec_addr_end;
     DisassemblyCFG m_sec_cfg;

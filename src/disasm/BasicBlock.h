@@ -25,6 +25,7 @@ public:
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
+    BasicBlock();
     BasicBlock(size_t id, const cs_insn *inst);
     virtual ~BasicBlock() = default;
     BasicBlock(const BasicBlock &src) = default;
