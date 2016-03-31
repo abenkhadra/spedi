@@ -84,14 +84,6 @@ void SectionDisassemblyAnalyzerARM::buildCFG() {
                 continue;
             }
             auto rev_cfg_node_iter = (node_iter) - 1;
-            if (m_analyzer.isCall((*rev_cfg_node_iter).maximalBlock()
-                                      ->branchInstruction())
-                && (*rev_cfg_node_iter).maximalBlock()->
-                    isAppendableBy(*(*node_iter).maximalBlock())) {
-                (*node_iter).setAsReturnNodeFrom
-                    (&(*rev_cfg_node_iter),
-                     (*rev_cfg_node_iter).maximalBlock()->endAddr());
-            }
             // check for overlap MB
             for (; rev_cfg_node_iter >= m_sec_cfg.m_cfg.begin();
                    --rev_cfg_node_iter) {
@@ -150,13 +142,14 @@ CFGNode *SectionDisassemblyAnalyzerARM::findImmediateSuccessor
     }
     auto direct_succ =
         &(*(m_sec_cfg.m_cfg.begin() + cfg_node.id() + 1));
-    if (direct_succ->maximalBlock()->
+    if (!direct_succ->isData() && direct_succ->maximalBlock()->
         isAddressOfInstruction(cfg_node.maximalBlock()->endAddr())) {
         return direct_succ;
     }
     auto overlap_node = direct_succ->getOverlapNodePtr();
-    if (overlap_node != nullptr && overlap_node->maximalBlock()->
-        isAddressOfInstruction(cfg_node.maximalBlock()->endAddr())) {
+    if (overlap_node != nullptr && !overlap_node->isData()
+        && overlap_node->maximalBlock()->
+            isAddressOfInstruction(cfg_node.maximalBlock()->endAddr())) {
         return overlap_node;
     }
     return nullptr;
@@ -206,11 +199,13 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
     }
     for (auto node_iter = m_sec_cfg.m_cfg.begin();
          node_iter < m_sec_cfg.m_cfg.end(); ++node_iter) {
-        if ((*node_iter).isData()) {
+        if ((*node_iter).isData())
             continue;
-        }
         resolveOverlapBetweenNodes(*node_iter);
+        if ((*node_iter).isData())
+            continue;
         addConditionalBranchToCFG(*node_iter);
+        addCallReturnRelation(*node_iter);
         // find maximally valid BB and resolves conflicts between MBs
         resolveValidBasicBlock((*node_iter));
     }
@@ -228,6 +223,7 @@ void SectionDisassemblyAnalyzerARM::resolveOverlapBetweenNodes(CFGNode &node) {
             calculateNodeWeight(node.getOverlapNode())) {
             if (m_sec_cfg.previous(node).isAppendableBy(&node)
                 && calculateNodeWeight(&m_sec_cfg.previous(node)) > 2) {
+                // TODO: alignment should be revisted!!
                 // XXX: heuristic applied when this node aligns with previous
                 // what if next is one instruction?
                 node.getOverlapNodePtr()->
@@ -261,7 +257,12 @@ void SectionDisassemblyAnalyzerARM::resolveOverlapBetweenNodes(CFGNode &node) {
 void SectionDisassemblyAnalyzerARM::resolveValidBasicBlock(CFGNode &node) {
     if (!node.isCandidateStartAddressSet()) {
         // with no objections we take the first instruction
-        node.setCandidateStartAddr(node.maximalBlock()->addrOfFirstInst());
+        if (node.isPossibleReturn()) {
+            node.setCandidateStartAddr
+                (node.getPreceedingCallNode()->maximalBlock()->endAddr());
+        } else {
+            node.setCandidateStartAddr(node.maximalBlock()->addrOfFirstInst());
+        }
     }
     if (node.maximalBlock()->getBasicBlocksCount() == 1
         || node.getDirectPredecessors().size() == 0) {
@@ -302,9 +303,11 @@ void SectionDisassemblyAnalyzerARM::resolveValidBasicBlock(CFGNode &node) {
         }
         if (target_count == valid_predecessors.size()) {
             if (node.getCandidateStartAddr() < (*bblock_iter).startAddr()) {
-                // we advance candidate start address only for
-                // valid predecessors
-                node.setCandidateStartAddr((*bblock_iter).startAddr());
+                // TODO: better handling of conflicts here
+                if (node.isPossibleReturn() && valid_predecessors.size() == 1) {
+                    valid_predecessors[0].node()->setToDataAndInvalidatePredecessors();
+                }
+//                node.setCandidateStartAddr((*bblock_iter).startAddr());
             }
             return;
         }
@@ -476,7 +479,7 @@ void SectionDisassemblyAnalyzerARM::addConditionalBranchToCFG(CFGNode &node) {
     if (!isConditionalBranchAffectedByNodeOverlap(node)) {
         // a conditional branch should be valid
         auto succ = findImmediateSuccessor(node);
-        if (succ != nullptr && !succ->isData()) {
+        if (succ != nullptr) {
             node.setImmediateSuccessor(succ);
             succ->addImmediatePredecessor
                 (&node, node.maximalBlock()->endAddr());
@@ -489,12 +492,17 @@ void SectionDisassemblyAnalyzerARM::addConditionalBranchToCFG(CFGNode &node) {
 
 bool SectionDisassemblyAnalyzerARM::isConditionalBranchAffectedByNodeOverlap
     (const CFGNode &node) const noexcept {
-    if (!node.isCandidateStartAddressSet()
-        || node.maximalBlock()->branchInstruction()->id() == ARM_INS_CBZ
-        || node.maximalBlock()->branchInstruction()->id()
-            == ARM_INS_CBNZ) {
+    if (node.maximalBlock()->branchInstruction()->id() == ARM_INS_CBZ
+        || node.maximalBlock()->branchInstruction()->id() == ARM_INS_CBNZ) {
+        // these instructions are not affected
+        return false;
+    }
+    if (!node.isCandidateStartAddressSet()) {
         // if there was no overlap or branches are not affected by context.
         // additionally larger nodes are not affected (heuristic)
+        if (node.maximalBlock()->instructionsCount() == 1)
+            // XXX Capstone should be figure out that IT can't affect other BBs.
+            return true;
         return false;
     } else {
         for (auto inst_iter =
@@ -853,7 +861,7 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
     } else {
         if (cfg_node->isSwitchStatement()) {
             cfg_node->m_role_in_procedure = CFGNodeRoleInProcedure::kBody;
-            for (auto &item : cfg_node->m_indirect_successors) {
+            for (auto &item : cfg_node->m_indirect_succs) {
                 traverseProcedureNode
                     (proc_node, item.node(), cfg_node);
             }
@@ -916,5 +924,14 @@ void SectionDisassemblyAnalyzerARM::buildInitialCallGraph
         }
     }
     current_proc->m_end_addr = m_exec_addr_end;
+}
+
+void SectionDisassemblyAnalyzerARM::addCallReturnRelation(CFGNode &node) {
+    if (m_analyzer.isCall(node.maximalBlock()->branchInstruction())) {
+        auto succ = findImmediateSuccessor(node);
+        if (succ != nullptr) {
+            succ->setAsReturnNodeFrom(node);
+        }
+    }
 }
 }

@@ -17,6 +17,7 @@ CFGNode::CFGNode() :
     m_role_in_procedure{CFGNodeRoleInProcedure::kUnknown},
     m_candidate_start_addr{0},
     m_overlap_node{nullptr},
+    m_node_appendable_by_this{nullptr},
     m_procedure_entry_addr{0},
     m_immediate_successor{nullptr},
     m_remote_successor{nullptr},
@@ -30,6 +31,7 @@ CFGNode::CFGNode(MaximalBlock *current_block) :
     m_role_in_procedure{CFGNodeRoleInProcedure::kUnknown},
     m_candidate_start_addr{0},
     m_overlap_node{nullptr},
+    m_node_appendable_by_this{nullptr},
     m_procedure_entry_addr{0},
     m_immediate_successor{nullptr},
     m_remote_successor{nullptr},
@@ -136,11 +138,11 @@ CFGNode::getDirectPredecessors() const noexcept {
 
 const std::vector<CFGEdge> &
 CFGNode::getIndirectPredecessors() const noexcept {
-    return m_indirect_predecessors;
+    return m_indirect_preds;
 }
 
 const std::vector<CFGEdge> &CFGNode::getIndirectSuccessors() const noexcept {
-    return m_indirect_successors;
+    return m_indirect_succs;
 }
 
 void CFGNode::setMaximalBlock(MaximalBlock *maximal_block) noexcept {
@@ -199,11 +201,11 @@ bool CFGNode::isCall() const noexcept {
 }
 
 bool CFGNode::isPossibleReturn() const noexcept {
-    for (const auto &cfg_edge : m_indirect_predecessors) {
-        if (cfg_edge.type() == CFGEdgeType::kReturn)
-            return true;
-    }
-    return false;
+    return m_node_appendable_by_this != nullptr;
+}
+
+const CFGNode *CFGNode::getPreceedingCallNode() const noexcept {
+    return m_node_appendable_by_this;
 }
 
 size_t CFGNode::getCountOfCandidateInstructions() const noexcept {
@@ -218,29 +220,30 @@ size_t CFGNode::getCountOfCandidateInstructions() const noexcept {
     return result;
 }
 
-void CFGNode::setAsReturnNodeFrom(CFGNode *cfg_node, const addr_t target_addr) {
-    m_indirect_predecessors.emplace_back
-        (CFGEdge(CFGEdgeType::kReturn, cfg_node, target_addr));
-    cfg_node->m_indirect_successors.emplace_back
-        (CFGEdge(CFGEdgeType::kReturn, this, target_addr));
-    cfg_node->m_is_call = true;
+void CFGNode::setAsReturnNodeFrom(CFGNode &cfg_node) {
+    m_node_appendable_by_this = &cfg_node;
+    cfg_node.m_indirect_succs.emplace_back
+        (CFGEdge(CFGEdgeType::kReturn,
+                 this,
+                 cfg_node.maximalBlock()->endAddr()));
+    cfg_node.m_is_call = true;
 }
 
 void CFGNode::setAsSwitchCaseFor(CFGNode *cfg_node, const addr_t target_addr) {
 //    printf("Node: %lu at %lx Target: %lx\n", cfg_node->id(),
 //           cfg_node->maximalBlock()->endAddr(), target_addr);
-    m_indirect_predecessors.emplace_back
+    m_indirect_preds.emplace_back
         (CFGEdge(CFGEdgeType::kSwitchTable, cfg_node, target_addr));
-    cfg_node->m_indirect_successors.emplace_back
+    cfg_node->m_indirect_succs.emplace_back
         (CFGEdge(CFGEdgeType::kSwitchTable, this, target_addr));
 }
 
 bool CFGNode::isSwitchStatement() const noexcept {
-    return m_indirect_successors.size() > 1;
+    return m_indirect_succs.size() > 1;
 }
 
 bool CFGNode::isSwitchBranchTarget() const noexcept {
-    for (const auto &cfg_edge : m_indirect_predecessors) {
+    for (const auto &cfg_edge : m_indirect_preds) {
         if (cfg_edge.type() == CFGEdgeType::kSwitchTable)
             return true;
     }
@@ -249,7 +252,7 @@ bool CFGNode::isSwitchBranchTarget() const noexcept {
 
 addr_t CFGNode::getMinTargetAddrOfValidPredecessor() const noexcept {
     addr_t minimum_addr = UINT64_MAX;
-    for (const auto &pred : m_indirect_predecessors) {
+    for (const auto &pred : m_indirect_preds) {
         if (pred.targetAddr() < minimum_addr) {
             minimum_addr = pred.targetAddr();
         }
@@ -281,9 +284,9 @@ bool CFGNode::isAppendableBy(const CFGNode *cfg_node) const {
 }
 
 CFGNode *CFGNode::getReturnSuccessorNode() const noexcept {
-    if (m_indirect_successors.size() == 1
-        && m_indirect_successors[0].type() == CFGEdgeType::kReturn) {
-        return m_indirect_successors[0].node();
+    if (m_indirect_succs.size() == 1
+        && m_indirect_succs[0].type() == CFGEdgeType::kReturn) {
+        return m_indirect_succs[0].node();
     }
     return nullptr;
 }

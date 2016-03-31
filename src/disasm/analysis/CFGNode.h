@@ -103,6 +103,7 @@ public:
      * returns true if immediate predecessor is a PossibleCall
      */
     bool isPossibleReturn() const noexcept;
+    const CFGNode *getPreceedingCallNode() const noexcept;
     /*
      * returns a valid value only after recovering switch tables.
      */
@@ -119,7 +120,7 @@ public:
 private:
     void setMaximalBlock(MaximalBlock *maximal_block) noexcept;
     CFGNode *getOverlapNodePtr() const noexcept;
-    void setAsReturnNodeFrom(CFGNode *cfg_node, const addr_t target_addr);
+    void setAsReturnNodeFrom(CFGNode &cfg_node);
     void setAsSwitchCaseFor(CFGNode *cfg_node, const addr_t target_addr);
 private:
     CFGNodeType m_type;
@@ -128,13 +129,14 @@ private:
     CFGNodeRoleInProcedure m_role_in_procedure;
     addr_t m_candidate_start_addr;
     CFGNode *m_overlap_node;
+    CFGNode *m_node_appendable_by_this;
     addr_t m_procedure_entry_addr;
     CFGNode *m_immediate_successor;
     CFGNode *m_remote_successor;
     MaximalBlock *m_max_block;
     std::vector<CFGEdge> m_direct_predecessors;
-    std::vector<CFGEdge> m_indirect_predecessors;
-    std::vector<CFGEdge> m_indirect_successors;
+    std::vector<CFGEdge> m_indirect_preds;
+    std::vector<CFGEdge> m_indirect_succs;
 
 };
 }

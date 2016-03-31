@@ -118,5 +118,6 @@ private:
     DisassemblyCallGraph m_call_graph;
     CFGNode *findSwitchTableTarget
         (addr_t target_addr);
+    void addCallReturnRelation(CFGNode &node);
 };
 }
