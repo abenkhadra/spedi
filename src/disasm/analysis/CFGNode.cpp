@@ -18,7 +18,7 @@ CFGNode::CFGNode() :
     m_candidate_start_addr{0},
     m_overlap_node{nullptr},
     m_node_appendable_by_this{nullptr},
-    m_procedure_entry_addr{0},
+    m_procedure_id{0},
     m_immediate_successor{nullptr},
     m_remote_successor{nullptr},
     m_max_block{nullptr} {
@@ -32,7 +32,7 @@ CFGNode::CFGNode(MaximalBlock *current_block) :
     m_candidate_start_addr{0},
     m_overlap_node{nullptr},
     m_node_appendable_by_this{nullptr},
-    m_procedure_entry_addr{0},
+    m_procedure_id{0},
     m_immediate_successor{nullptr},
     m_remote_successor{nullptr},
     m_max_block{current_block} {
@@ -193,7 +193,7 @@ bool CFGNode::operator==(const CFGNode &src) const noexcept {
 }
 
 bool CFGNode::isAssignedToProcedure() const noexcept {
-    return m_procedure_entry_addr != 0;
+    return m_procedure_id != 0;
 }
 
 bool CFGNode::isCall() const noexcept {
@@ -278,6 +278,10 @@ bool CFGNode::isImmediateSuccessorSet() const noexcept {
     return m_immediate_successor != nullptr;
 }
 
+bool CFGNode::isProcedureEntryNode() const noexcept {
+    return m_role_in_procedure == CFGNodeRoleInProcedure::kEntry;
+}
+
 bool CFGNode::isAppendableBy(const CFGNode *cfg_node) const {
     return m_max_block->endAddr() ==
         cfg_node->maximalBlock()->addrOfFirstInst();
@@ -292,5 +296,9 @@ CFGNode *CFGNode::getReturnSuccessorNode() const noexcept {
 }
 bool CFGNode::isRoleInProcedureSet() const noexcept {
     return m_role_in_procedure != CFGNodeRoleInProcedure::kUnknown;
+}
+
+addr_t CFGNode::procedure_id() const noexcept {
+    return m_procedure_id;
 }
 }

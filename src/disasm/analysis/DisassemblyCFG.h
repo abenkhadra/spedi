@@ -23,8 +23,7 @@ public:
     DisassemblyCFG() = default;
     virtual ~DisassemblyCFG() = default;
     DisassemblyCFG(const DisassemblyCFG &src) = default;
-    DisassemblyCFG
-        &operator=(const DisassemblyCFG &src) = default;
+    DisassemblyCFG &operator=(const DisassemblyCFG &src) = default;
     DisassemblyCFG(DisassemblyCFG &&src) = default;
 
     const CFGNode &getNodeAt(size_t index) const;

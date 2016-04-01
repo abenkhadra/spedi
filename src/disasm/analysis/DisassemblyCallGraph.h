@@ -21,7 +21,8 @@ public:
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
-    DisassemblyCallGraph() = default;
+    DisassemblyCallGraph() = delete;
+    DisassemblyCallGraph(addr_t start_addr, addr_t end_addr);
     virtual ~DisassemblyCallGraph() = default;
     DisassemblyCallGraph(const DisassemblyCallGraph &src) = default;
     DisassemblyCallGraph &operator=(const DisassemblyCallGraph &src) = default;
@@ -33,10 +34,17 @@ public:
      * Constructs a new procedure and returns a pointer to it. Returns nullptr
      * If entry_addr was already used.
      */
-    ICFGNode *addProcedure(const addr_t entry_addr, CFGNode *entry_node);
+    void insertProcedure(const addr_t entry_addr, CFGNode *entry_node);
+    void addProcedure(const ICFGNode *procedure) noexcept;
     friend class SectionDisassemblyAnalyzerARM;
 private:
-    std::vector<ICFGNode> m_graph_vec;
-    std::unordered_map<addr_t, CFGNode *> m_call_graph_map;
+    std::vector<ICFGNode *> mergeCallGraph() noexcept;
+private:
+    size_t m_start_addr;
+    size_t m_end_addr;
+    bool m_call_graph_ordered;
+    std::vector<ICFGNode> m_main_procs;
+    std::vector<ICFGNode> m_unmerged_procs;
+    std::unordered_map<addr_t, ICFGNode *> m_call_graph_map;
 };
 }

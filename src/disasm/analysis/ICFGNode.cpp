@@ -12,30 +12,22 @@
 
 namespace disasm {
 
-ICFGNode::ICFGNode(addr_t entry_addr) :
-    m_proc_type{ICFGProcedureType::kUnknown},
-    m_entry_node{nullptr},
-    m_entry_addr{entry_addr},
-    m_end_addr{0},
-    m_lr_store_idx{0},
-    m_has_overlap{false} {
-    std::ostringstream out;
-    out << "proc_" << std::hex << m_entry_addr;
-    m_name = out.str();
-}
-
 ICFGNode::ICFGNode(addr_t entry_addr, CFGNode *entry_node) :
     m_proc_type{ICFGProcedureType::kUnknown},
+    m_valid{false},
     m_entry_node{entry_node},
     m_entry_addr{entry_addr},
     m_end_addr{0},
     m_lr_store_idx{0},
     m_has_overlap{false} {
+
     if (m_entry_node == nullptr) {
         m_proc_type = ICFGProcedureType::kExternal;
     } else {
         entry_node->m_role_in_procedure = CFGNodeRoleInProcedure::kEntry;
-        entry_node->m_procedure_entry_addr = entry_addr;
+        entry_node->m_procedure_id = entry_addr;
+        // XXX this should typically be the case.
+        entry_node->m_candidate_start_addr = entry_addr;
     }
     std::ostringstream out;
     out << "proc_" << std::hex << m_entry_addr;
@@ -44,21 +36,22 @@ ICFGNode::ICFGNode(addr_t entry_addr, CFGNode *entry_node) :
 
 ICFGNode::ICFGNode(CFGNode *entry_node) :
     m_proc_type{ICFGProcedureType::kUnknown},
+    m_valid{false},
     m_entry_node{entry_node},
     m_entry_addr{entry_node->getCandidateStartAddr()},
     m_end_addr{0},
     m_lr_store_idx{0},
     m_has_overlap{false} {
-    if (m_entry_node == nullptr) {
-        m_proc_type = ICFGProcedureType::kExternal;
-    } else {
-        entry_node->m_role_in_procedure = CFGNodeRoleInProcedure::kEntry;
-        entry_node->m_procedure_entry_addr =
-            entry_node->getCandidateStartAddr();
-    }
+
+    entry_node->m_role_in_procedure = CFGNodeRoleInProcedure::kEntry;
+    entry_node->m_procedure_id = entry_node->getCandidateStartAddr();
     std::ostringstream out;
     out << "proc_" << std::hex << m_entry_addr;
     m_name = out.str();
+}
+
+size_t ICFGNode::id() const noexcept {
+    return m_entry_addr;
 }
 
 bool ICFGNode::isWithinAddressSpace(const addr_t addr) const noexcept {
@@ -74,8 +67,16 @@ bool ICFGNode::operator==(const ICFGNode &src) const noexcept {
     return this->m_entry_addr == src.m_entry_addr;
 }
 
+bool ICFGNode::operator<(const ICFGNode &src) const noexcept {
+    return this->m_entry_addr < src.m_entry_addr;
+}
+
 CFGNode *ICFGNode::entryNode() const noexcept {
     return m_entry_node;
+}
+
+bool ICFGNode::isValid() const noexcept {
+    return m_valid;
 }
 
 addr_t ICFGNode::entryAddr() const noexcept {
@@ -91,7 +92,8 @@ ICFGProcedureType ICFGNode::type() const noexcept {
 }
 
 void ICFGNode::finalize() noexcept {
-//    m_entry_node->setCandidateStartAddr(m_entry_addr);
+    m_valid = true;
+    m_entry_node->m_role_in_procedure = CFGNodeRoleInProcedure::kEntry;
     addr_t max_end_addr = 0;
     for (const auto &node_pair : m_exit_nodes) {
         if (max_end_addr < node_pair.second->maximalBlock()->endAddr()) {

@@ -54,6 +54,7 @@ public:
     const MaximalBlock *maximalBlock() const;
     const CFGNode *getOverlapNode() const;
     size_t id() const noexcept;
+    addr_t procedure_id() const noexcept;
 
     void addRemotePredecessor(CFGNode *predecessor, addr_t target_addr);
     void addImmediatePredecessor(CFGNode *predecessor, addr_t target_addr);
@@ -112,6 +113,7 @@ public:
     bool isAssignedToProcedure() const noexcept;
     bool isRoleInProcedureSet() const noexcept;
     bool isImmediateSuccessorSet() const noexcept;
+    bool isProcedureEntryNode() const noexcept;
     addr_t getMinTargetAddrOfValidPredecessor() const noexcept;
     bool isAppendableBy(const CFGNode *cfg_node) const;
     CFGNode *getReturnSuccessorNode() const noexcept;
@@ -130,7 +132,7 @@ private:
     addr_t m_candidate_start_addr;
     CFGNode *m_overlap_node;
     CFGNode *m_node_appendable_by_this;
-    addr_t m_procedure_entry_addr;
+    addr_t m_procedure_id;  // acts as an id for a procedure
     CFGNode *m_immediate_successor;
     CFGNode *m_remote_successor;
     MaximalBlock *m_max_block;

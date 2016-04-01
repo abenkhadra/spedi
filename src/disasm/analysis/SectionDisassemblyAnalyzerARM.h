@@ -96,18 +96,17 @@ private:
         (CFGNode &node, const addr_t jump_table_base_addr);
     void switchTableCleanUp
         (const CFGNode &node);
+
 private:
     // call graph related methods
     using AddrCFGNodePairVec = std::vector<std::pair<addr_t, const CFGNode *>>;
     using AddrICFGNodeMap = std::unordered_map<addr_t, ICFGNode>;
-    void buildProcedure(ICFGNode &proc_node);
+    void buildProcedure(ICFGNode &proc_node) noexcept;
     void traverseProcedureNode
-        (ICFGNode &proc_node, CFGNode *cfg_node, CFGNode *predecessor);
-    std::vector<std::pair<addr_t, const CFGNode *>>
-        recoverDirectCallSites() const noexcept;
-    void buildInitialCallGraph
-        (const AddrCFGNodePairVec &call_sites) noexcept;
-
+        (ICFGNode &proc_node,
+         CFGNode *cfg_node,
+         CFGNode *predecessor) noexcept;
+    void recoverDirectCalledProcedures() noexcept;
 
 private:
     SectionDisassemblyARM *m_sec_disassembly;

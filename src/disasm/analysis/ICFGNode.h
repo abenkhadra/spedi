@@ -16,9 +16,9 @@ namespace disasm {
 class CFGNode;
 
 enum class ICFGExitNodeType: unsigned char {
-    kCall,  // direct call to an entry node, we expect it to return
-    kTailCall,    // call to an entry, we expect the callee to return to original caller
-    kOverlap, // direct branch/call to a node other than entry node
+    kCall,  // call to an entry node, we expect it to return
+    kTailCall,    // Tail call to an entry which can be direct or indirect
+    kOverlap, // direct branch to body of another procedure
     kPossibleOverlap,
     kReturn,
     kIndirectCall,
@@ -42,7 +42,6 @@ public:
      * undefined behavior.
      */
     ICFGNode() = delete;
-    explicit ICFGNode(addr_t entry_addr);
     ICFGNode(addr_t entry_addr, CFGNode *entry_node);
     ICFGNode(CFGNode *entry_node);
     virtual ~ICFGNode() = default;
@@ -50,14 +49,12 @@ public:
     ICFGNode &operator=(const ICFGNode &src) = default;
     ICFGNode(ICFGNode &&src) = default;
     bool operator==(const ICFGNode &src) const noexcept;
+    bool operator<(const ICFGNode &src) const noexcept;
 
     bool isCallerAlreadyExists(const ICFGNode &caller) const noexcept;
     bool isCalleeAlreadyExists(const ICFGNode &callee) const noexcept;
     void addCaller(const CFGNode *caller) noexcept;
     void addCallee(const ICFGNode *callee) const noexcept;
-    /*
-     *
-     */
     CFGNode *getEntryNode() const noexcept;
     std::vector<CFGNode *> getAllExitNodes() const noexcept;
     std::vector<CFGNode *> &getUniqueExitNodes() const noexcept;
@@ -65,11 +62,10 @@ public:
      * if this node overlaps with another
      */
     std::vector<CFGNode *> getAllCFGNodes() const noexcept;
-    /*
-     * returns CFGNodes that belong only to this procedure
-     */
-    std::vector<CFGNode *> &getUniqueCFGNodes() const noexcept;
+
     bool hasOverlapWithOtherProcedure() const noexcept;
+    bool isValid() const noexcept;
+    size_t id() const noexcept;
     bool isWithinAddressSpace(const addr_t addr) const noexcept;
     CFGNode *entryNode() const noexcept;
     addr_t entryAddr() const noexcept;
@@ -82,6 +78,7 @@ private:
     // a procedure is valid iff it returns to the address designated by caller
     // in all of its exit nodes.
     ICFGProcedureType m_proc_type;
+    bool m_valid;
     CFGNode *m_entry_node;
     addr_t m_entry_addr;
     addr_t m_end_addr; // end address of
@@ -92,6 +89,6 @@ private:
     std::vector<const CFGNode *> m_callees;
     // The first node in m_cfg_nodes should be the entry_node
     std::vector<CFGNode *> m_cfg_nodes;
-    std::vector<std::pair<ICFGExitNodeType, const CFGNode *>> m_exit_nodes;
+    std::vector<std::pair<ICFGExitNodeType, CFGNode *>> m_exit_nodes;
 };
 }

@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
                 analyzer{&result, disassembler.getExecutableRegion()};
             analyzer.buildCFG();
             analyzer.refineCFG();
-//            analyzer.buildCallGraph();
+            analyzer.buildCallGraph();
             disassembler.prettyPrintSectionCFG
                 (&analyzer.getCFG(),
                  disasm::PrettyPrintConfig::kHideDataNodes);
@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
                 analyzer{&result, disassembler.getExecutableRegion()};
             analyzer.buildCFG();
             analyzer.refineCFG();
-            // analyzer.buildCallGraph();
+            analyzer.buildCallGraph();
             disassembler.prettyPrintSectionCFG(&analyzer.getCFG());
         } else
             disassembler.disassembleCodeUsingSymbols();
