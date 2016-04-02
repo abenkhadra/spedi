@@ -698,6 +698,14 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
 
 void SectionDisassemblyAnalyzerARM::buildProcedure
     (ICFGNode &proc_node) noexcept {
+    if (!proc_node.m_entry_node->isCall()
+        && !proc_node.m_entry_node->maximalBlock()->getBranch().isDirect()) {
+        proc_node.m_end_addr =
+            proc_node.m_entry_node->maximalBlock()->endAddr();
+        proc_node.finalize();
+        prettyPrintProcedure(proc_node);
+        return;
+    }
     proc_node.m_lr_store_idx =
         m_analyzer.getLRStackStoreIndex(proc_node.m_entry_node);
     if (proc_node.entryNode()->maximalBlock()->getBranch().isConditional()) {
@@ -714,51 +722,7 @@ void SectionDisassemblyAnalyzerARM::buildProcedure
                           proc_node.entryNode()->m_remote_successor,
                           proc_node.entryNode());
     proc_node.finalize();
-    std::cout << std::endl;
-    printf("Procedure %s built...\n", proc_node.name().c_str());
-    printf("Entry node %lu at: %lx \n",
-           proc_node.entryNode()->id(),
-           proc_node.entryNode()->getCandidateStartAddr());
-    for (auto &exitNodePair : proc_node.m_exit_nodes) {
-        switch (exitNodePair.first) {
-            case ICFGExitNodeType::kReturn:
-                printf("Exit_return node %lu at: %lx /",
-                       exitNodePair.second->id(),
-                       exitNodePair.second->getCandidateStartAddr());
-                break;
-            case ICFGExitNodeType::kCall:
-                printf("Exit_call node %lu at: %lx /",
-                       exitNodePair.second->id(),
-                       exitNodePair.second->getCandidateStartAddr());
-                break;
-            case ICFGExitNodeType::kIndirectCall:
-                printf("Exit_ind_call node %lu at: %lx /",
-                       exitNodePair.second->id(),
-                       exitNodePair.second->getCandidateStartAddr());
-                break;
-            case ICFGExitNodeType::kInvalidLR:
-                printf("Exit_invalid node %lu at: %lx /",
-                       exitNodePair.second->id(),
-                       exitNodePair.second->getCandidateStartAddr());
-                break;
-            case ICFGExitNodeType::kTailCall:
-                printf("Exit_tail_call node %lu at: %lx /",
-                       exitNodePair.second->id(),
-                       exitNodePair.second->getCandidateStartAddr());
-                break;
-            case ICFGExitNodeType::kPossibleOverlap:
-                printf("Exit_pos_overlap node %lu at: %lx /",
-                       exitNodePair.second->id(),
-                       exitNodePair.second->getCandidateStartAddr());
-                break;
-            default:
-                printf("Exit_overlap node %lu at: %lx /",
-                       exitNodePair.second->id(),
-                       exitNodePair.second->getCandidateStartAddr());
-        }
-        printf("\n");
-    }
-    printf("Procedure end at: %lx.\n", proc_node.m_end_addr);
+    prettyPrintProcedure(proc_node);
 }
 
 void SectionDisassemblyAnalyzerARM::traverseProcedureNode
@@ -820,6 +784,11 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
         predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
         proc_node.m_exit_nodes.push_back
             ({ICFGExitNodeType::kInvalidLR, predecessor});
+        if (proc_node.m_end_addr < predecessor->maximalBlock()->endAddr()) {
+            // set actual end address.
+            proc_node.m_end_addr = predecessor->maximalBlock()->endAddr();
+        }
+        return;
     }
     // cfg node is now assigned to this procedure
     cfg_node->m_procedure_id = proc_node.id();
@@ -885,5 +854,51 @@ void SectionDisassemblyAnalyzerARM::addCallReturnRelation(CFGNode &node) {
             succ->setAsReturnNodeFrom(node);
         }
     }
+}
+
+void SectionDisassemblyAnalyzerARM::prettyPrintProcedure
+    (const ICFGNode &proc_node) {
+    std::cout << std::endl;
+    printf("Function %lx %lx\n", proc_node.entryAddr(), proc_node.m_end_addr);
+    for (auto &exitNodePair : proc_node.m_exit_nodes) {
+        switch (exitNodePair.first) {
+            case ICFGExitNodeType::kReturn:
+                printf("Exit_return node %lu at: %lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            case ICFGExitNodeType::kCall:
+                printf("Exit_call node %lu at: %lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            case ICFGExitNodeType::kIndirectCall:
+                printf("Exit_ind_call node %lu at: %lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            case ICFGExitNodeType::kInvalidLR:
+                printf("Exit_invalid node %lu at: %lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            case ICFGExitNodeType::kTailCall:
+                printf("Exit_tail_call node %lu at: %lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            case ICFGExitNodeType::kPossibleOverlap:
+                printf("Exit_pos_overlap node %lu at: %lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            default:
+                printf("Exit_overlap node %lu at: %lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+        }
+        printf("\n");
+    }
+    printf("Procedure end ...\n");
 }
 }

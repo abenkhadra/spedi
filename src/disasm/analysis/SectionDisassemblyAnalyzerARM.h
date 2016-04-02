@@ -118,5 +118,6 @@ private:
     CFGNode *findSwitchTableTarget
         (addr_t target_addr);
     void addCallReturnRelation(CFGNode &node);
+    void prettyPrintProcedure(const ICFGNode &proc_node);
 };
 }
