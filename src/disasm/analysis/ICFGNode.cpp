@@ -18,6 +18,7 @@ ICFGNode::ICFGNode(addr_t entry_addr, CFGNode *entry_node) :
     m_entry_node{entry_node},
     m_entry_addr{entry_addr},
     m_end_addr{0},
+    m_estimated_end_addr{0},
     m_lr_store_idx{0},
     m_has_overlap{false} {
 
@@ -40,6 +41,7 @@ ICFGNode::ICFGNode(CFGNode *entry_node) :
     m_entry_node{entry_node},
     m_entry_addr{entry_node->getCandidateStartAddr()},
     m_end_addr{0},
+    m_estimated_end_addr{0},
     m_lr_store_idx{0},
     m_has_overlap{false} {
 
@@ -54,8 +56,8 @@ size_t ICFGNode::id() const noexcept {
     return m_entry_addr;
 }
 
-bool ICFGNode::isWithinAddressSpace(const addr_t addr) const noexcept {
-    return addr < m_end_addr
+bool ICFGNode::isWithinEstimatedAddressSpace(const addr_t addr) const noexcept {
+    return addr < m_estimated_end_addr
         && addr >= m_entry_addr;
 }
 
@@ -94,12 +96,5 @@ ICFGProcedureType ICFGNode::type() const noexcept {
 void ICFGNode::finalize() noexcept {
     m_valid = true;
     m_entry_node->m_role_in_procedure = CFGNodeRoleInProcedure::kEntry;
-    addr_t max_end_addr = 0;
-    for (const auto &node_pair : m_exit_nodes) {
-        if (max_end_addr < node_pair.second->maximalBlock()->endAddr()) {
-            max_end_addr = node_pair.second->maximalBlock()->endAddr();
-        }
-    }
-    m_end_addr = max_end_addr;
 }
 }

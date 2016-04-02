@@ -758,7 +758,7 @@ void SectionDisassemblyAnalyzerARM::buildProcedure
         }
         printf("\n");
     }
-    printf("Procedure end.\n");
+    printf("Procedure end at: %lx.\n", proc_node.m_end_addr);
 }
 
 void SectionDisassemblyAnalyzerARM::traverseProcedureNode
@@ -767,7 +767,6 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
      CFGNode *predecessor) noexcept {
     if (cfg_node == nullptr) {
         // a call to an external procedure
-//        printf("Exiting at ext succ of %lu\n", predecessor->id());
         if (predecessor->isCall()) {
             proc_node.m_exit_nodes.push_back
                 ({ICFGExitNodeType::kCall, predecessor});
@@ -778,12 +777,9 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
         predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
         return;
     }
-
-    if (!proc_node.isWithinAddressSpace(cfg_node->getCandidateStartAddr())) {
-        // visiting a node outside designated address space
-//        printf("Exiting at %lu succ of %lu\n",
-//               cfg_node->id(),
-//               predecessor->id());
+    if (!proc_node.isWithinEstimatedAddressSpace
+        (cfg_node->getCandidateStartAddr())) {
+        // visiting a node outside estimated address space
         if (cfg_node->m_role_in_procedure == CFGNodeRoleInProcedure::kEntry) {
             if (predecessor->isCall()) {
                 if (predecessor->maximalBlock()->getBranch().isDirect()) {
@@ -807,54 +803,31 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
         predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
         return;
     }
-
     if (cfg_node->isAssignedToProcedure()) {
         assert(proc_node.id() == cfg_node->procedure_id()
                    && "Visiting an external node in procedure address space!!");
-//        if (proc_node.entryAddr() != cfg_node->m_procedure_id) {
-//            // visiting a node already assigned to another procedure
-////            printf("Exiting at %lu succ of %lu\n",
-////                   cfg_node->id(),
-////                   predecessor->id());
-//            if (cfg_node->m_role_in_procedure
-//                == CFGNodeRoleInProcedure::kEntry) {
-//                if (predecessor->isCall()) {
-//                    proc_node.m_exit_nodes.push_back
-//                        ({ICFGExitNodeType::kCall, predecessor});
-//                } else {
-//                    proc_node.m_exit_nodes.push_back
-//                        ({ICFGExitNodeType::kTailCall, predecessor});
-//                }
-//            } else {
-//                proc_node.m_exit_nodes.push_back
-//                    ({ICFGExitNodeType::kOverlap, predecessor});
-//            }
-//            if (!predecessor->isRoleInProcedureSet())
-//                predecessor->m_role_in_procedure =
-//                    CFGNodeRoleInProcedure::kExit;
-//        }
         return;
     }
-
+//    printf("CFG visiting node %lu at loc_%lx succ of %lu\n",
+//           cfg_node->id(),
+//           cfg_node->getCandidateStartAddr(),
+//           predecessor->id());
     // if invalid stack manipulation return
     if (proc_node.m_lr_store_idx == 0) {
         proc_node.m_lr_store_idx = m_analyzer.getLRStackStoreIndex(cfg_node);
     } else if (m_analyzer.getLRStackStoreIndex(cfg_node) != 0) {
         // doing double stack allocation for LR is not valid
-//        printf("Exiting at %lu succ of %lu\n",
-//               cfg_node->id(),
-//               predecessor->id());
         predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
         proc_node.m_exit_nodes.push_back
             ({ICFGExitNodeType::kInvalidLR, predecessor});
     }
     // cfg node is now assigned to this procedure
-//    printf("CFG visiting node %lu at loc_%lx succ of %lu\n",
-//           cfg_node->id(),
-//           cfg_node->getCandidateStartAddr(),
-//           predecessor->id());
     cfg_node->m_procedure_id = proc_node.id();
     cfg_node->m_role_in_procedure = CFGNodeRoleInProcedure::kBody;
+    if (proc_node.m_end_addr < cfg_node->maximalBlock()->endAddr()) {
+        // set actual end address.
+        proc_node.m_end_addr = cfg_node->maximalBlock()->endAddr();
+    }
     if (cfg_node->maximalBlock()->getBranch().isDirect()) {
         if (cfg_node->maximalBlock()->getBranch().isConditional()) {
             traverseProcedureNode

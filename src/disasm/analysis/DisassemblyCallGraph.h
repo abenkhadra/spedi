@@ -41,7 +41,7 @@ private:
     std::vector<ICFGNode *> mergeCallGraph() noexcept;
 private:
     size_t m_start_addr;
-    size_t m_end_addr;
+    size_t m_section_end_addr;
     bool m_call_graph_ordered;
     std::vector<ICFGNode> m_main_procs;
     std::vector<ICFGNode> m_unmerged_procs;

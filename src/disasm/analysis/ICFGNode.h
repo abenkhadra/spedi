@@ -66,7 +66,7 @@ public:
     bool hasOverlapWithOtherProcedure() const noexcept;
     bool isValid() const noexcept;
     size_t id() const noexcept;
-    bool isWithinAddressSpace(const addr_t addr) const noexcept;
+    bool isWithinEstimatedAddressSpace(const addr_t addr) const noexcept;
     CFGNode *entryNode() const noexcept;
     addr_t entryAddr() const noexcept;
     const std::string &name() const noexcept;
@@ -81,7 +81,8 @@ private:
     bool m_valid;
     CFGNode *m_entry_node;
     addr_t m_entry_addr;
-    addr_t m_end_addr; // end address of
+    addr_t m_end_addr; // actual end address of procedure
+    addr_t m_estimated_end_addr; // initial overapproximated end address.
     unsigned m_lr_store_idx;
     bool m_has_overlap;
     std::string m_name;
