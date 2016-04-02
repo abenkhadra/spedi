@@ -90,12 +90,25 @@ private:
         (CFGNode &node, addr_t addr) noexcept;
     bool isConditionalBranchAffectedByNodeOverlap
         (const CFGNode &node) const noexcept;
-    void recoverTBBSwitchTable(CFGNode &node);
-    void recoverTBHSwitchTable(CFGNode &node);
-    void recoverLDRSwitchTable
+    struct SwitchTableData {
+        SwitchTableData() = default;
+        SwitchTableData
+            (CFGNode *node, unsigned char table_type, addr_t table_end) :
+            m_node{node},
+            m_table_type{table_type},
+            m_table_end{table_end} {
+        }
+        CFGNode *m_node;
+        unsigned char m_table_type;
+        addr_t m_table_end;
+    };
+    using SwitchData = SectionDisassemblyAnalyzerARM::SwitchTableData;
+    SwitchData recoverTBBSwitchTable(CFGNode &node);
+    SwitchData recoverTBHSwitchTable(CFGNode &node);
+    SwitchData recoverLDRSwitchTable
         (CFGNode &node, const addr_t jump_table_base_addr);
     void switchTableCleanUp
-        (const CFGNode &node);
+        (SwitchTableData &table_data);
 
 private:
     // call graph related methods
