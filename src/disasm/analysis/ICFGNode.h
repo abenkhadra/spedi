@@ -16,12 +16,8 @@ namespace disasm {
 class CFGNode;
 
 enum class ICFGExitNodeType: unsigned char {
-    kCall,  // call to an entry node, we expect it to return
     kTailCall,    // Tail call to an entry which can be direct or indirect
     kOverlap, // direct branch to body of another procedure
-    kPossibleOverlap,
-    kReturn,
-    kIndirectCall,
     kInvalidLR
 };
 
@@ -42,8 +38,8 @@ public:
      * undefined behavior.
      */
     ICFGNode() = delete;
-    ICFGNode(addr_t entry_addr, CFGNode *entry_node);
-    ICFGNode(CFGNode *entry_node);
+    ICFGNode(addr_t entry_addr, CFGNode *entry_node, ICFGProcedureType type);
+    ICFGNode(CFGNode *entry_node, ICFGProcedureType type);
     virtual ~ICFGNode() = default;
     ICFGNode(const ICFGNode &src) = default;
     ICFGNode &operator=(const ICFGNode &src) = default;
@@ -69,6 +65,8 @@ public:
     bool isWithinEstimatedAddressSpace(const addr_t addr) const noexcept;
     CFGNode *entryNode() const noexcept;
     addr_t entryAddr() const noexcept;
+    addr_t endAddr() const noexcept;
+    addr_t estimatedEndAddr() const noexcept;
     const std::string &name() const noexcept;
     ICFGProcedureType type() const noexcept;
     void finalize() noexcept;
@@ -80,6 +78,7 @@ private:
     ICFGProcedureType m_proc_type;
     bool m_valid;
     CFGNode *m_entry_node;
+    CFGNode *m_end_node;
     addr_t m_entry_addr;
     addr_t m_end_addr; // actual end address of procedure
     addr_t m_estimated_end_addr; // initial overapproximated end address.

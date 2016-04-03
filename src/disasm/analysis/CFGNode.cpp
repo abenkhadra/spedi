@@ -165,6 +165,10 @@ bool CFGNode::isCandidateStartAddressSet() const noexcept {
     return m_candidate_start_addr != 0;
 }
 
+bool CFGNode::isProcedureEntry() const noexcept {
+    return m_role_in_procedure == CFGNodeRoleInProcedure::kEntry;
+}
+
 bool CFGNode::isCandidateStartAddressValid
     (addr_t candidate_addr) const noexcept {
     return candidate_addr <= m_max_block->addrOfLastInst();

@@ -24,8 +24,14 @@ enum class CFGNodeType: unsigned char {
 enum class CFGNodeRoleInProcedure: unsigned char {
     kUnknown,
     kEntry,
-    kExit,
-    kBody
+    kCall,
+    kTailCall,
+    kOverlapBranch,
+    kIndirectCall,
+    kReturn,
+    kExit,          // call or tail call that exits the section (e.g, to plt)
+    kBody,
+    kInvalidBranch
 };
 
 enum class TraversalStatus: unsigned char {
@@ -77,6 +83,7 @@ public:
     const std::vector<CFGEdge> &getIndirectSuccessors() const noexcept;
     bool hasOverlapWithOtherNode() const noexcept;
     bool isCandidateStartAddressSet() const noexcept;
+    bool isProcedureEntry() const noexcept;
 
     /*
      * return the sequence of instructions in valid basic block starting from

@@ -28,13 +28,15 @@ public:
     DisassemblyCallGraph &operator=(const DisassemblyCallGraph &src) = default;
     DisassemblyCallGraph(DisassemblyCallGraph &&src) = default;
 
-    std::vector<ICFGNode *> getCallers(const ICFGNode& node) const;
-    std::vector<ICFGNode *> getCallees(const ICFGNode& node) const;
+    std::vector<ICFGNode *> getCallers(const ICFGNode &node) const;
+    std::vector<ICFGNode *> getCallees(const ICFGNode &node) const;
     /*
      * Constructs a new procedure and returns a pointer to it. Returns nullptr
      * If entry_addr was already used.
      */
     void insertProcedure(const addr_t entry_addr, CFGNode *entry_node);
+    ICFGNode *insertProcedure
+        (const addr_t entry_addr, CFGNode *entry_node, ICFGProcedureType type);
     void addProcedure(const ICFGNode *procedure) noexcept;
     friend class SectionDisassemblyAnalyzerARM;
 private:

@@ -7,13 +7,14 @@
 // Copyright (c) 2016 University of Kaiserslautern.
 
 #include "ICFGNode.h"
-#include "CFGNode.h"
 #include <sstream>
 
 namespace disasm {
 
-ICFGNode::ICFGNode(addr_t entry_addr, CFGNode *entry_node) :
-    m_proc_type{ICFGProcedureType::kUnknown},
+ICFGNode::ICFGNode(addr_t entry_addr,
+                   CFGNode *entry_node,
+                   ICFGProcedureType type) :
+    m_proc_type{type},
     m_valid{false},
     m_entry_node{entry_node},
     m_entry_addr{entry_addr},
@@ -35,8 +36,8 @@ ICFGNode::ICFGNode(addr_t entry_addr, CFGNode *entry_node) :
     m_name = out.str();
 }
 
-ICFGNode::ICFGNode(CFGNode *entry_node) :
-    m_proc_type{ICFGProcedureType::kUnknown},
+ICFGNode::ICFGNode(CFGNode *entry_node, ICFGProcedureType type) :
+    m_proc_type{type},
     m_valid{false},
     m_entry_node{entry_node},
     m_entry_addr{entry_node->getCandidateStartAddr()},
@@ -83,6 +84,14 @@ bool ICFGNode::isValid() const noexcept {
 
 addr_t ICFGNode::entryAddr() const noexcept {
     return m_entry_addr;
+}
+
+addr_t ICFGNode::endAddr() const noexcept {
+    return m_end_addr;
+}
+
+addr_t ICFGNode::estimatedEndAddr() const noexcept {
+    return m_estimated_end_addr;
 }
 
 const std::string &ICFGNode::name() const noexcept {
