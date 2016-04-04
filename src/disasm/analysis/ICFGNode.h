@@ -22,9 +22,10 @@ enum class ICFGExitNodeType: unsigned char {
 };
 
 enum class ICFGProcedureType: unsigned char {
-    kUnknown,
+    kTail,
     kReturn,
     kExternal,
+    kIndirect
 };
 
 /**
@@ -37,7 +38,7 @@ public:
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
-    ICFGNode() = delete;
+    ICFGNode();
     ICFGNode(addr_t entry_addr, CFGNode *entry_node, ICFGProcedureType type);
     ICFGNode(CFGNode *entry_node, ICFGProcedureType type);
     virtual ~ICFGNode() = default;
@@ -60,6 +61,7 @@ public:
     std::vector<CFGNode *> getAllCFGNodes() const noexcept;
 
     bool hasOverlapWithOtherProcedure() const noexcept;
+    bool isBuilt() const noexcept;
     bool isValid() const noexcept;
     size_t id() const noexcept;
     bool isWithinEstimatedAddressSpace(const addr_t addr) const noexcept;

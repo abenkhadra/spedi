@@ -39,13 +39,13 @@ CFGNode::CFGNode(MaximalBlock *current_block) :
 }
 
 void CFGNode::addRemotePredecessor(CFGNode *predecessor, addr_t target_addr) {
-    m_direct_predecessors.emplace_back
+    m_direct_preds.emplace_back
         (CFGEdge(CFGEdgeType::kDirect, predecessor, target_addr));
 }
 
 void CFGNode::addImmediatePredecessor
     (CFGNode *predecessor, addr_t target_addr) {
-    m_direct_predecessors.emplace_back
+    m_direct_preds.emplace_back
         (CFGEdge(CFGEdgeType::kConditional, predecessor, target_addr));
 }
 
@@ -133,7 +133,7 @@ const CFGNode *CFGNode::remoteSuccessor() const {
 
 const std::vector<CFGEdge> &
 CFGNode::getDirectPredecessors() const noexcept {
-    return m_direct_predecessors;
+    return m_direct_preds;
 }
 
 const std::vector<CFGEdge> &
@@ -166,7 +166,12 @@ bool CFGNode::isCandidateStartAddressSet() const noexcept {
 }
 
 bool CFGNode::isProcedureEntry() const noexcept {
-    return m_role_in_procedure == CFGNodeRoleInProcedure::kEntry;
+    return m_role_in_procedure == CFGNodeRoleInProcedure::kEntry
+        || m_role_in_procedure == CFGNodeRoleInProcedure::kEntryCandidate;
+}
+
+bool CFGNode::isProcedureEntryCandidate() const noexcept {
+    return m_role_in_procedure == CFGNodeRoleInProcedure::kEntryCandidate;
 }
 
 bool CFGNode::isCandidateStartAddressValid
@@ -176,8 +181,8 @@ bool CFGNode::isCandidateStartAddressValid
 
 void CFGNode::setToDataAndInvalidatePredecessors() {
     m_type = CFGNodeType::kData;
-    for (auto pred_iter = m_direct_predecessors.begin();
-         pred_iter < m_direct_predecessors.end(); ++pred_iter) {
+    for (auto pred_iter = m_direct_preds.begin();
+         pred_iter < m_direct_preds.end(); ++pred_iter) {
         if (!(*pred_iter).node()->isData()
             && (*pred_iter).type() == CFGEdgeType::kDirect
             || (*pred_iter).type() == CFGEdgeType::kConditional) {
@@ -264,7 +269,7 @@ addr_t CFGNode::getMinTargetAddrOfValidPredecessor() const noexcept {
     if (minimum_addr != UINT64_MAX) {
         return minimum_addr;
     }
-    for (const auto &pred : m_direct_predecessors) {
+    for (const auto &pred : m_direct_preds) {
         if (pred.targetAddr() < minimum_addr
             && pred.node()->getType() != CFGNodeType::kData
             && pred.type() != CFGEdgeType::kConditional

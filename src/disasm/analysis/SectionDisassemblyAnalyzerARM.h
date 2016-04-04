@@ -120,6 +120,7 @@ private:
          CFGNode *cfg_node,
          CFGNode *predecessor) noexcept;
     void recoverDirectCalledProcedures() noexcept;
+    void validateProcedure(const ICFGNode &proc) const noexcept;
 
 private:
     SectionDisassemblyARM *m_sec_disassembly;

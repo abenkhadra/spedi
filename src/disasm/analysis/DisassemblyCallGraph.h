@@ -37,10 +37,11 @@ public:
     void insertProcedure(const addr_t entry_addr, CFGNode *entry_node);
     ICFGNode *insertProcedure
         (const addr_t entry_addr, CFGNode *entry_node, ICFGProcedureType type);
-    void addProcedure(const ICFGNode *procedure) noexcept;
+    void prettyPrintProcedure(const ICFGNode &proc_node) noexcept;
     friend class SectionDisassemblyAnalyzerARM;
 private:
-    std::vector<ICFGNode *> mergeCallGraph() noexcept;
+    std::vector<ICFGNode>& buildInitialCallGraph() noexcept;
+    void buildCallGraph() noexcept;
 private:
     size_t m_start_addr;
     size_t m_section_end_addr;

@@ -48,18 +48,22 @@ addr_t DisassemblyAnalysisHelperARM::recoverLDRSwitchBaseAddr
             if (inst.id() == ARM_INS_ADR
                 && (inst.detail().arm.operands[0].reg
                     == switch_inst->detail().arm.operands[1].mem.base)) {
-                if (inst.addr() % 4 == 0) {
-                    return inst.addr() + inst.detail().arm.operands[1].imm + 8;
+                addr_t base =
+                    inst.addr() + inst.detail().arm.operands[1].imm + 4;
+                if (base % 4 == 0) {
+                    return base;
                 } else {
-                    return inst.addr() + inst.detail().arm.operands[1].imm + 10;
+                    return base + 2;
                 }
             } else if (inst.id() == ARM_INS_ADDW
                 && (inst.detail().arm.operands[0].reg
                     == switch_inst->detail().arm.operands[1].mem.base)) {
-                if (inst.addr() % 4 == 0) {
-                    return inst.addr() + inst.detail().arm.operands[2].imm + 4;
+                addr_t base =
+                    inst.addr() + inst.detail().arm.operands[2].imm + 4;
+                if (base % 4 == 0) {
+                    return base;
                 } else {
-                    return inst.addr() + inst.detail().arm.operands[2].imm + 6;
+                    return base + 2;
                 }
             }
         }

@@ -11,12 +11,16 @@
 
 namespace disasm {
 
+ICFGNode::ICFGNode(): m_entry_node{nullptr} {
+}
+
 ICFGNode::ICFGNode(addr_t entry_addr,
                    CFGNode *entry_node,
                    ICFGProcedureType type) :
     m_proc_type{type},
     m_valid{false},
     m_entry_node{entry_node},
+    m_end_node{nullptr},
     m_entry_addr{entry_addr},
     m_end_addr{0},
     m_estimated_end_addr{0},
@@ -40,6 +44,7 @@ ICFGNode::ICFGNode(CFGNode *entry_node, ICFGProcedureType type) :
     m_proc_type{type},
     m_valid{false},
     m_entry_node{entry_node},
+    m_end_node{nullptr},
     m_entry_addr{entry_node->getCandidateStartAddr()},
     m_end_addr{0},
     m_estimated_end_addr{0},
@@ -78,8 +83,12 @@ CFGNode *ICFGNode::entryNode() const noexcept {
     return m_entry_node;
 }
 
-bool ICFGNode::isValid() const noexcept {
+bool ICFGNode::isBuilt() const noexcept {
     return m_valid;
+}
+
+bool ICFGNode::isValid() const noexcept {
+    return m_entry_node != nullptr;
 }
 
 addr_t ICFGNode::entryAddr() const noexcept {

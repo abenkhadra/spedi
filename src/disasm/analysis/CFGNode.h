@@ -24,6 +24,7 @@ enum class CFGNodeType: unsigned char {
 enum class CFGNodeRoleInProcedure: unsigned char {
     kUnknown,
     kEntry,
+    kEntryCandidate,
     kCall,
     kTailCall,
     kOverlapBranch,
@@ -84,6 +85,7 @@ public:
     bool hasOverlapWithOtherNode() const noexcept;
     bool isCandidateStartAddressSet() const noexcept;
     bool isProcedureEntry() const noexcept;
+    bool isProcedureEntryCandidate() const noexcept;
 
     /*
      * return the sequence of instructions in valid basic block starting from
@@ -143,7 +145,7 @@ private:
     CFGNode *m_immediate_successor;
     CFGNode *m_remote_successor;
     MaximalBlock *m_max_block;
-    std::vector<CFGEdge> m_direct_predecessors;
+    std::vector<CFGEdge> m_direct_preds;
     std::vector<CFGEdge> m_indirect_preds;
     std::vector<CFGEdge> m_indirect_succs;
 
