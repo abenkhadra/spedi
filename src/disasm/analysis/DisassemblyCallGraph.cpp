@@ -81,21 +81,23 @@ std::vector<ICFGNode> &DisassemblyCallGraph::buildInitialCallGraph() noexcept {
 void DisassemblyCallGraph::prettyPrintProcedure
     (const ICFGNode &proc_node) noexcept {
     std::cout << std::endl;
-    printf("Function %lx %lx\n", proc_node.entryAddr(), proc_node.m_end_addr);
+    printf("Function 0x%lx 0x%lx\n",
+           proc_node.entryAddr(),
+           proc_node.m_end_addr);
     for (auto &exitNodePair : proc_node.m_exit_nodes) {
         switch (exitNodePair.first) {
             case ICFGExitNodeType::kInvalidLR:
-                printf("Exit_invalid node %lu at: %lx /",
+                printf("Exit_invalid node 0x%lu at: 0x%lx /",
                        exitNodePair.second->id(),
                        exitNodePair.second->getCandidateStartAddr());
                 break;
             case ICFGExitNodeType::kTailCall:
-                printf("Exit_tail_call node %lu at: %lx /",
+                printf("Exit_tail_call node 0x%lu at: 0x%lx /",
                        exitNodePair.second->id(),
                        exitNodePair.second->getCandidateStartAddr());
                 break;
             case ICFGExitNodeType::kOverlap:
-                printf("Exit_overlap node %lu at: %lx /",
+                printf("Exit_overlap node 0x%lu at: 0x%lx /",
                        exitNodePair.second->id(),
                        exitNodePair.second->getCandidateStartAddr());
                 break;

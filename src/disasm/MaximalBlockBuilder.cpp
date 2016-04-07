@@ -256,5 +256,4 @@ const std::vector<addr_t>
 MaximalBlockBuilder::getInstructionAddrsOf(const BasicBlock &bblock) const {
     return bblock.m_inst_addrs;
 }
-
 }

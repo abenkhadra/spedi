@@ -507,24 +507,23 @@ bool SectionDisassemblyAnalyzerARM::isConditionalBranchAffectedByNodeOverlap
         return false;
     } else {
         for (auto inst_iter =
-            node.maximalBlock()->getAllInstructions().cbegin();
-             inst_iter < node.maximalBlock()->getAllInstructions().cend();
-             inst_iter++) {
-            if ((*inst_iter).addr() >= node.getCandidateStartAddr()) {
+            node.maximalBlock()->getAllInstructions().rbegin() + 1;
+             inst_iter < node.maximalBlock()->getAllInstructions().rend();
+             ++inst_iter) {
+            if ((*inst_iter).addr() <= node.getCandidateStartAddr()) {
+                return false;
+            }
+            if ((*inst_iter).detail().arm.cc == ARM_CC_AL) {
                 return false;
             }
             if ((*inst_iter).id() == ARM_INS_CMP
                 || (*inst_iter).id() == ARM_INS_CMN
                 || (*inst_iter).id() == ARM_INS_IT) {
-                // if there was a conditional execution instruction eliminated
-                //  by overlap analysis then we won't consider the block.
-                // TODO: check if a conditional execution instruction actually
-                // affects the branch instruction
-                return true;
+                return false;
             }
         }
     }
-    return false;
+    return true;
 }
 
 SectionDisassemblyAnalyzerARM::SwitchTableData
@@ -697,15 +696,20 @@ void SectionDisassemblyAnalyzerARM::validateProcedure(const ICFGNode &proc) cons
     // two procedures.
     for (auto node_iter =
         std::next(m_sec_cfg.m_cfg.begin(), proc.entryNode()->id() + 1);
-         (*node_iter).id() <= proc.m_end_node->id();
+         node_iter < m_sec_cfg.m_cfg.end()
+             && (*node_iter).id() <= proc.m_end_node->id();
          ++node_iter) {
         if ((*node_iter).isData()) continue;
         // an internal node with no predecessors can either be data
         // or an actual entry.
-
-        if (!(*node_iter).hasPredecessors())
-            continue;
-        assert((*node_iter).procedure_id() == proc.id());
+        if ((*node_iter).procedure_id() != proc.id()) {
+            printf("Unreachable internal node %lu at %lx\n",
+                   (*node_iter).id(),
+                   (*node_iter).getCandidateStartAddr());
+        }
+//        if (!(*node_iter).hasPredecessors())
+//            continue;
+//        assert((*node_iter).procedure_id() == proc.id());
     }
 }
 
@@ -726,8 +730,8 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
          node_iter < m_sec_cfg.m_cfg.end();
          ++node_iter) {
 
-        if ((*proc_iter).entryNode()->id() <= (*node_iter).id()
-            && proc_iter < m_call_graph.m_main_procs.end()) {
+        if (proc_iter < m_call_graph.m_main_procs.end()
+            && (*proc_iter).entryNode()->id() <= (*node_iter).id()) {
             validateProcedure(*proc_iter);
             node_iter = std::next(m_sec_cfg.m_cfg.begin(),
                                   (*proc_iter).m_end_node->id() + 1);
@@ -865,10 +869,6 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
         }
         return;
     }
-//    printf("CFG visiting node %lu at loc_%lx succ of %lu\n",
-//           cfg_node->id(),
-//           cfg_node->getCandidateStartAddr(),
-//           predecessor->id());
     // if invalid stack manipulation return
     if (proc_node.m_lr_store_idx == 0) {
         proc_node.m_lr_store_idx = m_analyzer.getLRStackStoreIndex(cfg_node);
@@ -921,7 +921,7 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
             predecessor->m_role_in_procedure =
                 CFGNodeRoleInProcedure::kIndirectCall;
         } else {
-            // TODO: what if a return doesn't match the same LR, no returns like
+            // TODO: what if a return doesn't match the same LR? or no returns?
             // procedures can simply "exit" using sp-relative ldr without return
             predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kReturn;
         }
