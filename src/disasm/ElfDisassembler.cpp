@@ -448,6 +448,22 @@ void ElfDisassembler::prettyPrintSectionCFG
     }
 }
 
+void ElfDisassembler::prettyPrintSwitchTables(const DisassemblyCFG *sec_cfg) const {
+    size_t count = 0;
+    for (const auto &node :sec_cfg->getCFG()) {
+        if (node.isSwitchStatement()) {
+            printf("0x%lx: switch (%lu cases)\n",
+                   node.maximalBlock()->branchInstruction()->addr(),
+                   node.getIndirectSuccessors().size());
+            for (const auto &edge : node.getIndirectSuccessors()) {
+                printf("0x%lx\n", edge.targetAddr());
+            }
+            count++;
+        }
+    }
+    printf("Total switches in .text: %lu\n", count);
+}
+
 const RawInstAnalyzer *ElfDisassembler::getMCAnalyzer() const {
     return &m_analyzer;
 }

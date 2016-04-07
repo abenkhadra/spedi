@@ -247,6 +247,12 @@ void CFGNode::setAsSwitchCaseFor(CFGNode *cfg_node, const addr_t target_addr) {
         (CFGEdge(CFGEdgeType::kSwitchTable, this, target_addr));
 }
 
+bool CFGNode::hasPredecessors() const noexcept {
+    return !(m_node_appendable_by_this == nullptr
+        && m_indirect_preds.size() == 0
+        && m_direct_preds.size() == 0);
+}
+
 bool CFGNode::isSwitchStatement() const noexcept {
     return m_indirect_succs.size() > 1;
 }

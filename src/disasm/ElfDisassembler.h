@@ -84,11 +84,14 @@ public:
         (const SectionDisassemblyARM *sec_disasm) const;
     void prettyPrintSectionCFG
         (const DisassemblyCFG *sec_cfg,
-         const PrettyPrintConfig config = PrettyPrintConfig::kHideDataNodes) const;
+         const PrettyPrintConfig config = PrettyPrintConfig::kHideDataNodes)
+        const;
     void prettyPrintCFGNode(const CFGNode *cfg_node) const;
     void prettyPrintValidCFGNode
         (const CFGNode *cfg_node,
-         const PrettyPrintConfig config = PrettyPrintConfig::kHideDataNodes) const;
+         const PrettyPrintConfig config = PrettyPrintConfig::kHideDataNodes)
+        const;
+    void prettyPrintSwitchTables(const DisassemblyCFG *sec_cfg) const;
     const RawInstAnalyzer *getMCAnalyzer() const;
 
 private:

@@ -124,6 +124,7 @@ public:
     bool isImmediateSuccessorSet() const noexcept;
     bool isProcedureEntryNode() const noexcept;
     addr_t getMinTargetAddrOfValidPredecessor() const noexcept;
+    bool hasPredecessors() const noexcept;
     bool isAppendableBy(const CFGNode *cfg_node) const;
     CFGNode *getReturnSuccessorNode() const noexcept;
     friend class SectionDisassemblyAnalyzerARM;

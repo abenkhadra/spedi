@@ -437,12 +437,10 @@ void SectionDisassemblyAnalyzerARM::recoverSwitchStatements() {
         if ((*node_iter).maximalBlock()->
             branchInstruction()->id() == ARM_INS_TBB) {
             sw_data_vec.emplace_back(recoverTBBSwitchTable((*node_iter)));
-        }
-        if ((*node_iter).maximalBlock()->
+        } else if ((*node_iter).maximalBlock()->
             branchInstruction()->id() == ARM_INS_TBH) {
             sw_data_vec.emplace_back(recoverTBHSwitchTable((*node_iter)));
-        }
-        if ((*node_iter).maximalBlock()->
+        } else if ((*node_iter).maximalBlock()->
             branchInstruction()->id() == ARM_INS_LDR
             && (*node_iter).maximalBlock()->
                 branchInstruction()->detail().arm.op_count == 2) {
@@ -544,7 +542,7 @@ SectionDisassemblyAnalyzerARM::recoverTBBSwitchTable(CFGNode &node) {
         // there are many redundancies in a switch table
         if (insert_result.second) {
             if (target < current_addr) {
-                break;
+                return SwitchData(&node, 1, current_addr);
             }
             auto target_node = findSwitchTableTarget(target);
             if (target_node == nullptr) {
@@ -577,7 +575,7 @@ SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
         auto insert_result = target_map.insert({target, false});
         if (insert_result.second) {
             if (target < current_addr) {
-                break;
+                return SwitchData(&node, 1, current_addr);
             }
             // there are many redundancies in a switch table
             auto target_node = findSwitchTableTarget(target);
@@ -651,7 +649,7 @@ void SectionDisassemblyAnalyzerARM::switchTableCleanUp
                          / table_data.m_table_type;
                      ++i) {
                     table_data.m_node->m_indirect_succs.back()
-                        .node()->m_indirect_preds.clear();
+                        .node()->m_indirect_preds.pop_back();
                     table_data.m_node->m_indirect_succs.pop_back();
                 }
             }
@@ -695,21 +693,18 @@ CFGNode *SectionDisassemblyAnalyzerARM::findSwitchTableTarget
 }
 
 void SectionDisassemblyAnalyzerARM::validateProcedure(const ICFGNode &proc) const noexcept {
+    // an entry node with two different entry addresses should be split to
+    // two procedures.
     for (auto node_iter =
-        std::next(m_sec_cfg.m_cfg.begin(), proc.entryNode()->id());
-         node_iter < m_sec_cfg.m_cfg.end()
-             && (*node_iter).id() <= proc.m_end_node->id();
+        std::next(m_sec_cfg.m_cfg.begin(), proc.entryNode()->id() + 1);
+         (*node_iter).id() <= proc.m_end_node->id();
          ++node_iter) {
         if ((*node_iter).isData()) continue;
-        if ((*node_iter).id() != proc.entryNode()->id()
-            && (*node_iter).m_direct_preds.size() == 0
-            && (*node_iter).m_indirect_preds.size() == 0
-            && (*node_iter).m_node_appendable_by_this == nullptr)
+        // an internal node with no predecessors can either be data
+        // or an actual entry.
+
+        if (!(*node_iter).hasPredecessors())
             continue;
-//            (*node_iter).m_type = CFGNodeType::kData;
-        if ((*node_iter).id() == 6482) {
-            continue;
-        }
         assert((*node_iter).procedure_id() == proc.id());
     }
 }

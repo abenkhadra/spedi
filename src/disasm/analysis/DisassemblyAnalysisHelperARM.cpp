@@ -53,7 +53,7 @@ addr_t DisassemblyAnalysisHelperARM::recoverLDRSwitchBaseAddr
                 if (base % 4 == 0) {
                     return base;
                 } else {
-                    return base + 2;
+                    return base - 2;
                 }
             } else if (inst.id() == ARM_INS_ADDW
                 && (inst.detail().arm.operands[0].reg
@@ -63,7 +63,7 @@ addr_t DisassemblyAnalysisHelperARM::recoverLDRSwitchBaseAddr
                 if (base % 4 == 0) {
                     return base;
                 } else {
-                    return base + 2;
+                    return base - 2;
                 }
             }
         }
