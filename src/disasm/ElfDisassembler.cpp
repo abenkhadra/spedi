@@ -149,10 +149,38 @@ SectionDisassemblyARM ElfDisassembler::disassembleSectionSpeculative
     // Empirical data suggests that average size of a maximal block is 14 bytes.
     // we try to pre-allocate more to avoid reallocating the vector.
     result.reserve(sec.size() / 10);
-
+    bool it_fix_cc = false;
+    arm_cc it_condition = ARM_CC_AL;
+    addr_t it_addr = 0;
     while (current < last_addr) {
         if (parser.disasm(code_ptr, buf_size, current, inst_ptr)) {
             if (m_analyzer.isValid(inst_ptr)) {
+                // Fix IT condition code due to speculative disassembly
+                if (inst_ptr->id == ARM_INS_IT) {
+                    it_addr = inst_ptr->address + 2;
+                    it_fix_cc = false;
+                } else if (it_addr != 0) {
+                    if (inst_ptr->address != it_addr) {
+                        if(inst_ptr->detail->arm.cc == ARM_CC_AL) {
+                            it_addr = 0;
+                        } else {
+                            it_condition = inst_ptr->detail->arm.cc;
+                            inst_ptr->detail->arm.cc = ARM_CC_AL;
+                            it_fix_cc = true;
+                        }
+                    } else {
+                        if(inst_ptr->detail->arm.cc == ARM_CC_AL) {
+                            it_addr = 0;
+                        } else {
+                            it_addr += inst_ptr->size;
+                        }
+                        if (it_fix_cc) {
+                            auto temp = inst_ptr->detail->arm.cc;
+                            inst_ptr->detail->arm.cc = it_condition;
+                            it_condition = temp;
+                        }
+                    }
+                }
                 if (m_analyzer.isBranch(inst_ptr)) {
                     max_block_builder.appendBranch(inst_ptr);
                     result.add(max_block_builder.build());
