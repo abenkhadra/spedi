@@ -35,10 +35,12 @@ public:
     // precondition: valid only for direct branch
     addr_t target() const { return m_target; }
     friend class MaximalBlockBuilder;
+    friend class MaximalBlock;
 
 private:
     bool m_direct_branch;
     bool m_conditional_branch;
+    bool m_invalid_it_found;
     addr_t m_target;
 };
 }

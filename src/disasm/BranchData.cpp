@@ -14,6 +14,7 @@ namespace disasm {
 BranchData::BranchData() :
     m_direct_branch{false},
     m_conditional_branch{false},
+    m_invalid_it_found{false},
     m_target{0} {
 }
 

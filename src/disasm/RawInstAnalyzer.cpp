@@ -15,7 +15,7 @@ RawInstAnalyzer::RawInstAnalyzer(ISAType isa) :
     m_inst_width{getMinxInstWidth(isa)} {
 }
 
-bool RawInstAnalyzer::isBranch(const cs_insn *inst) const {
+bool RawInstAnalyzer::isBranch(const cs_insn *inst) const noexcept {
     if (inst->detail == NULL) return false;
 
     cs_detail *detail = inst->detail;

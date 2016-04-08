@@ -73,6 +73,8 @@ public:
      */
     bool isCleanReset();
 
+    void setInvalidITFound() noexcept;
+
     const std::vector<addr_t>
         getInstructionAddrsOf(const BasicBlock &bblock) const;
 

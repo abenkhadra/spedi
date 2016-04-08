@@ -63,8 +63,8 @@ void SectionDisassemblyAnalyzerARM::buildCFG() {
             &(*m_sec_disassembly->getMaximalBlocks().begin());
         // handle first MB
         cfg.front().setMaximalBlock(first_maximal_block);
-        if (first_maximal_block->getBranch().isDirect()
-            && !isValidCodeAddr(first_maximal_block->getBranch().target())) {
+        if (first_maximal_block->branchInfo().isDirect()
+            && !isValidCodeAddr(first_maximal_block->branchInfo().target())) {
             // a branch to an address outside of executable code
             cfg.front().setToDataAndInvalidatePredecessors();
         }
@@ -78,8 +78,8 @@ void SectionDisassemblyAnalyzerARM::buildCFG() {
              ++block_iter, ++node_iter) {
 
             (*node_iter).setMaximalBlock(&(*block_iter));
-            if ((*block_iter).getBranch().isDirect()
-                && !isValidCodeAddr((*block_iter).getBranch().target())) {
+            if ((*block_iter).branchInfo().isDirect()
+                && !isValidCodeAddr((*block_iter).branchInfo().target())) {
                 // a branch to an address outside of executable code
                 (*node_iter).setToDataAndInvalidatePredecessors();
                 continue;
@@ -107,8 +107,8 @@ void SectionDisassemblyAnalyzerARM::buildCFG() {
             continue;
         }
         auto current_block = (*node_iter).maximalBlock();
-        if (current_block->getBranch().isDirect()) {
-            auto branch_target = current_block->getBranch().target();
+        if (current_block->branchInfo().isDirect()) {
+            auto branch_target = current_block->branchInfo().target();
             if (!m_sec_disassembly->
                 isWithinSectionAddressSpace(branch_target)) {
                 // a valid direct branch can happen to an executable section
@@ -457,8 +457,8 @@ void SectionDisassemblyAnalyzerARM::recoverSwitchStatements() {
 
 bool SectionDisassemblyAnalyzerARM::isNotSwitchStatement
     (const CFGNode &node) const noexcept {
-    if (node.maximalBlock()->getBranch().isDirect()
-        || node.maximalBlock()->getBranch().isConditional())
+    if (node.maximalBlock()->branchInfo().isDirect()
+        || node.maximalBlock()->branchInfo().isConditional())
         // a switch stmt can't be direct or conditional
         return true;
     if (node.maximalBlock()->branchInstruction()->id() == ARM_INS_POP
@@ -471,10 +471,12 @@ bool SectionDisassemblyAnalyzerARM::isNotSwitchStatement
 }
 
 void SectionDisassemblyAnalyzerARM::addConditionalBranchToCFG(CFGNode &node) {
-    if (!node.maximalBlock()->getBranch().isConditional()) {
+    if (!node.maximalBlock()->branchInfo().isConditional()) {
         return;
     }
-    if (!isConditionalBranchAffectedByNodeOverlap(node)) {
+    if (isConditionalBranchAffectedByNodeOverlap(node)) {
+        node.m_max_block->setBranchToUnconditional();
+    } else {
         // a conditional branch should be valid
         auto succ = findImmediateSuccessor(node);
         if (succ != nullptr) {
@@ -498,10 +500,7 @@ bool SectionDisassemblyAnalyzerARM::isConditionalBranchAffectedByNodeOverlap
     if (!node.isCandidateStartAddressSet()) {
         // if there was no overlap or branches are not affected by context.
         // additionally larger nodes are not affected (heuristic)
-        if (node.maximalBlock()->instructionsCount() == 1
-            && m_sec_cfg.previous(node).maximalBlock()->getBranch().isConditional()
-            && isConditionalBranchAffectedByNodeOverlap(m_sec_cfg.previous(node))) {
-            // XXX Capstone should figure out that IT can't affect other BBs.
+        if (node.maximalBlock()->instructionsCount() == 1) {
             return true;
         }
         return false;
@@ -510,15 +509,15 @@ bool SectionDisassemblyAnalyzerARM::isConditionalBranchAffectedByNodeOverlap
             node.maximalBlock()->getAllInstructions().rbegin() + 1;
              inst_iter < node.maximalBlock()->getAllInstructions().rend();
              ++inst_iter) {
-            if ((*inst_iter).addr() <= node.getCandidateStartAddr()) {
-                return false;
-            }
-            if ((*inst_iter).detail().arm.cc == ARM_CC_AL) {
-                return false;
-            }
             if ((*inst_iter).id() == ARM_INS_CMP
                 || (*inst_iter).id() == ARM_INS_CMN
                 || (*inst_iter).id() == ARM_INS_IT) {
+                if ((*inst_iter).addr() < node.getCandidateStartAddr())
+                    return true;
+                else
+                    return false;
+            }
+            if ((*inst_iter).detail().arm.cc == ARM_CC_AL) {
                 return false;
             }
         }
@@ -727,14 +726,14 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
     // these are either tail-called, indirectly called, or not called at all.
     auto proc_iter = m_call_graph.m_main_procs.begin();
     for (auto node_iter = m_sec_cfg.m_cfg.begin();
-         node_iter < m_sec_cfg.m_cfg.end();
+         proc_iter < m_call_graph.m_main_procs.end()
+             && node_iter < m_sec_cfg.m_cfg.end();
          ++node_iter) {
 
-        if (proc_iter < m_call_graph.m_main_procs.end()
-            && (*proc_iter).entryNode()->id() <= (*node_iter).id()) {
+        if ((*proc_iter).entryNode()->id() <= (*node_iter).id()) {
             validateProcedure(*proc_iter);
             node_iter = std::next(m_sec_cfg.m_cfg.begin(),
-                                  (*proc_iter).m_end_node->id() + 1);
+                                  (*proc_iter).m_end_node->id());
             proc_iter++;
         }
         if ((*node_iter).isData()) {
@@ -775,7 +774,6 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
         }
     }
     m_call_graph.buildCallGraph();
-    printf("Call graph built...\n");
 }
 
 void SectionDisassemblyAnalyzerARM::buildProcedure
@@ -785,7 +783,7 @@ void SectionDisassemblyAnalyzerARM::buildProcedure
     proc_node.m_end_node = proc_node.entryNode();
     proc_node.m_end_addr = proc_node.entryNode()->maximalBlock()->endAddr();
     if (!proc_node.m_entry_node->isCall()) {
-        if (!proc_node.m_entry_node->maximalBlock()->getBranch().isDirect()
+        if (!proc_node.m_entry_node->maximalBlock()->branchInfo().isDirect()
             || proc_node.entryNode()->remoteSuccessor() == nullptr) {
             proc_node.finalize();
             return;
@@ -793,7 +791,7 @@ void SectionDisassemblyAnalyzerARM::buildProcedure
     }
     proc_node.m_lr_store_idx =
         m_analyzer.getLRStackStoreIndex(proc_node.entryNode());
-    if (proc_node.entryNode()->maximalBlock()->getBranch().isConditional()) {
+    if (proc_node.entryNode()->maximalBlock()->branchInfo().isConditional()) {
         traverseProcedureNode(proc_node,
                               proc_node.entryNode()->m_immediate_successor,
                               proc_node.entryNode());
@@ -893,14 +891,14 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
         proc_node.m_end_addr = cfg_node->maximalBlock()->endAddr();
         proc_node.m_end_node = cfg_node;
     }
-    if (cfg_node->maximalBlock()->getBranch().isConditional()) {
+    if (cfg_node->maximalBlock()->branchInfo().isConditional()) {
         traverseProcedureNode
             (proc_node, cfg_node->m_immediate_successor, cfg_node);
     } else if (cfg_node->isCall()) {
         traverseProcedureNode
             (proc_node, cfg_node->getReturnSuccessorNode(), cfg_node);
     }
-    if (cfg_node->maximalBlock()->getBranch().isDirect()) {
+    if (cfg_node->maximalBlock()->branchInfo().isDirect()) {
         traverseProcedureNode
             (proc_node, cfg_node->m_remote_successor, cfg_node);
     } else {
@@ -936,10 +934,10 @@ void SectionDisassemblyAnalyzerARM::recoverDirectCalledProcedures() noexcept {
         // Sometime BL/BLX are followed by data bytes but they always point to
         // procedure entries. Hence, we didn't use isCall() here.
         if (m_analyzer.isCall(cfg_node.maximalBlock()->branchInstruction())
-            && cfg_node.maximalBlock()->getBranch().isDirect()
+            && cfg_node.maximalBlock()->branchInfo().isDirect()
             && cfg_node.remoteSuccessor() != nullptr) {
             // now we only need to recover procedures in this section.
-            m_call_graph.insertProcedure(cfg_node.maximalBlock()->getBranch().target(),
+            m_call_graph.insertProcedure(cfg_node.maximalBlock()->branchInfo().target(),
                                          cfg_node.m_remote_successor);
         }
     }

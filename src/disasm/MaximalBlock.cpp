@@ -101,8 +101,12 @@ const std::vector<MCInst> &MaximalBlock::getAllInstructions() const {
     return m_insts;
 }
 
-const BranchData &MaximalBlock::getBranch() const {
+const BranchData &MaximalBlock::branchInfo() const {
     return m_branch;
+}
+
+void MaximalBlock::setBranchToUnconditional() noexcept {
+    m_branch.m_conditional_branch = false;
 }
 
 addr_t MaximalBlock::endAddr() const {

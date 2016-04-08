@@ -59,6 +59,7 @@ MaximalBlock MaximalBlockBuilder::buildResultDirectlyAndReset() {
     m_end_addr = 0;
     m_buildable = false;
     m_max_block_idx++;
+    m_branch.m_invalid_it_found = false;
     return result;
 }
 
@@ -128,6 +129,7 @@ MaximalBlock MaximalBlockBuilder::build() {
             m_end_addr = 0;
             m_buildable = false;
             m_max_block_idx++;
+            m_branch.m_invalid_it_found = false;
             return result;
         }
     }
@@ -143,6 +145,7 @@ MaximalBlock MaximalBlockBuilder::build() {
         m_end_addr = m_insts.back().addr() + m_insts.back().size();
         m_buildable = false;
         m_max_block_idx++;
+        m_branch.m_invalid_it_found = false;
         return result;
     }
 
@@ -182,6 +185,7 @@ MaximalBlock MaximalBlockBuilder::build() {
     m_bb_idx = overlap_blocks.size();
     m_buildable = false;
     m_max_block_idx++;
+    m_branch.m_invalid_it_found = false;
     return result;
 }
 
@@ -249,9 +253,15 @@ void MaximalBlockBuilder::setBranch(const cs_insn *inst) {
     }
     m_branch.m_direct_branch = false;
 }
+
 bool MaximalBlockBuilder::isCleanReset() {
     return !m_buildable && m_bblocks.size() == 0;
 }
+
+void MaximalBlockBuilder::setInvalidITFound() noexcept {
+    m_branch.m_invalid_it_found = true;
+}
+
 const std::vector<addr_t>
 MaximalBlockBuilder::getInstructionAddrsOf(const BasicBlock &bblock) const {
     return bblock.m_inst_addrs;

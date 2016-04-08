@@ -152,6 +152,7 @@ SectionDisassemblyARM ElfDisassembler::disassembleSectionSpeculative
     bool it_fix_cc = false;
     arm_cc it_condition = ARM_CC_AL;
     addr_t it_addr = 0;
+    size_t it_context_size = 0;
     while (current < last_addr) {
         if (parser.disasm(code_ptr, buf_size, current, inst_ptr)) {
             if (m_analyzer.isValid(inst_ptr)) {
@@ -159,25 +160,28 @@ SectionDisassemblyARM ElfDisassembler::disassembleSectionSpeculative
                 if (inst_ptr->id == ARM_INS_IT) {
                     it_addr = inst_ptr->address + 2;
                     it_fix_cc = false;
-                } else if (it_addr != 0) {
+                    it_context_size = strlen(inst_ptr->mnemonic) - 1;
+                } else if (it_context_size > 0) {
                     if (inst_ptr->address != it_addr) {
-                        if(inst_ptr->detail->arm.cc == ARM_CC_AL) {
-                            it_addr = 0;
-                        } else {
-                            it_condition = inst_ptr->detail->arm.cc;
-                            inst_ptr->detail->arm.cc = ARM_CC_AL;
-                            it_fix_cc = true;
-                        }
+                        it_condition = inst_ptr->detail->arm.cc;
+                        inst_ptr->detail->arm.cc = ARM_CC_AL;
+                        it_fix_cc = true;
                     } else {
-                        if(inst_ptr->detail->arm.cc == ARM_CC_AL) {
-                            it_addr = 0;
-                        } else {
-                            it_addr += inst_ptr->size;
-                        }
+                        it_context_size--;
+                        it_addr += inst_ptr->size;
                         if (it_fix_cc) {
                             auto temp = inst_ptr->detail->arm.cc;
                             inst_ptr->detail->arm.cc = it_condition;
                             it_condition = temp;
+                        }
+                        if (inst_ptr->detail->groups
+                        [inst_ptr->detail->groups_count - 1]
+                            == ARM_GRP_JUMP) {
+                            if (it_context_size > 0) {
+                                inst_ptr->detail->arm.cc = ARM_CC_AL;
+                                it_context_size = 0;
+                                max_block_builder.setInvalidITFound();
+                            }
                         }
                     }
                 }
@@ -359,10 +363,11 @@ void ElfDisassembler::prettyPrintMaximalBlock
         printf("\n");
     }
     printf("Direct branch: %d, Conditional: %d",
-           mblock->getBranch().isDirect(), mblock->getBranch().isConditional());
-    if (mblock->getBranch().isDirect()) {
+           mblock->branchInfo().isDirect(),
+           mblock->branchInfo().isConditional());
+    if (mblock->branchInfo().isDirect()) {
         printf(", Target: 0x%x",
-               static_cast<unsigned>(mblock->getBranch().target()));
+               static_cast<unsigned>(mblock->branchInfo().target()));
     }
     printf("\n");
 }
@@ -395,10 +400,11 @@ void ElfDisassembler::prettyPrintCFGNode
         printf("\n");
     }
     printf("Direct branch: %d, Conditional: %d",
-           mblock->getBranch().isDirect(), mblock->getBranch().isConditional());
-    if (mblock->getBranch().isDirect()) {
+           mblock->branchInfo().isDirect(),
+           mblock->branchInfo().isConditional());
+    if (mblock->branchInfo().isDirect()) {
         printf(", Target: 0x%x",
-               static_cast<unsigned>(mblock->getBranch().target()));
+               static_cast<unsigned>(mblock->branchInfo().target()));
     }
     printf("\n");
 }
@@ -443,18 +449,18 @@ void ElfDisassembler::prettyPrintValidCFGNode
                    inst->addr(),
                    inst->mnemonic().c_str(),
                    inst->operands().c_str());
-            if (inst->condition() != ARM_CC_AL) {
-                printf("/ condition: %s",
-                       m_analyzer.conditionCodeToString(inst->condition()).c_str());
-            }
+//            if (inst->condition() != ARM_CC_AL) {
+//                printf("/ condition: %s",
+//                       m_analyzer.conditionCodeToString(inst->condition()).c_str());
+//            }
             printf("\n");
         }
         printf("Direct branch: %d, Conditional: %d",
-               max_block->getBranch().isDirect(),
-               max_block->getBranch().isConditional());
-        if (max_block->getBranch().isDirect()) {
+               max_block->branchInfo().isDirect(),
+               max_block->branchInfo().isConditional());
+        if (max_block->branchInfo().isDirect()) {
             printf(", Target: 0x%x",
-                   static_cast<unsigned>(max_block->getBranch().target()));
+                   static_cast<unsigned>(max_block->branchInfo().target()));
         }
         printf("\n");
     } else {

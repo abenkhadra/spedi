@@ -56,7 +56,8 @@ public:
     const std::vector<addr_t> &
         getInstructionAddressesOf(const BasicBlock *bblock) const noexcept;
 
-    const BranchData &getBranch() const;
+    const BranchData &branchInfo() const;
+    void setBranchToUnconditional() noexcept;
     size_t id() const;
 
     /*

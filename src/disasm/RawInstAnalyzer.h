@@ -31,7 +31,7 @@ public:
     /**
      * return true if instruction is a branch
      */
-    bool isBranch(const cs_insn *inst) const;
+    bool isBranch(const cs_insn *inst) const noexcept;
 
     /**
      * return true if instruction is conditional, note that conditional
