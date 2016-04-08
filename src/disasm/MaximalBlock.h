@@ -58,6 +58,7 @@ public:
 
     const BranchData &branchInfo() const;
     void setBranchToUnconditional() noexcept;
+    bool hasInvalidITFound() const noexcept;
     size_t id() const;
 
     /*

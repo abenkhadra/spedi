@@ -178,6 +178,8 @@ SectionDisassemblyARM ElfDisassembler::disassembleSectionSpeculative
                         [inst_ptr->detail->groups_count - 1]
                             == ARM_GRP_JUMP) {
                             if (it_context_size > 0) {
+                                // TODO: we need rollback since Capstone will
+                                // anyway set CC in next instructions
                                 inst_ptr->detail->arm.cc = ARM_CC_AL;
                                 it_context_size = 0;
                                 max_block_builder.setInvalidITFound();

@@ -500,7 +500,8 @@ bool SectionDisassemblyAnalyzerARM::isConditionalBranchAffectedByNodeOverlap
     if (!node.isCandidateStartAddressSet()) {
         // if there was no overlap or branches are not affected by context.
         // additionally larger nodes are not affected (heuristic)
-        if (node.maximalBlock()->instructionsCount() == 1) {
+        if (node.maximalBlock()->instructionsCount() == 1
+            && m_sec_cfg.previous(node).maximalBlock()->hasInvalidITFound()) {
             return true;
         }
         return false;
