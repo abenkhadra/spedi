@@ -120,7 +120,7 @@ private:
          CFGNode *cfg_node,
          CFGNode *predecessor) noexcept;
     void recoverDirectCalledProcedures() noexcept;
-    void validateProcedure(const ICFGNode &proc) const noexcept;
+    void buildInnerProcedures(const ICFGNode &proc) noexcept;
 
 private:
     SectionDisassemblyARM *m_sec_disassembly;
@@ -132,6 +132,5 @@ private:
     CFGNode *findSwitchTableTarget
         (addr_t target_addr);
     void addCallReturnRelation(CFGNode &node);
-    void prettyPrintProcedure(const ICFGNode &proc_node);
 };
 }

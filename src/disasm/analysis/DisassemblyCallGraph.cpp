@@ -28,7 +28,18 @@ ICFGNode *DisassemblyCallGraph::insertProcedure
     if (result.second) {
         m_unmerged_procs.emplace_back
             (ICFGNode(entry_addr, entry_node, type));
-        m_call_graph_ordered = false;
+        return &(m_unmerged_procs.back());
+    }
+    return nullptr;
+}
+
+
+ICFGNode *DisassemblyCallGraph::insertInnerProcedure(const addr_t entry_addr,
+                                                     CFGNode *entry_node) {
+    auto result = m_call_graph_map.insert({entry_addr, nullptr});
+    if (result.second) {
+        m_inner_procs.emplace_back
+            (ICFGNode(entry_addr, entry_node, ICFGProcedureType::kInner));
         return &(m_unmerged_procs.back());
     }
     return nullptr;
@@ -41,26 +52,25 @@ void DisassemblyCallGraph::insertProcedure
     if (result.second) {
         m_unmerged_procs.emplace_back
             (ICFGNode(entry_addr, entry_node, ICFGProcedureType::kReturn));
-        m_call_graph_ordered = false;
     }
 }
 
 void DisassemblyCallGraph::buildCallGraph() noexcept {
-    // Identify externally called procedures
-    // If CFG node role in procedure is exit then its remote target is external
-    // Fill the map between proc id and proc ptr
-    // link callers and callees.
-
     for (auto &proc : m_unmerged_procs) {
         m_main_procs.push_back(proc);
     }
     m_unmerged_procs.clear();
-    std::sort(m_main_procs.begin(), m_main_procs.end());
-    for (auto proc_iter = m_main_procs.begin();
-         proc_iter < m_main_procs.end() - 1;
-         ++proc_iter) {
-        prettyPrintProcedure(*proc_iter);
+    for (auto &proc : m_inner_procs) {
+        m_main_procs.push_back(proc);
     }
+    m_inner_procs.clear();
+
+    std::sort(m_main_procs.begin(), m_main_procs.end());
+//    for (auto proc_iter = m_main_procs.begin();
+//         proc_iter < m_main_procs.end() - 1;
+//         ++proc_iter) {
+//        prettyPrintProcedure(*proc_iter);
+//    }
     m_call_graph_ordered = true;
 }
 

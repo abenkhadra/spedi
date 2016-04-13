@@ -37,6 +37,9 @@ public:
     void insertProcedure(const addr_t entry_addr, CFGNode *entry_node);
     ICFGNode *insertProcedure
         (const addr_t entry_addr, CFGNode *entry_node, ICFGProcedureType type);
+    ICFGNode *insertInnerProcedure
+        (const addr_t entry_addr, CFGNode *entry_node);
+
     void prettyPrintProcedure(const ICFGNode &proc_node) noexcept;
     friend class SectionDisassemblyAnalyzerARM;
 private:
@@ -48,6 +51,7 @@ private:
     bool m_call_graph_ordered;
     std::vector<ICFGNode> m_main_procs;
     std::vector<ICFGNode> m_unmerged_procs;
+    std::vector<ICFGNode> m_inner_procs;
     std::unordered_map<addr_t, ICFGNode *> m_call_graph_map;
 };
 }

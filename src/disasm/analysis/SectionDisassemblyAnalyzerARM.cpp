@@ -691,7 +691,7 @@ CFGNode *SectionDisassemblyAnalyzerARM::findSwitchTableTarget
     return nullptr;
 }
 
-void SectionDisassemblyAnalyzerARM::validateProcedure(const ICFGNode &proc) const noexcept {
+void SectionDisassemblyAnalyzerARM::buildInnerProcedures(const ICFGNode &proc) noexcept {
     // an entry node with two different entry addresses should be split to
     // two procedures.
     for (auto node_iter =
@@ -703,13 +703,12 @@ void SectionDisassemblyAnalyzerARM::validateProcedure(const ICFGNode &proc) cons
         // an internal node with no predecessors can either be data
         // or an actual entry.
         if ((*node_iter).procedure_id() != proc.id()) {
-            printf("Unreachable internal node %lu at %lx\n",
-                   (*node_iter).id(),
-                   (*node_iter).getCandidateStartAddr());
+            auto proc_node = m_call_graph.insertInnerProcedure
+                ((*node_iter).getCandidateStartAddr(),
+                 &(*node_iter));
+            proc_node->m_estimated_end_addr = proc.m_end_addr;
+            buildProcedure(*proc_node);
         }
-//        if (!(*node_iter).hasPredecessors())
-//            continue;
-//        assert((*node_iter).procedure_id() == proc.id());
     }
 }
 
@@ -732,7 +731,7 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
          ++node_iter) {
 
         if ((*proc_iter).entryNode()->id() <= (*node_iter).id()) {
-            validateProcedure(*proc_iter);
+            buildInnerProcedures(*proc_iter);
             node_iter = std::next(m_sec_cfg.m_cfg.begin(),
                                   (*proc_iter).m_end_node->id());
             proc_iter++;
@@ -753,7 +752,7 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
                         m_call_graph.m_section_end_addr;
                 }
                 buildProcedure(*proc_node);
-                validateProcedure(*proc_node);
+                buildInnerProcedures(*proc_node);
                 node_iter = std::next(m_sec_cfg.m_cfg.begin(),
                                       proc_node->m_end_node->id());
             }
@@ -769,7 +768,7 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
                     m_call_graph.m_section_end_addr;
             }
             buildProcedure(*proc_node);
-            validateProcedure(*proc_node);
+            buildInnerProcedures(*proc_node);
             node_iter = std::next(m_sec_cfg.m_cfg.begin(),
                                   proc_node->m_end_node->id());
         }
@@ -840,9 +839,9 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
             // this assumption should be later revisited.
             cfg_node->m_role_in_procedure =
                 CFGNodeRoleInProcedure::kEntryCandidate;
-            cfg_node->m_candidate_start_addr =
-                cfg_node->getMinTargetAddrOfValidPredecessor();
-            assert(cfg_node->m_candidate_start_addr != 0);
+//            cfg_node->m_candidate_start_addr =
+//                cfg_node->getMinTargetAddrOfValidPredecessor();
+//            assert(cfg_node->m_candidate_start_addr != 0);
             cfg_node->m_procedure_id = cfg_node->m_candidate_start_addr;
             proc_node.m_exit_nodes.push_back
                 ({ICFGExitNodeType::kTailCall, predecessor});

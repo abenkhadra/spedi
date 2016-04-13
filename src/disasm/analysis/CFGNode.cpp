@@ -309,6 +309,7 @@ CFGNode *CFGNode::getReturnSuccessorNode() const noexcept {
     }
     return nullptr;
 }
+
 bool CFGNode::isRoleInProcedureSet() const noexcept {
     return m_role_in_procedure != CFGNodeRoleInProcedure::kUnknown;
 }
