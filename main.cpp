@@ -63,10 +63,10 @@ int main(int argc, char **argv) {
                 analyzer{&result, disassembler.getExecutableRegion()};
             analyzer.buildCFG();
             analyzer.refineCFG();
-//            disassembler.prettyPrintSectionCFG
-//                (&analyzer.getCFG(),
-//                 disasm::PrettyPrintConfig::kHideDataNodes);
-            analyzer.buildCallGraph();
+            disassembler.prettyPrintSectionCFG
+                (&analyzer.getCFG(),
+                 disasm::PrettyPrintConfig::kHideDataNodes);
+//            analyzer.buildCallGraph();
         } else {
             disassembler.disassembleCodeSpeculative();
         }
@@ -81,8 +81,8 @@ int main(int argc, char **argv) {
             analyzer.buildCFG();
             analyzer.refineCFG();
 //            disassembler.prettyPrintSwitchTables(&analyzer.getCFG());
-            analyzer.buildCallGraph();
-//            disassembler.prettyPrintSectionCFG(&analyzer.getCFG());
+//            analyzer.buildCallGraph();
+            disassembler.prettyPrintSectionCFG(&analyzer.getCFG());
         } else
             disassembler.disassembleCodeUsingSymbols();
     } else

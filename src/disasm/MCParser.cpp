@@ -54,7 +54,7 @@ void MCParser::changeModeTo(cs_mode mode) {
 bool MCParser::disasm(const uint8_t *code,
                       size_t size,
                       addr_t address,
-                      cs_insn *inst) {
+                      cs_insn *inst) const noexcept {
     assert(address <= m_end_addr && "Address out of bound");
     auto result = cs_disasm_iter(m_handle, &code, &size, &address, inst);
     switch (inst->id) {
@@ -73,7 +73,7 @@ bool MCParser::disasm(const uint8_t *code,
 bool MCParser::disasm2(const uint8_t **code,
                        size_t *size,
                        addr_t *address,
-                       cs_insn *inst) {
+                       cs_insn *inst) const noexcept {
     assert(*address <= m_end_addr && "Address out of bound");
     auto result = cs_disasm_iter(m_handle, code, size, address, inst);
     switch (inst->id) {

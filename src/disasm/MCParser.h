@@ -24,7 +24,7 @@ public:
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
-    MCParser () = default;
+    MCParser() = default;
     virtual ~MCParser();
     MCParser(const MCParser &src) = delete;
     MCParser &operator=(const MCParser &src) = delete;
@@ -40,25 +40,23 @@ public:
 
     bool valid() const { return m_valid; }
 
-    bool disasm(const uint8_t *code,
-                size_t size,
-                addr_t address,
-                cs_insn *inst);
+    bool disasm(const uint8_t *code, size_t size, addr_t address, cs_insn *inst)
+        const noexcept;
 
     bool disasm2(const uint8_t **code,
                  size_t *size,
                  addr_t *address,
-                 cs_insn *inst);
+                 cs_insn *inst) const noexcept;
 
-    const cs_arch& arch() const {
+    const cs_arch &arch() const {
         return m_arch;
     }
 
-    const cs_mode& mode() const {
+    const cs_mode &mode() const {
         return m_mode;
     }
 
-    const csh& handle() const {
+    const csh &handle() const {
         return m_handle;
     }
 

@@ -51,6 +51,7 @@ public:
      */
     void createValidBasicBlockWith
         (const cs_insn *inst);
+
     /*
      * Look up appendable basic blocks first and then appendBranch instruction if possible.
      * Otherwise, create a new basic block.
@@ -72,8 +73,6 @@ public:
      * Return true on clean (no overlap) reset, false otherwise.
      */
     bool isCleanReset();
-
-    void setInvalidITFound() noexcept;
 
     const std::vector<addr_t>
         getInstructionAddrsOf(const BasicBlock &bblock) const;

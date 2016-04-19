@@ -69,11 +69,6 @@ public:
     size_t calculateBasicBlockWeight
         (const CFGNode &node, const BasicBlock &basic_block) const noexcept;
 
-    /*
-     * returns true if given node is definitely not a switch statement.
-     */
-    bool isNotSwitchStatement(const CFGNode &node) const noexcept;
-
 private:
     /*
      * Finds a valid basic block in and invalidates all direct predecessors that
@@ -90,6 +85,12 @@ private:
         (CFGNode &node, addr_t addr) noexcept;
     bool isConditionalBranchAffectedByNodeOverlap
         (const CFGNode &node) const noexcept;
+private:
+    // switch table related methods
+    /*
+     * returns true if given node is definitely not a switch statement.
+    */
+    bool isNotSwitchStatement(const CFGNode &node) const noexcept;
     struct SwitchTableData {
         SwitchTableData() = default;
         SwitchTableData
@@ -105,10 +106,9 @@ private:
     using SwitchData = SectionDisassemblyAnalyzerARM::SwitchTableData;
     SwitchData recoverTBBSwitchTable(CFGNode &node);
     SwitchData recoverTBHSwitchTable(CFGNode &node);
-    SwitchData recoverLDRSwitchTable
-        (CFGNode &node, const addr_t jump_table_base_addr);
-    void switchTableCleanUp
-        (SwitchTableData &table_data);
+    SwitchData recoverLDRSwitchTable(CFGNode &node);
+    void switchTableCleanUp(SwitchTableData &table_data) noexcept;
+    int recoverLimitOfSwitchTable(const CFGNode &node) const noexcept;
 
 private:
     // call graph related methods

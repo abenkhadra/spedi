@@ -444,10 +444,7 @@ void SectionDisassemblyAnalyzerARM::recoverSwitchStatements() {
             branchInstruction()->id() == ARM_INS_LDR
             && (*node_iter).maximalBlock()->
                 branchInstruction()->detail().arm.op_count == 2) {
-            sw_data_vec.emplace_back
-                (recoverLDRSwitchTable
-                     (*node_iter,
-                      m_analyzer.recoverLDRSwitchBaseAddr(*node_iter)));
+            sw_data_vec.emplace_back(recoverLDRSwitchTable(*node_iter));
         }
     }
     for (auto &table_data : sw_data_vec) {
@@ -500,10 +497,6 @@ bool SectionDisassemblyAnalyzerARM::isConditionalBranchAffectedByNodeOverlap
     if (!node.isCandidateStartAddressSet()) {
         // if there was no overlap or branches are not affected by context.
         // additionally larger nodes are not affected (heuristic)
-        if (node.maximalBlock()->instructionsCount() == 1
-            && m_sec_cfg.previous(node).maximalBlock()->hasInvalidITFound()) {
-            return true;
-        }
         return false;
     } else {
         for (auto inst_iter =
@@ -594,11 +587,11 @@ SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
 }
 
 SectionDisassemblyAnalyzerARM::SwitchTableData
-SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable
-    (CFGNode &node, const addr_t jump_table_base_addr) {
+SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable(CFGNode &node) {
+    const addr_t base_addr = m_analyzer.recoverLDRSwitchBaseAddr(node);
     const uint8_t *code_ptr = m_sec_disassembly->
-        physicalAddrOf(jump_table_base_addr);
-    addr_t current_addr = jump_table_base_addr;
+        physicalAddrOf(base_addr);
+    addr_t current_addr = base_addr;
     addr_t minimum_switch_case_addr = m_exec_addr_end;
     std::unordered_map<addr_t, bool> target_map;
     while (current_addr < minimum_switch_case_addr) {
@@ -614,7 +607,7 @@ SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable
             }
             target_node->setAsSwitchCaseFor(&node, target);
             if (target < minimum_switch_case_addr
-                && target > jump_table_base_addr) {
+                && target > base_addr) {
                 // we pick only nodes after the current node since jumping
                 // to default case can happen earlier
                 minimum_switch_case_addr = target;
@@ -626,8 +619,18 @@ SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable
     return SwitchData(&node, 4, 0);
 }
 
+int
+SectionDisassemblyAnalyzerARM::recoverLimitOfSwitchTable
+    (const CFGNode &node) const noexcept {
+
+    if (m_sec_cfg.previous(node).maximalBlock()->branchInfo().isConditional()) {
+        // TODO: check for "cmp" with index register and return compared value
+    }
+    return 0;
+}
+
 void SectionDisassemblyAnalyzerARM::switchTableCleanUp
-    (SwitchTableData &table_data) {
+    (SwitchTableData &table_data) noexcept {
     for (auto node_iter = m_sec_cfg.m_cfg.begin() + table_data.m_node->id() + 1;
          node_iter < m_sec_cfg.m_cfg.end();
          ++node_iter) {

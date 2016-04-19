@@ -105,10 +105,6 @@ const BranchData &MaximalBlock::branchInfo() const {
     return m_branch;
 }
 
-bool MaximalBlock::hasInvalidITFound() const noexcept {
-    return m_branch.m_invalid_it_found;
-}
-
 void MaximalBlock::setBranchToUnconditional() noexcept {
     m_branch.m_conditional_branch = false;
 }

@@ -10,6 +10,8 @@
 #include "SectionDisassemblyARM.h"
 #include "RawInstAnalyzer.h"
 #include "binutils/elf/elf++.hh"
+#include "MCParser.h"
+#include "MaximalBlockBuilder.h"
 
 namespace disasm {
 

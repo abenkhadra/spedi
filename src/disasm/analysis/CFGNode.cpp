@@ -186,8 +186,10 @@ void CFGNode::setToDataAndInvalidatePredecessors() {
         if (!(*pred_iter).node()->isData()
             && (*pred_iter).type() == CFGEdgeType::kDirect
             || (*pred_iter).type() == CFGEdgeType::kConditional) {
-//        printf("CONFLICT: Invalidating %lu predecessor of %lu\n",
-//               (*pred_iter).node()->id(), this->id());
+//            printf("Invalidating predecessors of %lu at %lx: pred %lu\n",
+//                   this->id(),
+//                   this->maximalBlock()->addrOfLastInst(),
+//                   (*pred_iter).node()->id());
             (*pred_iter).node()->setToDataAndInvalidatePredecessors();
         }
     }
