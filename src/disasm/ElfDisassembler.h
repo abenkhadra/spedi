@@ -101,7 +101,6 @@ private:
         (const csh &handle, cs_insn *inst, bool details_enabled) const;
     std::vector<std::pair<size_t, ARMCodeSymbolType>>
         getCodeSymbolsOfSection(const elf::section &sec) const;
-
 private:
     bool m_valid;
     mutable RawInstAnalyzer m_analyzer;

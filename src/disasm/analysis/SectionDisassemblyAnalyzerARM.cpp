@@ -252,7 +252,28 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
                         --it_block_size;
                     }
                     node.m_max_block->resetBranchData();
-                    current = addr;
+                    if (it_block_size == 0) {
+                        current = addr;
+                        continue;
+                    }
+                    // IT errors can span more than one MB!
+                    auto &next_node = *(node_iter + 1);
+                    for (auto inst_iter2 =
+                        next_node.m_max_block->getInstructionsRef().begin();
+                         it_block_size > 0
+                             && inst_iter2 <
+                                 next_node.m_max_block->getInstructionsRef().end();
+                         ++inst_iter2) {
+                        if ((*inst_iter2).addr() == addr) {
+                            parser.disasm(code_ptr, 4, addr, inst.rawPtr());
+                            (*inst_iter2).setMnemonic(inst.rawPtr()->mnemonic);
+                            (*inst_iter2).setDetail(*inst.rawPtr()->detail);
+                            addr += inst.rawPtr()->size;
+                            code_ptr += inst.rawPtr()->size;
+                            --it_block_size;
+                        }
+                    }
+                    next_node.m_max_block->resetBranchData();
                 }
             }
         }

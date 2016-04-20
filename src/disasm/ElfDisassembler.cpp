@@ -141,7 +141,7 @@ SectionDisassemblyARM ElfDisassembler::disassembleSectionSpeculative
     RawInstWrapper inst;
     cs_insn *inst_ptr = inst.rawPtr();
 
-    MaximalBlockBuilder max_block_builder;
+    MaximalBlockBuilder mb_builder;
     SectionDisassemblyARM result{&sec};
     // Empirical data suggests that average size of a maximal block is 14 bytes.
     // we try to pre-allocate more to avoid reallocating the vector.
@@ -150,77 +150,60 @@ SectionDisassemblyARM ElfDisassembler::disassembleSectionSpeculative
     it_block_insts.resize(4);
     while (current_addr < last_addr) {
         if (parser.disasm(code_ptr, 4, current_addr, inst_ptr)) {
-            if (m_analyzer.isValid(inst_ptr)) {
-                // Fix IT condition code due to speculative disassembly
-                if (inst_ptr->id == ARM_INS_IT) {
-                    auto it_block_size = strlen(inst_ptr->mnemonic) - 1;
-                    auto it_current_addr = current_addr + 2;
-                    auto it_code_ptr = code_ptr + 2;
-                    bool is_it_invalid = false;
-                    for (int i = 0; i < it_block_size; ++i) {
-                        auto it_inst_ptr = it_block_insts[i].rawPtr();
-                        size_t buf = 4;
-                        if (parser.disasm2(&it_code_ptr,
-                                           &buf,
-                                           &it_current_addr,
-                                           it_inst_ptr)
-                            && m_analyzer.isValid(it_inst_ptr)) {
-                            // XXX branch instructions can only appear last in
-                            // an IT block. Instructions setting condition codes
-                            // can appear in IT block but we haven't seen them
-                            // in practice
-                            if (it_inst_ptr->detail->groups
-                            [it_inst_ptr->detail->groups_count - 1]
-                                == ARM_GRP_JUMP && i < it_block_size - 1) {
-                                // XXX we can't break the loop since capstone
-                                // doesn't allow resetting IT block
-                                is_it_invalid = true;
-                            }
-                        } else {
-                            is_it_invalid = true;
-                        }
+            // Fix IT condition code due to speculative disassembly
+            if (inst_ptr->id == ARM_INS_IT) {
+                mb_builder.append(inst_ptr);
+                current_addr += 2;
+                code_ptr += 2;
+                auto it_block_size = strlen(inst_ptr->mnemonic) - 1;
+                auto it_current_addr = current_addr;
+                auto it_code_ptr = code_ptr;
+                for (int i = 0; i < it_block_size; ++i) {
+                    auto it_inst_ptr = it_block_insts[i].rawPtr();
+                    size_t buf = 4;
+                    parser.disasm2(&it_code_ptr,
+                                   &buf,
+                                   &it_current_addr,
+                                   it_inst_ptr);
+                    // XXX branch instructions can only appear last in
+                    // an IT block. Instructions setting condition codes
+                    // can appear in IT block.
+                    // Branch instructions that writes to PC can appear.
+                }
+                for (int i = 0; i < it_block_size; ++i) {
+                    auto it_inst_ptr = it_block_insts[i].rawPtr();
+                    if (m_analyzer.isBranch(it_inst_ptr)) {
+                        mb_builder.appendBranch(it_inst_ptr);
+                        result.add(mb_builder.build());
+                    } else {
+                        mb_builder.append(it_inst_ptr);
                     }
-                    if (is_it_invalid) {
+                    if (it_inst_ptr->size == 4) {
                         current_addr += 2;
                         code_ptr += 2;
-                        continue;
+                        if (parser.disasm
+                            (code_ptr, 4, current_addr, it_inst_ptr)
+                            && m_analyzer.isValid(it_inst_ptr)) {
+                            if (m_analyzer.isBranch(it_inst_ptr)) {
+                                mb_builder.appendBranch(it_inst_ptr);
+                                result.add(mb_builder.build());
+                            } else {
+                                mb_builder.append(it_inst_ptr);
+                            }
+                        }
                     }
-                    // IT instruction looks valid
-                    max_block_builder.append(inst_ptr);
                     current_addr += 2;
                     code_ptr += 2;
-                    for (int i = 0; i < it_block_size; ++i) {
-                        auto it_inst_ptr = it_block_insts[i].rawPtr();
-                        if (m_analyzer.isBranch(it_inst_ptr)) {
-                            max_block_builder.appendBranch(it_inst_ptr);
-                            result.add(max_block_builder.build());
-                        } else {
-                            max_block_builder.append(it_inst_ptr);
-                        }
-                        if (it_inst_ptr->size == 4) {
-                            current_addr += 2;
-                            code_ptr += 2;
-                            if (parser.disasm
-                                (code_ptr, 4, current_addr, it_inst_ptr)
-                                && m_analyzer.isValid(it_inst_ptr)) {
-                                if (m_analyzer.isBranch(it_inst_ptr)) {
-                                    max_block_builder.appendBranch(it_inst_ptr);
-                                    result.add(max_block_builder.build());
-                                } else {
-                                    max_block_builder.append(it_inst_ptr);
-                                }
-                            }
-                        }
-                        current_addr += 2;
-                        code_ptr += 2;
+                }
+                continue;
+            } else {
+                if (m_analyzer.isValid(inst_ptr)) {
+                    if (m_analyzer.isBranch(inst_ptr)) {
+                        mb_builder.appendBranch(inst_ptr);
+                        result.add(mb_builder.build());
+                    } else {
+                        mb_builder.append(inst_ptr);
                     }
-                    continue;
-                } else if (m_analyzer.isBranch(inst_ptr)) {
-                    max_block_builder.appendBranch(inst_ptr);
-                    result.add(max_block_builder.build());
-//                    prettyPrintMaximalBlock(&result.back());
-                } else {
-                    max_block_builder.append(inst_ptr);
                 }
             }
         }
