@@ -58,4 +58,12 @@ const std::string &MCInst::mnemonic() const noexcept {
 const std::string &MCInst::operands() const noexcept {
     return m_operands;
 }
+
+void MCInst::setMnemonic(const std::string &mnemonic) noexcept {
+    m_mnemonic = mnemonic;
+}
+
+void MCInst::setDetail(const cs_detail &inst_detail) noexcept {
+    m_detail = inst_detail;
+}
 }

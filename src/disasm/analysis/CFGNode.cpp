@@ -84,7 +84,7 @@ CFGNodeType CFGNode::getType() const {
 std::vector<const MCInst *> CFGNode::getCandidateInstructions() const {
     std::vector<const MCInst *> result;
     addr_t current = m_candidate_start_addr;
-    for (const auto &inst : m_max_block->getAllInstructions()) {
+    for (const auto &inst : m_max_block->getInstructions()) {
         if (inst.addr() == current) {
             result.push_back(&inst);
             current += inst.size();
@@ -97,7 +97,7 @@ std::vector<const MCInst *> CFGNode::getCandidateInstructionsSatisfying
     (std::function<bool(const MCInst *)> predicate) const {
     std::vector<const MCInst *> result;
     addr_t current = m_candidate_start_addr;
-    for (const auto &inst : m_max_block->getAllInstructions()) {
+    for (const auto &inst : m_max_block->getInstructions()) {
         if (inst.addr() == current) {
             if (predicate(&inst)) {
                 result.push_back(&inst);
@@ -115,7 +115,7 @@ addr_t CFGNode::getCandidateStartAddr() const noexcept {
 void CFGNode::setCandidateStartAddr(addr_t candidate_start) noexcept {
     // a candidate start address should be set to the first instruction that can
     // match it.
-    for (const auto &inst : m_max_block->getAllInstructions()) {
+    for (const auto &inst : m_max_block->getInstructions()) {
         if (candidate_start <= inst.addr()) {
             m_candidate_start_addr = inst.addr();
             break;
@@ -222,7 +222,7 @@ const CFGNode *CFGNode::getPreceedingCallNode() const noexcept {
 size_t CFGNode::getCountOfCandidateInstructions() const noexcept {
     size_t result = 0;
     addr_t current = m_candidate_start_addr;
-    for (const auto &inst : m_max_block->getAllInstructions()) {
+    for (const auto &inst : m_max_block->getInstructions()) {
         if (inst.addr() == current) {
             current += inst.size();
             result++;

@@ -149,6 +149,5 @@ private:
     std::vector<CFGEdge> m_direct_preds;
     std::vector<CFGEdge> m_indirect_preds;
     std::vector<CFGEdge> m_indirect_succs;
-
 };
 }

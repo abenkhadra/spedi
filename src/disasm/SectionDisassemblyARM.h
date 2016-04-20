@@ -45,7 +45,8 @@ public:
     /*
      * start virtual address of section
      */
-    addr_t startAddr() const;
+    addr_t secStartAddr() const;
+    addr_t secEndAddr() const;
     /*
      * size of section in bytes
      */

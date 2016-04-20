@@ -123,7 +123,7 @@ private:
     void buildInnerProcedures(const ICFGNode &proc) noexcept;
 
 private:
-    SectionDisassemblyARM *m_sec_disassembly;
+    SectionDisassemblyARM *m_sec_disasm;
     DisassemblyAnalysisHelperARM m_analyzer;
     addr_t m_exec_addr_start;
     addr_t m_exec_addr_end;

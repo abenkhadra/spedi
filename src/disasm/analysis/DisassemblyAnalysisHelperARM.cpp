@@ -44,7 +44,7 @@ addr_t DisassemblyAnalysisHelperARM::recoverLDRSwitchBaseAddr
             return switch_inst->addr() + 6;
         }
     } else {
-        for (const auto &inst:node.maximalBlock()->getAllInstructions()) {
+        for (const auto &inst:node.maximalBlock()->getInstructions()) {
             if (inst.id() == ARM_INS_ADR
                 && (inst.detail().arm.operands[0].reg
                     == switch_inst->detail().arm.operands[1].mem.base)) {

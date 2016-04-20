@@ -383,7 +383,7 @@ void ElfDisassembler::prettyPrintMaximalBlock
         }
         printf("\n");
     }
-    for (auto &inst :mblock->getAllInstructions()) {
+    for (auto &inst :mblock->getInstructions()) {
         printf("0x%" PRIx64 ":\t%s\t\t%s ",
                inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str());
         if (inst.condition() != ARM_CC_AL) {
@@ -420,7 +420,7 @@ void ElfDisassembler::prettyPrintCFGNode
         }
         printf("\n");
     }
-    for (auto &inst :mblock->getAllInstructions()) {
+    for (auto &inst :mblock->getInstructions()) {
         printf("0x%" PRIx64 ":\t%s\t\t%s ",
                inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str());
         if (inst.condition() != ARM_CC_AL) {

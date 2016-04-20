@@ -35,8 +35,12 @@ SectionDisassemblyARM::sectionName() const {
 }
 
 addr_t
-SectionDisassemblyARM::startAddr() const {
+SectionDisassemblyARM::secStartAddr() const {
     return m_section->get_hdr().addr;
+}
+
+addr_t SectionDisassemblyARM::secEndAddr() const {
+    return m_section->get_hdr().addr + m_section->get_hdr().size;
 }
 
 size_t
@@ -66,15 +70,15 @@ addr_t SectionDisassemblyARM::virtualAddrOf(const uint8_t *ptr) const {
     assert(ptr < ptrToData() + sectionSize()
                && ptrToData() <= ptr
                && "Invalid pointer !!!");
-    return startAddr() + (ptr - ptrToData());
+    return secStartAddr() + (ptr - ptrToData());
 }
 
 const uint8_t *SectionDisassemblyARM::physicalAddrOf
     (const addr_t virtual_addr) const {
-    assert(startAddr() <= virtual_addr
-               && virtual_addr < startAddr() + sectionSize()
+    assert(secStartAddr() <= virtual_addr
+               && virtual_addr < secEndAddr()
                && "Invalid virtual address !!!");
-    return ptrToData() + (virtual_addr - startAddr());
+    return ptrToData() + (virtual_addr - secStartAddr());
 }
 
 std::vector<MaximalBlock> &SectionDisassemblyARM::getMaximalBlocks() {

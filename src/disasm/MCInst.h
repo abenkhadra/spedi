@@ -39,6 +39,9 @@ public:
     const std::string &mnemonic() const noexcept;
     const std::string &operands() const noexcept;
 
+    void setMnemonic(const std::string &mnemonic) noexcept;
+    void setDetail(const cs_detail &inst_detail) noexcept;
+
 private:
     unsigned int m_id;
     addr_t m_addr;

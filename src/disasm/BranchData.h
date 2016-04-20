@@ -43,6 +43,3 @@ private:
     addr_t m_target;
 };
 }
-
-
-

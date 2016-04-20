@@ -97,7 +97,11 @@ bool MaximalBlock::isWithinAddressSpace(addr_t addr) const {
         && addr < endAddr();
 }
 
-const std::vector<MCInst> &MaximalBlock::getAllInstructions() const {
+const std::vector<MCInst> &MaximalBlock::getInstructions() const {
+    return m_insts;
+}
+
+std::vector<MCInst> &MaximalBlock::getInstructionsRef() {
     return m_insts;
 }
 
@@ -105,8 +109,9 @@ const BranchData &MaximalBlock::branchInfo() const {
     return m_branch;
 }
 
-void MaximalBlock::setBranchToUnconditional() noexcept {
-    m_branch.m_conditional_branch = false;
+void MaximalBlock::resetBranchData() noexcept {
+    m_branch.m_conditional_branch =
+        branchInstruction()->condition() != ARM_CC_AL;
 }
 
 addr_t MaximalBlock::endAddr() const {

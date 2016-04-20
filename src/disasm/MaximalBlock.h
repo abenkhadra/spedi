@@ -46,8 +46,8 @@ public:
     /*
      * return all instructions contained in the MB
      */
-    const std::vector<MCInst>
-        &getAllInstructions() const;
+    const std::vector<MCInst> &getInstructions() const;
+    std::vector<MCInst> &getInstructionsRef();
 
     const std::vector<const MCInst *>
         getInstructionsOf(const BasicBlock &bblock) const;
@@ -55,11 +55,11 @@ public:
         getInstructionAddressesOf(const BasicBlock &bblock) const noexcept;
     const std::vector<addr_t> &
         getInstructionAddressesOf(const BasicBlock *bblock) const noexcept;
-
     const BranchData &branchInfo() const;
-    void setBranchToUnconditional() noexcept;
-    bool hasInvalidITFound() const noexcept;
+    void resetBranchData() noexcept;
+
     size_t id() const;
+
 
     /*
      * return true if the given address falls inside the address space
@@ -69,7 +69,6 @@ public:
 
     addr_t addrOfFirstInst() const;
     addr_t addrOfLastInst() const;
-
     addr_t endAddr() const;
     bool isAddressOfInstruction(const addr_t inst_addr) const;
     bool startOverlapsWith(const MaximalBlock &prev_block) const;
