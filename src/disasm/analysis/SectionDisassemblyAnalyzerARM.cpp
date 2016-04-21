@@ -749,7 +749,7 @@ CFGNode *SectionDisassemblyAnalyzerARM::findSwitchTableTarget
     return nullptr;
 }
 
-void SectionDisassemblyAnalyzerARM::buildInnerProcedures(const ICFGNode &proc) noexcept {
+addr_t SectionDisassemblyAnalyzerARM::validateProcedure(const ICFGNode &proc) noexcept {
     // an entry node with two different entry addresses should be split to
     // two procedures.
     for (auto node_iter =
@@ -761,11 +761,15 @@ void SectionDisassemblyAnalyzerARM::buildInnerProcedures(const ICFGNode &proc) n
         // an internal node with no predecessors can either be data
         // or an actual entry.
         if ((*node_iter).procedure_id() != proc.id()) {
-            auto proc_node = m_call_graph.insertInnerProcedure
-                ((*node_iter).getCandidateStartAddr(),
-                 &(*node_iter));
-            proc_node->m_estimated_end_addr = proc.m_end_addr;
-            buildProcedure(*proc_node);
+            printf("Unreachable MB %lu at %lx in proc %lx covered by %lx\n",
+                   (*node_iter).id(),
+                   (*node_iter).getCandidateStartAddr(),
+                   (*node_iter).procedure_id(),
+                   proc.m_entry_addr);
+//            auto proc_node = m_call_graph.insertProcedure
+//                ((*node_iter).getCandidateStartAddr(), &(*node_iter), ICFGProcedureType::kInner);
+//            proc_node->m_estimated_end_addr = proc.m_estimated_end_addr;
+//            buildProcedure(*proc_node);
         }
     }
 }
@@ -789,7 +793,6 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
          ++node_iter) {
 
         if ((*proc_iter).entryNode()->id() <= (*node_iter).id()) {
-            buildInnerProcedures(*proc_iter);
             node_iter = std::next(m_sec_cfg.m_cfg.begin(),
                                   (*proc_iter).m_end_node->id());
             proc_iter++;
@@ -802,7 +805,7 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
                 auto proc_node = m_call_graph.insertProcedure
                     ((*node_iter).getCandidateStartAddr(),
                      &(*node_iter),
-                     ICFGProcedureType::kIndirect);
+                     ICFGProcedureType::kTail);
                 if (proc_iter < m_call_graph.m_main_procs.end()) {
                     proc_node->m_estimated_end_addr = (*proc_iter).entryAddr();
                 } else {
@@ -810,7 +813,6 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
                         m_call_graph.m_section_end_addr;
                 }
                 buildProcedure(*proc_node);
-                buildInnerProcedures(*proc_node);
                 node_iter = std::next(m_sec_cfg.m_cfg.begin(),
                                       proc_node->m_end_node->id());
             }
@@ -826,21 +828,22 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
                     m_call_graph.m_section_end_addr;
             }
             buildProcedure(*proc_node);
-            buildInnerProcedures(*proc_node);
+            auto corrected_end_node_id = validateProcedure(*proc_node);
             node_iter = std::next(m_sec_cfg.m_cfg.begin(),
-                                  proc_node->m_end_node->id());
+                                  corrected_end_node_id);
         }
     }
-    m_call_graph.buildCallGraph();
+    m_call_graph.rebuildCallGraph();
+    // TODO: a final pass over all procedures to (1) properly classify
+    // tail-calls and overlap, (2) backtrack from invalid LR.
 }
 
 void SectionDisassemblyAnalyzerARM::buildProcedure
     (ICFGNode &proc_node) noexcept {
     assert(proc_node.entryAddr() < proc_node.m_estimated_end_addr
                && "Invalid end address");
-    proc_node.m_end_node = proc_node.entryNode();
-    proc_node.m_end_addr = proc_node.entryNode()->maximalBlock()->endAddr();
-    if (!proc_node.m_entry_node->isCall()) {
+    if (!proc_node.m_entry_node->isCall()
+        && !proc_node.m_entry_node->maximalBlock()->branchInfo().isConditional()) {
         if (!proc_node.m_entry_node->maximalBlock()->branchInfo().isDirect()
             || proc_node.entryNode()->remoteSuccessor() == nullptr) {
             proc_node.finalize();
@@ -893,18 +896,10 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
             predecessor->m_role_in_procedure =
                 CFGNodeRoleInProcedure::kOverlapBranch;
         } else {
-            // XXX optimistically assume that this is a tail call
-            // this assumption should be later revisited.
-            cfg_node->m_role_in_procedure =
-                CFGNodeRoleInProcedure::kEntryCandidate;
-//            cfg_node->m_candidate_start_addr =
-//                cfg_node->getMinTargetAddrOfValidPredecessor();
-//            assert(cfg_node->m_candidate_start_addr != 0);
-            cfg_node->m_procedure_id = cfg_node->m_candidate_start_addr;
             proc_node.m_exit_nodes.push_back
-                ({ICFGExitNodeType::kTailCall, predecessor});
+                ({ICFGExitNodeType::kTailCallOrOverlap, predecessor});
             predecessor->m_role_in_procedure =
-                CFGNodeRoleInProcedure::kTailCall;
+                CFGNodeRoleInProcedure::kTailCallOrOverlap;
         }
         return;
     }
@@ -976,11 +971,9 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
             (cfg_node->maximalBlock()->branchInstruction())) {
             predecessor->m_role_in_procedure =
                 CFGNodeRoleInProcedure::kIndirectCall;
-        } else {
-            // TODO: what if a return doesn't match the same LR? or no returns?
-            // procedures can simply "exit" using sp-relative ldr without return
-            predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kReturn;
         }
+        // TODO: what if a return doesn't match the same LR? or no returns?
+        // procedures can simply "exit" using sp-relative ldr without return
     }
 }
 

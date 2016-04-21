@@ -33,18 +33,6 @@ ICFGNode *DisassemblyCallGraph::insertProcedure
     return nullptr;
 }
 
-
-ICFGNode *DisassemblyCallGraph::insertInnerProcedure(const addr_t entry_addr,
-                                                     CFGNode *entry_node) {
-    auto result = m_call_graph_map.insert({entry_addr, nullptr});
-    if (result.second) {
-        m_inner_procs.emplace_back
-            (ICFGNode(entry_addr, entry_node, ICFGProcedureType::kInner));
-        return &(m_unmerged_procs.back());
-    }
-    return nullptr;
-}
-
 void DisassemblyCallGraph::insertProcedure
     (const addr_t entry_addr, CFGNode *entry_node) {
 
@@ -55,7 +43,21 @@ void DisassemblyCallGraph::insertProcedure
     }
 }
 
-void DisassemblyCallGraph::buildCallGraph() noexcept {
+void DisassemblyCallGraph::insertProcedure
+    (const ICFGNode &proc) {
+
+    auto result = m_call_graph_map.insert({proc.m_entry_addr, nullptr});
+    if (result.second) {
+        m_unmerged_procs.push_back(proc);
+    }
+}
+
+ICFGNode DisassemblyCallGraph::createProcedure
+    (const addr_t entry_addr, CFGNode *entry_node) noexcept {
+    return ICFGNode(entry_addr, entry_node, ICFGProcedureType::kReturn);
+}
+
+void DisassemblyCallGraph::rebuildCallGraph() noexcept {
     for (auto &proc : m_unmerged_procs) {
         m_main_procs.push_back(proc);
     }
@@ -66,11 +68,11 @@ void DisassemblyCallGraph::buildCallGraph() noexcept {
     m_inner_procs.clear();
 
     std::sort(m_main_procs.begin(), m_main_procs.end());
-//    for (auto proc_iter = m_main_procs.begin();
-//         proc_iter < m_main_procs.end() - 1;
-//         ++proc_iter) {
-//        prettyPrintProcedure(*proc_iter);
-//    }
+    for (auto proc_iter = m_main_procs.begin();
+         proc_iter < m_main_procs.end() - 1;
+         ++proc_iter) {
+        prettyPrintProcedure(*proc_iter);
+    }
     m_call_graph_ordered = true;
 }
 
@@ -97,17 +99,22 @@ void DisassemblyCallGraph::prettyPrintProcedure
     for (auto &exitNodePair : proc_node.m_exit_nodes) {
         switch (exitNodePair.first) {
             case ICFGExitNodeType::kInvalidLR:
-                printf("Exit_invalid node 0x%lu at: 0x%lx /",
+                printf("Exit_invalid node %lu at: 0x%lx /",
                        exitNodePair.second->id(),
                        exitNodePair.second->getCandidateStartAddr());
                 break;
             case ICFGExitNodeType::kTailCall:
-                printf("Exit_tail_call node 0x%lu at: 0x%lx /",
+                printf("Exit_tail_call node %lu at: 0x%lx /",
                        exitNodePair.second->id(),
                        exitNodePair.second->getCandidateStartAddr());
                 break;
             case ICFGExitNodeType::kOverlap:
-                printf("Exit_overlap node 0x%lu at: 0x%lx /",
+                printf("Exit_overlap node %lu at: 0x%lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            case ICFGExitNodeType::kTailCallOrOverlap:
+                printf("Exit_overlap or tail call node %lu at: 0x%lx /",
                        exitNodePair.second->id(),
                        exitNodePair.second->getCandidateStartAddr());
                 break;

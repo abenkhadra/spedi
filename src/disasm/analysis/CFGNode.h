@@ -28,8 +28,8 @@ enum class CFGNodeRoleInProcedure: unsigned char {
     kCall,
     kTailCall,
     kOverlapBranch,
+    kTailCallOrOverlap,
     kIndirectCall,
-    kReturn,
     kExit,          // call or tail call that exits the section (e.g, to plt)
     kBody,
     kInvalidBranch
@@ -120,7 +120,6 @@ public:
     bool isSwitchStatement() const noexcept;
     bool isCandidateStartAddressValid(addr_t candidate_addr) const noexcept;
     bool isAssignedToProcedure() const noexcept;
-    bool isRoleInProcedureSet() const noexcept;
     bool isImmediateSuccessorSet() const noexcept;
     bool isProcedureEntryNode() const noexcept;
     addr_t getMinTargetAddrOfValidPredecessor() const noexcept;

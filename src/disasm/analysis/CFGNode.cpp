@@ -166,8 +166,7 @@ bool CFGNode::isCandidateStartAddressSet() const noexcept {
 }
 
 bool CFGNode::isProcedureEntry() const noexcept {
-    return m_role_in_procedure == CFGNodeRoleInProcedure::kEntry
-        || m_role_in_procedure == CFGNodeRoleInProcedure::kEntryCandidate;
+    return m_role_in_procedure == CFGNodeRoleInProcedure::kEntry;
 }
 
 bool CFGNode::isProcedureEntryCandidate() const noexcept {
@@ -310,10 +309,6 @@ CFGNode *CFGNode::getReturnSuccessorNode() const noexcept {
         return m_indirect_succs[0].node();
     }
     return nullptr;
-}
-
-bool CFGNode::isRoleInProcedureSet() const noexcept {
-    return m_role_in_procedure != CFGNodeRoleInProcedure::kUnknown;
 }
 
 addr_t CFGNode::procedure_id() const noexcept {

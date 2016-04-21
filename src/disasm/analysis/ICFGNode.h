@@ -18,7 +18,8 @@ class CFGNode;
 enum class ICFGExitNodeType: unsigned char {
     kTailCall,    // Tail call to an entry which can be direct or indirect
     kOverlap, // direct branch to body of another procedure
-    kInvalidLR
+    kInvalidLR,
+    kTailCallOrOverlap
 };
 
 enum class ICFGProcedureType: unsigned char {

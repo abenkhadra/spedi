@@ -34,6 +34,8 @@ ICFGNode::ICFGNode(addr_t entry_addr,
         entry_node->m_procedure_id = entry_addr;
         // XXX this should typically be the case.
         entry_node->m_candidate_start_addr = entry_addr;
+        m_end_node = m_entry_node;
+        m_end_addr = m_entry_node->maximalBlock()->endAddr();
     }
     std::ostringstream out;
     out << "proc_" << std::hex << m_entry_addr;
@@ -53,6 +55,8 @@ ICFGNode::ICFGNode(CFGNode *entry_node, ICFGProcedureType type) :
 
     entry_node->m_role_in_procedure = CFGNodeRoleInProcedure::kEntry;
     entry_node->m_procedure_id = entry_node->getCandidateStartAddr();
+    m_end_node = m_entry_node;
+    m_end_addr = m_entry_node->maximalBlock()->endAddr();
     std::ostringstream out;
     out << "proc_" << std::hex << m_entry_addr;
     m_name = out.str();

@@ -120,7 +120,7 @@ private:
          CFGNode *cfg_node,
          CFGNode *predecessor) noexcept;
     void recoverDirectCalledProcedures() noexcept;
-    void buildInnerProcedures(const ICFGNode &proc) noexcept;
+    addr_t validateProcedure(const ICFGNode &proc) noexcept;
 
 private:
     SectionDisassemblyARM *m_sec_disasm;
