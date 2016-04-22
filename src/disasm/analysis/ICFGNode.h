@@ -68,6 +68,7 @@ public:
     size_t id() const noexcept;
     bool isWithinEstimatedAddressSpace(const addr_t addr) const noexcept;
     CFGNode *entryNode() const noexcept;
+    CFGNode *endNode() const noexcept;
     addr_t entryAddr() const noexcept;
     addr_t endAddr() const noexcept;
     addr_t estimatedEndAddr() const noexcept;

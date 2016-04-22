@@ -87,6 +87,10 @@ CFGNode *ICFGNode::entryNode() const noexcept {
     return m_entry_node;
 }
 
+CFGNode *ICFGNode::endNode() const noexcept {
+    return m_end_node;
+}
+
 bool ICFGNode::isBuilt() const noexcept {
     return m_valid;
 }

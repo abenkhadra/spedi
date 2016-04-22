@@ -62,10 +62,6 @@ void DisassemblyCallGraph::rebuildCallGraph() noexcept {
         m_main_procs.push_back(proc);
     }
     m_unmerged_procs.clear();
-    for (auto &proc : m_inner_procs) {
-        m_main_procs.push_back(proc);
-    }
-    m_inner_procs.clear();
 
     std::sort(m_main_procs.begin(), m_main_procs.end());
     for (auto proc_iter = m_main_procs.begin();
@@ -88,6 +84,12 @@ std::vector<ICFGNode> &DisassemblyCallGraph::buildInitialCallGraph() noexcept {
     m_main_procs.back().m_estimated_end_addr = m_section_end_addr;
     m_call_graph_ordered = true;
     return m_main_procs;
+}
+
+void DisassemblyCallGraph::reserve(size_t procedure_count) {
+    m_unmerged_procs.reserve(procedure_count);
+    m_main_procs.reserve(procedure_count);
+    m_call_graph_map.reserve(procedure_count);
 }
 
 void DisassemblyCallGraph::prettyPrintProcedure

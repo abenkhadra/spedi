@@ -41,6 +41,7 @@ public:
     ICFGNode createProcedure
         (const addr_t entry_addr, CFGNode *entry_node) noexcept;
     void prettyPrintProcedure(const ICFGNode &proc_node) noexcept;
+    void reserve(size_t procedure_count);
     friend class SectionDisassemblyAnalyzerARM;
 private:
     std::vector<ICFGNode> &buildInitialCallGraph() noexcept;
@@ -51,7 +52,6 @@ private:
     bool m_call_graph_ordered;
     std::vector<ICFGNode> m_main_procs;
     std::vector<ICFGNode> m_unmerged_procs;
-    std::vector<ICFGNode> m_inner_procs;
     std::unordered_map<addr_t, ICFGNode *> m_call_graph_map;
 };
 }

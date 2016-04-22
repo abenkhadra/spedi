@@ -775,6 +775,8 @@ addr_t SectionDisassemblyAnalyzerARM::validateProcedure(const ICFGNode &proc) no
 }
 
 void SectionDisassemblyAnalyzerARM::buildCallGraph() {
+    // a procedure holds an average of 20 basic blocks!
+    m_call_graph.reserve(m_sec_cfg.m_cfg.size() / 20);
     // recover a map of target addresses and direct call sites
     recoverDirectCalledProcedures();
     // initial call graph where every directly reachable procedure is identified
@@ -792,45 +794,26 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
              && node_iter < m_sec_cfg.m_cfg.end();
          ++node_iter) {
 
-        if ((*proc_iter).entryNode()->id() <= (*node_iter).id()) {
-            node_iter = std::next(m_sec_cfg.m_cfg.begin(),
-                                  (*proc_iter).m_end_node->id());
+        if ((*proc_iter).estimatedEndAddr()
+            <= (*node_iter).getCandidateStartAddr()) {
             proc_iter++;
         }
         if ((*node_iter).isData()) {
             continue;
         }
-        if ((*node_iter).isAssignedToProcedure()) {
-            if ((*node_iter).isProcedureEntryCandidate()) {
-                auto proc_node = m_call_graph.insertProcedure
-                    ((*node_iter).getCandidateStartAddr(),
-                     &(*node_iter),
-                     ICFGProcedureType::kTail);
-                if (proc_iter < m_call_graph.m_main_procs.end()) {
-                    proc_node->m_estimated_end_addr = (*proc_iter).entryAddr();
-                } else {
-                    proc_node->m_estimated_end_addr =
-                        m_call_graph.m_section_end_addr;
-                }
-                buildProcedure(*proc_node);
-                node_iter = std::next(m_sec_cfg.m_cfg.begin(),
-                                      proc_node->m_end_node->id());
-            }
-        } else {
+        if (!(*node_iter).isAssignedToProcedure()) {
             auto proc_node = m_call_graph.insertProcedure
                 ((*node_iter).getCandidateStartAddr(),
                  &(*node_iter),
                  ICFGProcedureType::kIndirect);
             if (proc_iter < m_call_graph.m_main_procs.end()) {
-                proc_node->m_estimated_end_addr = (*proc_iter).entryAddr();
+                proc_node->m_estimated_end_addr =
+                    (*proc_iter).estimatedEndAddr();
             } else {
                 proc_node->m_estimated_end_addr =
                     m_call_graph.m_section_end_addr;
             }
             buildProcedure(*proc_node);
-            auto corrected_end_node_id = validateProcedure(*proc_node);
-            node_iter = std::next(m_sec_cfg.m_cfg.begin(),
-                                  corrected_end_node_id);
         }
     }
     m_call_graph.rebuildCallGraph();
@@ -906,11 +889,15 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
     if (cfg_node->isAssignedToProcedure()) {
         if (proc_node.id() != cfg_node->procedure_id()) {
             if (cfg_node->isProcedureEntry()) {
-                // a newly discovered entry is a tail call
-                proc_node.m_exit_nodes.push_back
-                    ({ICFGExitNodeType::kTailCall, predecessor});
-                predecessor->m_role_in_procedure =
-                    CFGNodeRoleInProcedure::kTailCall;
+                if (predecessor->isCall()) {
+                    predecessor->m_role_in_procedure =
+                        CFGNodeRoleInProcedure::kCall;
+                } else {
+                    proc_node.m_exit_nodes.push_back
+                        ({ICFGExitNodeType::kTailCall, predecessor});
+                    predecessor->m_role_in_procedure =
+                        CFGNodeRoleInProcedure::kTailCall;
+                }
             } else {
                 proc_node.m_exit_nodes.push_back
                     ({ICFGExitNodeType::kOverlap, predecessor});
