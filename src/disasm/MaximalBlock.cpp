@@ -109,9 +109,8 @@ const BranchData &MaximalBlock::branchInfo() const {
     return m_branch;
 }
 
-void MaximalBlock::resetBranchData() noexcept {
-    m_branch.m_conditional_branch =
-        branchInstruction()->condition() != ARM_CC_AL;
+void MaximalBlock::setBranchCondition(bool is_conditional) noexcept {
+    m_branch.m_conditional_branch = is_conditional;
 }
 
 addr_t MaximalBlock::endAddr() const {

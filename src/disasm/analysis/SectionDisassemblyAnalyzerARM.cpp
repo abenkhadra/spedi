@@ -227,8 +227,8 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
         }
         // Fix insts errors caused by invalid IT
         addr_t current = node.getCandidateStartAddr();
-        for (auto inst_iter = node.m_max_block->getInstructionsRef().begin();
-             inst_iter < node.m_max_block->getInstructionsRef().end();
+        for (auto inst_iter = node.maximalBlockPtr()->getInstructionsRef().begin();
+             inst_iter < node.maximalBlockPtr()->getInstructionsRef().end();
              ++inst_iter) {
             if ((*inst_iter).addr() == current) {
                 current += (*inst_iter).size();
@@ -240,7 +240,8 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
                     auto it_block_size = (*inst_iter).mnemonic().length() - 1;
                     inst_iter++;
                     for (;
-                        inst_iter < node.m_max_block->getInstructionsRef().end()
+                        inst_iter
+                            < node.maximalBlockPtr()->getInstructionsRef().end()
                             && it_block_size > 0;
                         ++inst_iter) {
                         if ((*inst_iter).addr() != addr) continue;
@@ -251,7 +252,10 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
                         code_ptr += inst.rawPtr()->size;
                         --it_block_size;
                     }
-                    node.m_max_block->resetBranchData();
+                    bool is_conditional =
+                        node.maximalBlock()->branchInstruction()->condition()
+                            != ARM_CC_AL;
+                    node.maximalBlockPtr()->setBranchCondition(is_conditional);
                     if (it_block_size == 0) {
                         current = addr;
                         continue;
@@ -259,10 +263,10 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
                     // IT errors can span more than one MB!
                     auto &next_node = *(node_iter + 1);
                     for (auto inst_iter2 =
-                        next_node.m_max_block->getInstructionsRef().begin();
+                        next_node.maximalBlockPtr()->getInstructionsRef().begin();
                          it_block_size > 0
                              && inst_iter2 <
-                                 next_node.m_max_block->getInstructionsRef().end();
+                                 next_node.maximalBlockPtr()->getInstructionsRef().end();
                          ++inst_iter2) {
                         if ((*inst_iter2).addr() == addr) {
                             parser.disasm(code_ptr, 4, addr, inst.rawPtr());
@@ -273,7 +277,13 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
                             --it_block_size;
                         }
                     }
-                    next_node.m_max_block->resetBranchData();
+                    is_conditional =
+                        next_node.maximalBlock()->branchInstruction()->condition()
+                            != ARM_CC_AL;
+                    next_node.maximalBlockPtr()->
+                        setBranchCondition(is_conditional);
+                    assert(it_block_size == 0 && "Invalid IT spans more than "
+                        "two MBs!");
                 }
             }
         }
@@ -779,7 +789,7 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
     m_call_graph.reserve(m_sec_cfg.m_cfg.size() / 20);
     // recover a map of target addresses and direct call sites
     recoverDirectCalledProcedures();
-    // initial call graph where every directly reachable procedure is identified
+    // Initial call graph where every directly reachable procedure is identified
     //  together with its overestimated address space
     auto &untraversed_procedures = m_call_graph.buildInitialCallGraph();
     // building directly called procedures.

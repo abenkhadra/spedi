@@ -39,10 +39,8 @@ public:
     // getting size and memsize of getFragments are provided by the fragment itself.
     // providing the same for BBs, however, requires MB intervention!
     size_t getBasicBlockMemSize(const unsigned int bb_id) const;
-
     size_t getBasicBlocksCount() const;
     size_t instructionsCount() const;
-
     /*
      * return all instructions contained in the MB
      */
@@ -56,11 +54,9 @@ public:
     const std::vector<addr_t> &
         getInstructionAddressesOf(const BasicBlock *bblock) const noexcept;
     const BranchData &branchInfo() const;
-    void resetBranchData() noexcept;
+    void setBranchCondition(bool is_conditional) noexcept;
 
     size_t id() const;
-
-
     /*
      * return true if the given address falls inside the address space
      * covered by MB

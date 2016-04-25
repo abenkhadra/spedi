@@ -57,7 +57,11 @@ void CFGNode::setRemoteSuccessor(CFGNode *successor) {
     m_remote_successor = successor;
 }
 
-const MaximalBlock *CFGNode::maximalBlock() const {
+const MaximalBlock *CFGNode::maximalBlock() const noexcept {
+    return m_max_block;
+}
+
+MaximalBlock *CFGNode::maximalBlockPtr() const noexcept {
     return m_max_block;
 }
 

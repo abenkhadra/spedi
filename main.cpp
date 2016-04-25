@@ -81,8 +81,8 @@ int main(int argc, char **argv) {
             analyzer.buildCFG();
             analyzer.refineCFG();
 //            disassembler.prettyPrintSwitchTables(&analyzer.getCFG());
-            analyzer.buildCallGraph();
-//            disassembler.prettyPrintSectionCFG(&analyzer.getCFG());
+//            analyzer.buildCallGraph();
+            disassembler.prettyPrintSectionCFG(&analyzer.getCFG());
         } else
             disassembler.disassembleCodeUsingSymbols();
     } else

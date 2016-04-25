@@ -58,7 +58,8 @@ public:
     CFGNode(CFGNode &&src) = default;
     bool operator==(const CFGNode &src) const noexcept;
 
-    const MaximalBlock *maximalBlock() const;
+    const MaximalBlock *maximalBlock() const noexcept;
+    MaximalBlock *maximalBlockPtr() const noexcept;
     const CFGNode *getOverlapNode() const;
     size_t id() const noexcept;
     addr_t procedure_id() const noexcept;
