@@ -236,6 +236,7 @@ void MaximalBlockBuilder::setBranch(const cs_insn *inst) {
     cs_detail *detail = inst->detail;
     m_branch.m_conditional_branch = (inst->detail->arm.cc != ARM_CC_AL);
     if (inst->id == ARM_INS_CBZ || inst->id == ARM_INS_CBNZ) {
+        m_branch.m_conditional_branch = true;
         m_branch.m_direct_branch = true;
         m_branch.m_target = static_cast<addr_t>(detail->arm.operands[1].imm);
         return;

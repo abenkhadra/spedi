@@ -57,16 +57,6 @@ bool MCParser::disasm(const uint8_t *code,
                       cs_insn *inst) const noexcept {
     assert(address <= m_end_addr && "Address out of bound");
     auto result = cs_disasm_iter(m_handle, &code, &size, &address, inst);
-    switch (inst->id) {
-        case ARM_INS_CBNZ:
-            inst->detail->arm.cc = ARM_CC_NE;
-            break;
-        case ARM_INS_CBZ:
-            inst->detail->arm.cc = ARM_CC_EQ;
-            break;
-        default:
-            break;
-    }
     return result;
 }
 
@@ -76,16 +66,6 @@ bool MCParser::disasm2(const uint8_t **code,
                        cs_insn *inst) const noexcept {
     assert(*address <= m_end_addr && "Address out of bound");
     auto result = cs_disasm_iter(m_handle, code, size, address, inst);
-    switch (inst->id) {
-        case ARM_INS_CBNZ:
-            inst->detail->arm.cc = ARM_CC_NE;
-            break;
-        case ARM_INS_CBZ:
-            inst->detail->arm.cc = ARM_CC_EQ;
-            break;
-        default:
-            break;
-    }
     return result;
 }
 }
