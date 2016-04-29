@@ -21,8 +21,8 @@ public:
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
-    DisassemblyCallGraph() = delete;
-    DisassemblyCallGraph(addr_t start_addr, addr_t end_addr);
+    DisassemblyCallGraph() = default;
+    DisassemblyCallGraph(addr_t sec_start_addr, addr_t sec_end_addr);
     virtual ~DisassemblyCallGraph() = default;
     DisassemblyCallGraph(const DisassemblyCallGraph &src) = default;
     DisassemblyCallGraph &operator=(const DisassemblyCallGraph &src) = default;
@@ -42,12 +42,14 @@ public:
         (const addr_t entry_addr, CFGNode *entry_node) noexcept;
     void prettyPrintProcedure(const ICFGNode &proc_node) noexcept;
     void reserve(size_t procedure_count);
+    void setSectionStartAddr(addr_t sec_start_addr) noexcept;
+    void setSectionEndAddr(addr_t sec_end_addr) noexcept;
     friend class SectionDisassemblyAnalyzerARM;
 private:
     std::vector<ICFGNode> &buildInitialCallGraph() noexcept;
     void rebuildCallGraph() noexcept;
 private:
-    size_t m_start_addr;
+    size_t m_section_start_addr;
     size_t m_section_end_addr;
     bool m_call_graph_ordered;
     std::vector<ICFGNode> m_main_procs;

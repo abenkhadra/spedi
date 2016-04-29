@@ -9,7 +9,6 @@
 #include "./analysis/DisassemblyCFG.h"
 #include "ElfDisassembler.h"
 #include "RawInstWrapper.h"
-#include "ElfData.h"
 #include <inttypes.h>
 #include <algorithm>
 
@@ -21,6 +20,7 @@ ElfDisassembler::ElfDisassembler(const elf::elf &elf_file) :
     m_valid{true},
     m_elf_file{&elf_file} {
     m_analyzer.setISA(getElfMachineArch());
+
 }
 
 void
@@ -144,7 +144,7 @@ SectionDisassemblyARM ElfDisassembler::disassembleSectionSpeculative
     MaximalBlockBuilder mb_builder;
     SectionDisassemblyARM result{&sec};
     // Empirical data suggests that average size of a maximal block is 14 bytes.
-    // we try to pre-allocate more to avoid reallocating the vector.
+    // we try to pre-allocate more MBs to avoid reallocating the vector.
     result.reserve(sec.size() / 10);
     std::vector<RawInstWrapper> it_block_insts;
     it_block_insts.resize(4);
@@ -298,10 +298,9 @@ ElfDisassembler::getExecutableRegion() {
 
 ISAType
 ElfDisassembler::getElfMachineArch() const {
-    switch (static_cast<elf::ElfISA>(m_elf_file->get_hdr().machine)) {
-        case elf::ElfISA::kARM :
+    switch (m_elf_file->get_hdr().machine) {
+        case EM_ARM :
             return getInitialMode();
-
         default:
             return ISAType::kUnknown;
     }

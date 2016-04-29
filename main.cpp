@@ -1,10 +1,8 @@
 #include "binutils/elf/elf++.hh"
 #include "disasm/ElfDisassembler.h"
-#include "disasm/ElfData.h"
 #include "disasm/analysis/SectionDisassemblyAnalyzerARM.h"
 #include <fcntl.h>
 #include <util/cmdline.h>
-
 
 struct ConfigConsts {
     const std::string kFile;
@@ -46,8 +44,7 @@ int main(int argc, char **argv) {
     elf::elf elf_file(elf::create_mmap_loader(fd));
 
     // We disassmble ARM/Thumb executables only
-    if (static_cast<elf::ElfISA>(elf_file.get_hdr().machine)
-        != elf::ElfISA::kARM) {
+    if ((elf_file.get_hdr().machine) != EM_ARM) {
         fprintf(stderr, "%s : Elf file architecture is not ARM!\n", argv[1]);
         return 3;
     }
@@ -59,8 +56,7 @@ int main(int argc, char **argv) {
         if (cmd_parser.exist(config.kText)) {
             auto result =
                 disassembler.disassembleSectionbyNameSpeculative(".text");
-            disasm::SectionDisassemblyAnalyzerARM
-                analyzer{&result, disassembler.getExecutableRegion()};
+            disasm::SectionDisassemblyAnalyzerARM analyzer{&elf_file, &result};
             analyzer.buildCFG();
             analyzer.refineCFG();
             disassembler.prettyPrintSectionCFG
@@ -76,13 +72,12 @@ int main(int argc, char **argv) {
         if (cmd_parser.exist(config.kText)) {
             auto result = disassembler.disassembleSectionbyName(".text");
 //            disassembler.prettyPrintSectionDisassembly(&result);
-            disasm::SectionDisassemblyAnalyzerARM
-                analyzer{&result, disassembler.getExecutableRegion()};
+            disasm::SectionDisassemblyAnalyzerARM analyzer{&elf_file, &result};
             analyzer.buildCFG();
             analyzer.refineCFG();
 //            disassembler.prettyPrintSwitchTables(&analyzer.getCFG());
-//            analyzer.buildCallGraph();
-            disassembler.prettyPrintSectionCFG(&analyzer.getCFG());
+            analyzer.buildCallGraph();
+//            disassembler.prettyPrintSectionCFG(&analyzer.getCFG());
         } else
             disassembler.disassembleCodeUsingSymbols();
     } else

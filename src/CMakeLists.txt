@@ -30,7 +30,6 @@ add_library(
         disasm/ElfDisassembler.h
         disasm/RawInstWrapper.cpp
         disasm/RawInstWrapper.h
-        disasm/ElfData.h
         disasm/MCInst.cpp
         disasm/MCInst.h
         disasm/Fragment.cpp
@@ -62,7 +61,9 @@ add_library(
         disasm/analysis/ICFGNode.h
         disasm/analysis/DisassemblyCallGraph.cpp
         disasm/analysis/DisassemblyCallGraph.h
-        disasm/analysis/CFGEdge.h)
+        disasm/analysis/CFGEdge.h
+        disasm/analysis/PLTProcedureMap.cpp
+        disasm/analysis/PLTProcedureMap.h)
 
 #target_compile_options(disasm PRIVATE -fsanitize=address)
 add_dependencies(disasm elf++ dwarf++)

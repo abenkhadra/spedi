@@ -122,6 +122,10 @@ ISAType SectionDisassemblyARM::getISA() const {
     return m_isa;
 }
 
+size_t SectionDisassemblyARM::size() const noexcept {
+    return m_max_blocks.size();
+}
+
 void SectionDisassemblyARM::reserve(size_t maximal_block_count) {
     m_max_blocks.reserve(maximal_block_count);
 }

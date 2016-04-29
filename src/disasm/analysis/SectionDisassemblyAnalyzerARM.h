@@ -10,7 +10,9 @@
 #include "DisassemblyCFG.h"
 #include "DisassemblyCallGraph.h"
 #include "DisassemblyAnalysisHelperARM.h"
-#include <unordered_map>
+#include "PLTProcedureMap.h"
+#include <binutils/elf/elf++.hh>
+#include <disasm/SectionDisassemblyARM.h>
 
 namespace disasm {
 
@@ -24,9 +26,7 @@ class SectionDisassemblyAnalyzerARM {
 public:
     SectionDisassemblyAnalyzerARM() = delete;
     SectionDisassemblyAnalyzerARM
-        (SectionDisassemblyARM *sec_disasm,
-         const std::pair<addr_t, addr_t> &exec_region);
-
+        (elf::elf *elf_file, SectionDisassemblyARM *sec_disasm);
     virtual ~SectionDisassemblyAnalyzerARM() = default;
     SectionDisassemblyAnalyzerARM
         (const SectionDisassemblyAnalyzerARM &src) = default;
@@ -121,16 +121,18 @@ private:
          CFGNode *predecessor) noexcept;
     void recoverDirectCalledProcedures() noexcept;
     addr_t validateProcedure(const ICFGNode &proc) noexcept;
+    CFGNode *findSwitchTableTarget
+        (addr_t target_addr);
+    void addCallReturnRelation(CFGNode &node);
 
 private:
+    elf::elf *m_elf_file;
     SectionDisassemblyARM *m_sec_disasm;
     DisassemblyAnalysisHelperARM m_analyzer;
     addr_t m_exec_addr_start;
     addr_t m_exec_addr_end;
     DisassemblyCFG m_sec_cfg;
     DisassemblyCallGraph m_call_graph;
-    CFGNode *findSwitchTableTarget
-        (addr_t target_addr);
-    void addCallReturnRelation(CFGNode &node);
+    PLTProcedureMap m_plt_map;
 };
 }

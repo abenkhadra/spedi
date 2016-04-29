@@ -68,6 +68,7 @@ public:
     bool isWithinSectionAddressSpace(const addr_t & addr) const;
     ISAType getISA() const;
     void reserve(size_t maximal_block_count);
+    size_t size() const noexcept;
 
 private:
     bool m_valid;

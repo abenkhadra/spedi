@@ -17,13 +17,26 @@
 namespace disasm {
 
 SectionDisassemblyAnalyzerARM::SectionDisassemblyAnalyzerARM
-    (SectionDisassemblyARM *sec_disasm,
-     const std::pair<addr_t, addr_t> &exec_region) :
+    (elf::elf *elf_file, SectionDisassemblyARM *sec_disasm) :
+    m_elf_file{elf_file},
     m_sec_disasm{sec_disasm},
     m_analyzer{sec_disasm->getISA()},
-    m_exec_addr_start{exec_region.first},
-    m_exec_addr_end{exec_region.second},
-    m_call_graph{exec_region.first, exec_region.second} {
+    m_call_graph{sec_disasm->secStartAddr(), sec_disasm->secEndAddr()},
+    m_plt_map{elf_file} {
+    addr_t start_addr = UINT64_MAX;
+    addr_t end_addr = 0;
+    for (auto &sec : m_elf_file->sections()) {
+        if (sec.is_alloc() && sec.is_exec()) {
+            if (sec.get_hdr().addr < start_addr) {
+                start_addr = sec.get_hdr().addr;
+            }
+            if (end_addr < sec.get_hdr().addr + sec.get_hdr().size) {
+                end_addr = sec.get_hdr().addr + sec.get_hdr().size;
+            }
+        }
+    }
+    m_exec_addr_start = start_addr;
+    m_exec_addr_end = end_addr;
 }
 
 size_t SectionDisassemblyAnalyzerARM::calculateBasicBlockWeight
@@ -227,7 +240,8 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
         }
         // Fix insts errors caused by invalid IT
         addr_t current = node.getCandidateStartAddr();
-        for (auto inst_iter = node.maximalBlockPtr()->getInstructionsRef().begin();
+        for (auto inst_iter =
+            node.maximalBlockPtr()->getInstructionsRef().begin();
              inst_iter < node.maximalBlockPtr()->getInstructionsRef().end();
              ++inst_iter) {
             if ((*inst_iter).addr() == current) {
@@ -654,8 +668,7 @@ SectionDisassemblyAnalyzerARM::recoverTBHSwitchTable(CFGNode &node) {
 SectionDisassemblyAnalyzerARM::SwitchTableData
 SectionDisassemblyAnalyzerARM::recoverLDRSwitchTable(CFGNode &node) {
     const addr_t base_addr = m_analyzer.recoverLDRSwitchBaseAddr(node);
-    const uint8_t *code_ptr = m_sec_disasm->
-        physicalAddrOf(base_addr);
+    const uint8_t *code_ptr = m_sec_disasm->physicalAddrOf(base_addr);
     addr_t current_addr = base_addr;
     addr_t minimum_switch_case_addr = m_exec_addr_end;
     std::unordered_map<addr_t, bool> target_map;
@@ -975,18 +988,30 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
 }
 
 void SectionDisassemblyAnalyzerARM::recoverDirectCalledProcedures() noexcept {
-    for (const auto &cfg_node :m_sec_cfg.m_cfg) {
+    for (auto &cfg_node :m_sec_cfg.m_cfg) {
         if (cfg_node.isData()) {
             continue;
         }
         // Sometime BL/BLX are followed by data bytes but they always point to
         // procedure entries. Hence, we didn't use isCall() here.
         if (m_analyzer.isCall(cfg_node.maximalBlock()->branchInstruction())
-            && cfg_node.maximalBlock()->branchInfo().isDirect()
-            && cfg_node.remoteSuccessor() != nullptr) {
+            && cfg_node.maximalBlock()->branchInfo().isDirect()) {
             // now we only need to recover procedures in this section.
-            m_call_graph.insertProcedure(cfg_node.maximalBlock()->branchInfo().target(),
-                                         cfg_node.m_remote_successor);
+            if (cfg_node.remoteSuccessor() != nullptr) {
+                m_call_graph.insertProcedure
+                    (cfg_node.maximalBlock()->branchInfo().target(),
+                     cfg_node.m_remote_successor);
+            } else {
+                const auto target =
+                    cfg_node.maximalBlock()->branchInfo().target();
+                if (m_plt_map.isWithinPLTSection(target)) {
+                    auto result = m_plt_map.addProcedure(target);
+                    if (result.second) {
+                        // if procedure is non-returning
+                        cfg_node.m_is_call = false;
+                    }
+                }
+            }
         }
     }
 }

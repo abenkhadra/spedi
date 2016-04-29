@@ -13,6 +13,7 @@
 #include "MCParser.h"
 #include "MaximalBlockBuilder.h"
 
+#define EM_ARM  40 // From elf.h
 namespace disasm {
 
 class CFGNode;

@@ -13,10 +13,19 @@
 
 namespace disasm {
 
-DisassemblyCallGraph::DisassemblyCallGraph(addr_t start_addr, addr_t end_addr) :
-    m_start_addr{start_addr},
-    m_section_end_addr{end_addr},
+DisassemblyCallGraph::DisassemblyCallGraph
+    (addr_t sec_start_addr, addr_t sec_end_addr) :
+    m_section_start_addr{sec_start_addr},
+    m_section_end_addr{sec_end_addr},
     m_call_graph_ordered{false} {
+}
+
+void DisassemblyCallGraph::setSectionStartAddr(addr_t sec_start_addr) noexcept {
+    m_section_start_addr = sec_start_addr;
+}
+
+void DisassemblyCallGraph::setSectionEndAddr(addr_t sec_end_addr) noexcept {
+    m_section_end_addr = sec_end_addr;
 }
 
 ICFGNode *DisassemblyCallGraph::insertProcedure
