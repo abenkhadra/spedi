@@ -76,6 +76,15 @@ void DisassemblyCallGraph::rebuildCallGraph() noexcept {
     for (auto proc_iter = m_main_procs.begin();
          proc_iter < m_main_procs.end() - 1;
          ++proc_iter) {
+        for (auto &node_pair : (*proc_iter).m_exit_nodes) {
+            if (node_pair.first == ICFGExitNodeType::kTailCallOrOverlap) {
+                if(node_pair.second->remoteSuccessor()->isProcedureEntry()) {
+                    node_pair.first = ICFGExitNodeType::kTailCall;
+                } else {
+                    node_pair.first = ICFGExitNodeType::kOverlap;
+                }
+            }
+        }
         prettyPrintProcedure(*proc_iter);
     }
     m_call_graph_ordered = true;

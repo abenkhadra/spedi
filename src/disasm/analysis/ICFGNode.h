@@ -27,7 +27,6 @@ enum class ICFGProcedureType: unsigned char {
     kReturn,
     kExternal,
     kIndirect,
-    kInner,
 };
 
 /**

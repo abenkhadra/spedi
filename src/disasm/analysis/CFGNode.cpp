@@ -13,7 +13,7 @@ namespace disasm {
 CFGNode::CFGNode() :
     m_type{CFGNodeType::kUnknown},
     m_is_call{false},
-    m_traversal_status{TraversalStatus::kUnvisited},
+    m_traversal_status{NodeTraversalStatus::kUnvisited},
     m_role_in_procedure{CFGNodeRoleInProcedure::kUnknown},
     m_candidate_start_addr{0},
     m_overlap_node{nullptr},
@@ -27,7 +27,7 @@ CFGNode::CFGNode() :
 CFGNode::CFGNode(MaximalBlock *current_block) :
     m_type{CFGNodeType::kUnknown},
     m_is_call{false},
-    m_traversal_status{TraversalStatus::kUnvisited},
+    m_traversal_status{NodeTraversalStatus::kUnvisited},
     m_role_in_procedure{CFGNodeRoleInProcedure::kUnknown},
     m_candidate_start_addr{0},
     m_overlap_node{nullptr},
@@ -173,10 +173,6 @@ bool CFGNode::isProcedureEntry() const noexcept {
     return m_role_in_procedure == CFGNodeRoleInProcedure::kEntry;
 }
 
-bool CFGNode::isProcedureEntryCandidate() const noexcept {
-    return m_role_in_procedure == CFGNodeRoleInProcedure::kEntryCandidate;
-}
-
 bool CFGNode::isCandidateStartAddressValid
     (addr_t candidate_addr) const noexcept {
     return candidate_addr <= m_max_block->addrOfLastInst();
@@ -298,10 +294,6 @@ bool CFGNode::isImmediateSuccessorSet() const noexcept {
     return m_immediate_successor != nullptr;
 }
 
-bool CFGNode::isProcedureEntryNode() const noexcept {
-    return m_role_in_procedure == CFGNodeRoleInProcedure::kEntry;
-}
-
 bool CFGNode::isAppendableBy(const CFGNode *cfg_node) const {
     return m_max_block->endAddr() ==
         cfg_node->maximalBlock()->addrOfFirstInst();
@@ -313,6 +305,10 @@ CFGNode *CFGNode::getReturnSuccessorNode() const noexcept {
         return m_indirect_succs[0].node();
     }
     return nullptr;
+}
+
+CFGNodeRoleInProcedure CFGNode::roleInProcedure() const noexcept {
+    return m_role_in_procedure;
 }
 
 addr_t CFGNode::procedure_id() const noexcept {

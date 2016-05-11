@@ -24,18 +24,12 @@ enum class CFGNodeType: unsigned char {
 enum class CFGNodeRoleInProcedure: unsigned char {
     kUnknown,
     kEntry,
-    kEntryCandidate,
     kCall,
-    kTailCall,
-    kOverlapBranch,
-    kTailCallOrOverlap,
-    kIndirectCall,
     kExit,          // call or tail call that exits the section (e.g, to plt)
     kBody,
-    kInvalidBranch
 };
 
-enum class TraversalStatus: unsigned char {
+enum class NodeTraversalStatus: unsigned char {
     kUnvisited,
     kVisited,
     kFinished
@@ -86,8 +80,6 @@ public:
     bool hasOverlapWithOtherNode() const noexcept;
     bool isCandidateStartAddressSet() const noexcept;
     bool isProcedureEntry() const noexcept;
-    bool isProcedureEntryCandidate() const noexcept;
-
     /*
      * return the sequence of instructions in valid basic block starting from
      * the candidate start address. Throws exception in case valid basic block not set.
@@ -122,7 +114,7 @@ public:
     bool isCandidateStartAddressValid(addr_t candidate_addr) const noexcept;
     bool isAssignedToProcedure() const noexcept;
     bool isImmediateSuccessorSet() const noexcept;
-    bool isProcedureEntryNode() const noexcept;
+    CFGNodeRoleInProcedure roleInProcedure() const noexcept;
     addr_t getMinTargetAddrOfValidPredecessor() const noexcept;
     bool hasPredecessors() const noexcept;
     bool isAppendableBy(const CFGNode *cfg_node) const;
@@ -137,7 +129,7 @@ private:
 private:
     CFGNodeType m_type;
     bool m_is_call;
-    TraversalStatus m_traversal_status;
+    NodeTraversalStatus m_traversal_status;
     CFGNodeRoleInProcedure m_role_in_procedure;
     addr_t m_candidate_start_addr;
     CFGNode *m_overlap_node;

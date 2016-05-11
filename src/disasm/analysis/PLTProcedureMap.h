@@ -36,7 +36,6 @@ public:
     std::pair<addr_t, bool> addProcedure(addr_t proc_entry_addr) noexcept;
     bool isNonReturning(addr_t proc_entry_addr) noexcept;
     const char * getName(addr_t proc_entry_addr) const noexcept;
-    addr_t getGOTOffset(addr_t proc_entry_addr) const noexcept;
     bool isNonReturning(const char * proc_name) const noexcept;
     addr_t calculateGotOffset(addr_t proc_entry_addr) const noexcept;
     bool valid() const { return m_elf_file->valid(); }

@@ -773,8 +773,7 @@ CFGNode *SectionDisassemblyAnalyzerARM::findSwitchTableTarget
 }
 
 addr_t SectionDisassemblyAnalyzerARM::validateProcedure(const ICFGNode &proc) noexcept {
-    // an entry node with two different entry addresses should be split to
-    // two procedures.
+
     for (auto node_iter =
         std::next(m_sec_cfg.m_cfg.begin(), proc.entryNode()->id() + 1);
          node_iter < m_sec_cfg.m_cfg.end()
@@ -840,6 +839,8 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
         }
     }
     m_call_graph.rebuildCallGraph();
+    // TODO: an entry node with two different entry addresses should be split to
+    // two procedures.
     // TODO: a final pass over all procedures to (1) properly classify
     // tail-calls and overlap, (2) backtrack from invalid LR.
 }
@@ -894,18 +895,16 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
                 proc_node.m_exit_nodes.push_back
                     ({ICFGExitNodeType::kTailCall, predecessor});
                 predecessor->m_role_in_procedure =
-                    CFGNodeRoleInProcedure::kTailCall;
+                    CFGNodeRoleInProcedure::kExit;
             }
         } else if (cfg_node->isAssignedToProcedure()) {
             proc_node.m_exit_nodes.push_back
                 ({ICFGExitNodeType::kOverlap, predecessor});
             predecessor->m_role_in_procedure =
-                CFGNodeRoleInProcedure::kOverlapBranch;
+                CFGNodeRoleInProcedure::kExit;
         } else {
             proc_node.m_exit_nodes.push_back
                 ({ICFGExitNodeType::kTailCallOrOverlap, predecessor});
-            predecessor->m_role_in_procedure =
-                CFGNodeRoleInProcedure::kTailCallOrOverlap;
         }
         return;
     }
@@ -919,13 +918,13 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
                     proc_node.m_exit_nodes.push_back
                         ({ICFGExitNodeType::kTailCall, predecessor});
                     predecessor->m_role_in_procedure =
-                        CFGNodeRoleInProcedure::kTailCall;
+                        CFGNodeRoleInProcedure::kExit;
                 }
             } else {
                 proc_node.m_exit_nodes.push_back
                     ({ICFGExitNodeType::kOverlap, predecessor});
                 predecessor->m_role_in_procedure =
-                    CFGNodeRoleInProcedure::kOverlapBranch;
+                    CFGNodeRoleInProcedure::kExit;
             }
         }
         return;
@@ -936,7 +935,7 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
     } else if (m_analyzer.getLRStackStoreIndex(cfg_node) != 0) {
         // doing double stack allocation for LR is not valid
         predecessor->m_role_in_procedure =
-            CFGNodeRoleInProcedure::kInvalidBranch;
+            CFGNodeRoleInProcedure::kExit;
         proc_node.m_exit_nodes.push_back
             ({ICFGExitNodeType::kInvalidLR, predecessor});
         if (proc_node.m_end_addr < predecessor->maximalBlock()->endAddr()) {
@@ -965,11 +964,6 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
         traverseProcedureNode
             (proc_node, cfg_node->m_remote_successor, cfg_node);
     } else {
-        if (cfg_node->isCall()) {
-            predecessor->m_role_in_procedure =
-                CFGNodeRoleInProcedure::kIndirectCall;
-            return;
-        }
         if (cfg_node->isSwitchStatement()) {
             for (auto &cfg_edge : cfg_node->m_indirect_succs) {
                 traverseProcedureNode
@@ -977,13 +971,13 @@ void SectionDisassemblyAnalyzerARM::traverseProcedureNode
             }
             return;
         }
-        if (m_analyzer.isIndirectTailCall
-            (cfg_node->maximalBlock()->branchInstruction())) {
-            predecessor->m_role_in_procedure =
-                CFGNodeRoleInProcedure::kIndirectCall;
+        if (cfg_node->isCall()) {
+            predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kCall;
+            return;
         }
         // TODO: what if a return doesn't match the same LR? or no returns?
         // procedures can simply "exit" using sp-relative ldr without return
+        predecessor->m_role_in_procedure = CFGNodeRoleInProcedure::kExit;
     }
 }
 
