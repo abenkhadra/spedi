@@ -19,14 +19,16 @@ enum class ICFGExitNodeType: unsigned char {
     kTailCall,    // Tail call to an entry which can be direct or indirect
     kOverlap, // direct branch to body of another procedure
     kInvalidLR,
-    kTailCallOrOverlap
+    kTailCallOrOverlap,
+    kReturn,
+    kIndirect
 };
 
 enum class ICFGProcedureType: unsigned char {
     kTail,
-    kReturn,
+    kDirectlyCalled,
     kExternal,
-    kIndirect,
+    kIndirectlyCalled,
 };
 
 /**
@@ -55,7 +57,8 @@ public:
     void addCallee(const ICFGNode *callee) const noexcept;
     CFGNode *getEntryNode() const noexcept;
     std::vector<CFGNode *> getAllExitNodes() const noexcept;
-    std::vector<CFGNode *> &getUniqueExitNodes() const noexcept;
+    const std::vector<std::pair<ICFGExitNodeType, CFGNode *>> &
+        getExitNodes() const noexcept;
     /*
      * if this node overlaps with another
      */
@@ -64,6 +67,8 @@ public:
     bool hasOverlapWithOtherProcedure() const noexcept;
     bool isBuilt() const noexcept;
     bool isValid() const noexcept;
+    bool isNonReturnProcedure() const noexcept;
+    bool isReturnsToCaller() const noexcept;
     size_t id() const noexcept;
     bool isWithinEstimatedAddressSpace(const addr_t addr) const noexcept;
     CFGNode *entryNode() const noexcept;
@@ -72,6 +77,9 @@ public:
     addr_t endAddr() const noexcept;
     addr_t estimatedEndAddr() const noexcept;
     const std::string &name() const noexcept;
+    void setName(const char *name) noexcept;
+    void setNonReturn(bool non_return) noexcept;
+    void setReturnsToCaller(bool returns_to_caller) noexcept;
     ICFGProcedureType type() const noexcept;
     void finalize() noexcept;
     friend class DisassemblyCallGraph;
@@ -81,6 +89,8 @@ private:
     // in all of its exit nodes.
     ICFGProcedureType m_proc_type;
     bool m_valid;
+    bool m_non_return_proc;
+    bool m_returns_to_caller;
     CFGNode *m_entry_node;
     CFGNode *m_end_node;
     addr_t m_entry_addr;

@@ -29,41 +29,43 @@ void DisassemblyCallGraph::setSectionEndAddr(addr_t sec_end_addr) noexcept {
 }
 
 ICFGNode *DisassemblyCallGraph::insertProcedure
-    (const addr_t entry_addr,
-     CFGNode *entry_node,
-     ICFGProcedureType type = ICFGProcedureType::kReturn) {
+    (const addr_t entry_addr, CFGNode *entry_node, ICFGProcedureType type) {
 
     auto result = m_call_graph_map.insert({entry_addr, nullptr});
     if (result.second) {
-        m_unmerged_procs.emplace_back
-            (ICFGNode(entry_addr, entry_node, type));
-        return &(m_unmerged_procs.back());
+        if (type == ICFGProcedureType::kExternal) {
+            m_external_procs.emplace_back
+                (ICFGNode(entry_addr, entry_node, type));
+            return &(m_external_procs.back());
+        } else {
+            m_unmerged_procs.emplace_back
+                (ICFGNode(entry_addr, entry_node, type));
+            return &(m_unmerged_procs.back());
+        }
     }
     return nullptr;
 }
 
-void DisassemblyCallGraph::insertProcedure
-    (const addr_t entry_addr, CFGNode *entry_node) {
+void DisassemblyCallGraph::AddProcedure
+    (const addr_t entry_addr,
+     CFGNode *entry_node,
+     ICFGProcedureType proc_type) {
 
     auto result = m_call_graph_map.insert({entry_addr, nullptr});
     if (result.second) {
-        m_unmerged_procs.emplace_back
-            (ICFGNode(entry_addr, entry_node, ICFGProcedureType::kReturn));
-    }
-}
-
-void DisassemblyCallGraph::insertProcedure
-    (const ICFGNode &proc) {
-
-    auto result = m_call_graph_map.insert({proc.m_entry_addr, nullptr});
-    if (result.second) {
-        m_unmerged_procs.push_back(proc);
+        if (proc_type == ICFGProcedureType::kExternal) {
+            m_external_procs.emplace_back
+                (ICFGNode(entry_addr, entry_node, proc_type));
+        } else {
+            m_unmerged_procs.emplace_back
+                (ICFGNode(entry_addr, entry_node, proc_type));
+        }
     }
 }
 
 ICFGNode DisassemblyCallGraph::createProcedure
     (const addr_t entry_addr, CFGNode *entry_node) noexcept {
-    return ICFGNode(entry_addr, entry_node, ICFGProcedureType::kReturn);
+    return ICFGNode(entry_addr, entry_node, ICFGProcedureType::kDirectlyCalled);
 }
 
 void DisassemblyCallGraph::rebuildCallGraph() noexcept {
@@ -78,7 +80,7 @@ void DisassemblyCallGraph::rebuildCallGraph() noexcept {
          ++proc_iter) {
         for (auto &node_pair : (*proc_iter).m_exit_nodes) {
             if (node_pair.first == ICFGExitNodeType::kTailCallOrOverlap) {
-                if(node_pair.second->remoteSuccessor()->isProcedureEntry()) {
+                if (node_pair.second->remoteSuccessor()->isProcedureEntry()) {
                     node_pair.first = ICFGExitNodeType::kTailCall;
                 } else {
                     node_pair.first = ICFGExitNodeType::kOverlap;
@@ -90,14 +92,54 @@ void DisassemblyCallGraph::rebuildCallGraph() noexcept {
     m_call_graph_ordered = true;
 }
 
+bool DisassemblyCallGraph::isNonReturnProcedure(const ICFGNode &proc) const noexcept {
+    if (proc.getExitNodes().size() != 1
+        || proc.endNode()->remoteSuccessor() != nullptr) {
+        // procedure is not a non-return procedure
+        return false;
+    }
+    return false;
+}
+
+void DisassemblyCallGraph::checkNonReturnProcedureAndFixCallers
+    (ICFGNode &proc) const noexcept {
+
+    if (!proc.isReturnsToCaller()) {
+        for (const auto &type_node_pair : proc.getExitNodes()) {
+            if (type_node_pair.first != ICFGExitNodeType::kTailCall) {
+                // indirect branches with unknown destination
+                return;
+            }
+            if (!type_node_pair.second->maximalBlock()->branchInfo().isCall()) {
+                // branch to procedure that is not well-known non-return procedure
+                return;
+            }
+        }
+//        printf("Set to non-return procedure\n");
+        // TODO: recursively identify non-return procedures?
+        proc.setNonReturn(true);
+        for (auto &cfg_edge : proc.entryNode()->getDirectPredecessors()) {
+            if (cfg_edge.type() == CFGEdgeType::kDirect
+                && cfg_edge.node()->isCall()) {
+                cfg_edge.node()->setIsCall(false);
+            }
+        }
+    }
+}
+
 std::vector<ICFGNode> &DisassemblyCallGraph::buildInitialCallGraph() noexcept {
     assert(m_main_procs.size() == 0 && "Initial call graph is not empty!!");
     m_main_procs.swap(m_unmerged_procs);
     std::sort(m_main_procs.begin(), m_main_procs.end());
+    // XXX: assuming that there is at least one proc
+    for (auto &proc : m_external_procs) {
+        m_call_graph_map.at(proc.entryAddr()) = &proc;
+    }
     for (auto proc_iter = m_main_procs.begin();
          proc_iter < m_main_procs.end() - 1;
          ++proc_iter) {
         (*proc_iter).m_estimated_end_addr = (*(proc_iter + 1)).m_entry_addr;
+        m_call_graph_map.insert({(*proc_iter).id(), &(*proc_iter)});
     }
     m_main_procs.back().m_estimated_end_addr = m_section_end_addr;
     m_call_graph_ordered = true;
@@ -135,6 +177,16 @@ void DisassemblyCallGraph::prettyPrintProcedure
                 break;
             case ICFGExitNodeType::kTailCallOrOverlap:
                 printf("Exit_overlap or tail call node %lu at: 0x%lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            case ICFGExitNodeType::kReturn:
+                printf("Exit_return node %lu at: 0x%lx /",
+                       exitNodePair.second->id(),
+                       exitNodePair.second->getCandidateStartAddr());
+                break;
+            case ICFGExitNodeType::kIndirect:
+                printf("Exit_indirect node %lu at: 0x%lx /",
                        exitNodePair.second->id(),
                        exitNodePair.second->getCandidateStartAddr());
                 break;

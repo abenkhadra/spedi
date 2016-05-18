@@ -35,9 +35,8 @@ public:
     // index of LR on the stack.
     unsigned getLRStackStoreIndex(const CFGNode *cfg_node) const noexcept;
     addr_t recoverLDRSwitchBaseAddr(const CFGNode &node) const;
-    bool isReturnFromProccedure(const MCInst *inst) const noexcept;
+    bool isReturnToCaller(const MCInst *inst) const noexcept;
     bool isIndirectTailCall(const MCInst *inst) const noexcept;
-    bool isCall(const MCInst *inst) const noexcept;
 private:
     ISAType m_isa;
 };

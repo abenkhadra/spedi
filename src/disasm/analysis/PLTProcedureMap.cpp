@@ -36,7 +36,7 @@ PLTProcedureMap::PLTProcedureMap(const elf::elf *elf_file) :
                  (static_cast<const uint8_t *>(sec.data()) + sec.size());
                  ++rel_iter) {
                 auto func_name = dyn_func_names[ELF32_M_SYM(rel_iter->r_info)];
-                m_got_to_proc_name_map.insert({rel_iter->r_offset, func_name});
+                m_got_proc_name_map.insert({rel_iter->r_offset, func_name});
             }
             break;
         }
@@ -46,10 +46,7 @@ PLTProcedureMap::PLTProcedureMap(const elf::elf *elf_file) :
             m_start_plt_addr = sec.get_hdr().addr;
             m_start_plt_code_ptr = static_cast<const uint8_t *>(sec.data());
             m_end_plt_addr = m_start_plt_addr + sec.get_hdr().size;
-            m_parser.initialize
-                (CS_ARCH_ARM,
-                 CS_MODE_ARM,
-                 m_end_plt_addr);
+            m_parser.initialize(CS_ARCH_ARM, CS_MODE_ARM, m_end_plt_addr);
             break;
         }
     }
@@ -59,29 +56,31 @@ const char *PLTProcedureMap::getName(addr_t proc_entry_addr) const noexcept {
     auto res_find_entry = m_addr_got_map.find(proc_entry_addr);
     if (res_find_entry != m_addr_got_map.end()) {
         auto res_find_proc_name =
-            m_got_to_proc_name_map.find((*res_find_entry).second.first);
+            m_got_proc_name_map.find((*res_find_entry).second.first);
         return (*res_find_proc_name).second;
     }
     return nullptr;
 }
 
-std::pair<addr_t, bool> PLTProcedureMap::addProcedure
+std::pair<const char *, bool> PLTProcedureMap::addProcedure
     (addr_t proc_entry_addr) noexcept {
     // first check if procedure is already found
-    auto res_find_entry = m_addr_got_map.find(proc_entry_addr);
-    if (res_find_entry != m_addr_got_map.end()) {
-        return (*res_find_entry).second;
+    auto res_addr_got_return = m_addr_got_map.find(proc_entry_addr);
+    if (res_addr_got_return != m_addr_got_map.end()) {
+        auto res_got_name =
+            m_got_proc_name_map.find((*res_addr_got_return).second.first);
+        return {(*res_got_name).second, (*res_addr_got_return).second.second};
     }
     addr_t got_offset = calculateGotOffset(proc_entry_addr);
-    auto res_find_func_name = m_got_to_proc_name_map.find(got_offset);
-    assert(res_find_func_name != m_got_to_proc_name_map.end()
+    auto res_got_name = m_got_proc_name_map.find(got_offset);
+    assert(res_got_name != m_got_proc_name_map.end()
                && "Invalid GOT offset calculated!");
-    bool non_returning = isNonReturning((*res_find_func_name).second);
+    bool non_returning = isNonReturnProcedure((*res_got_name).second);
     m_addr_got_map.insert({proc_entry_addr, {got_offset, non_returning}});
-    return {got_offset, non_returning};
+    return {(*res_got_name).second, non_returning};
 }
 
-bool PLTProcedureMap::isNonReturning(addr_t proc_entry_addr) noexcept {
+bool PLTProcedureMap::isNonReturnProcedure(addr_t proc_entry_addr) noexcept {
     auto res_find_entry = m_addr_got_map.find(proc_entry_addr);
     if (res_find_entry != m_addr_got_map.end()) {
         return (*res_find_entry).second.second;
@@ -89,7 +88,7 @@ bool PLTProcedureMap::isNonReturning(addr_t proc_entry_addr) noexcept {
     return false;
 }
 
-bool PLTProcedureMap::isNonReturning(const char *proc_name) const noexcept {
+bool PLTProcedureMap::isNonReturnProcedure(const char *proc_name) const noexcept {
     // compares procedure name with well-known non-returning procedures
     if (strcmp(proc_name, "__assert_fail") == 0) {
         return true;
@@ -117,6 +116,11 @@ addr_t PLTProcedureMap::calculateGotOffset(addr_t proc_entry_addr) const noexcep
     inst.detail = &detail;
     size_t size = 12;
     m_parser.disasm2(&code_ptr, &size, &proc_entry_addr, &inst);
+    if (inst.id != ARM_INS_ADD) {
+        // handling inline veneer that performs a state mode change only
+        m_parser.disasm2(&code_ptr, &size, &proc_entry_addr, &inst);
+        size = 8;
+    }
     assert(inst.id == ARM_INS_ADD && "Invalid PLT entry!!");
     // This instruction should actually be ADR
     addr_t result = inst.address + 8; // PC value

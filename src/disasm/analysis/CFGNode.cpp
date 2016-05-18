@@ -210,8 +210,16 @@ bool CFGNode::isCall() const noexcept {
     return m_is_call;
 }
 
-bool CFGNode::isPossibleReturn() const noexcept {
-    return m_node_appendable_by_this != nullptr;
+void CFGNode::setIsCall(bool value) noexcept {
+    m_is_call = value;
+    if (!value) {
+        m_indirect_succs.clear();
+    }
+}
+
+bool CFGNode::isReturnNode() const noexcept {
+    return m_node_appendable_by_this != nullptr
+        && m_node_appendable_by_this->isCall();
 }
 
 const CFGNode *CFGNode::getPreceedingCallNode() const noexcept {

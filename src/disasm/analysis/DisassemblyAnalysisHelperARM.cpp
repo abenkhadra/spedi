@@ -92,7 +92,7 @@ unsigned DisassemblyAnalysisHelperARM::getLRStackStoreIndex
     return 0;
 }
 
-bool DisassemblyAnalysisHelperARM::isReturnFromProccedure
+bool DisassemblyAnalysisHelperARM::isReturnToCaller
     (const MCInst *inst) const noexcept {
     if (inst->id() == ARM_INS_B || inst->id() == ARM_INS_BX) {
         if (inst->detail().arm.operands[0].reg == ARM_REG_LR) {
@@ -100,13 +100,13 @@ bool DisassemblyAnalysisHelperARM::isReturnFromProccedure
         }
     }
     if (inst->id() == ARM_INS_POP) {
-        for (int i = 0; i < inst->detail().arm.op_count; ++i) {
+        for (int i = inst->detail().arm.op_count - 1; 0 <= i; --i) {
             if (inst->detail().arm.operands[i].reg == ARM_REG_PC) {
                 return true;
             }
         }
     }
-    // TODO: ldr pc, [sp], imm is another type of return calls
+    // TODO: ldr pc, [sp], imm is another type of return calls?
     return false;
 }
 
@@ -117,10 +117,5 @@ bool DisassemblyAnalysisHelperARM::isIndirectTailCall
             return true;
         }
     }
-}
-
-bool DisassemblyAnalysisHelperARM::isCall
-    (const MCInst *inst) const noexcept {
-    return inst->id() == ARM_INS_BLX || inst->id() == ARM_INS_BL;
 }
 }

@@ -102,10 +102,11 @@ public:
      * ARM which is BL and BLX.
      */
     bool isCall() const noexcept;
+    void setIsCall(bool value) noexcept;
     /*
      * returns true if immediate predecessor is a PossibleCall
      */
-    bool isPossibleReturn() const noexcept;
+    bool isReturnNode() const noexcept;
     const CFGNode *getPreceedingCallNode() const noexcept;
     /*
      * returns a valid value only after recovering switch tables.

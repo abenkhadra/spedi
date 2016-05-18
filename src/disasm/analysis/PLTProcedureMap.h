@@ -33,16 +33,16 @@ public:
     PLTProcedureMap &operator=(const PLTProcedureMap &src) = default;
     PLTProcedureMap(PLTProcedureMap &&src) = default;
 
-    std::pair<addr_t, bool> addProcedure(addr_t proc_entry_addr) noexcept;
-    bool isNonReturning(addr_t proc_entry_addr) noexcept;
+    std::pair<const char *, bool> addProcedure(addr_t proc_entry_addr) noexcept;
+    bool isNonReturnProcedure(addr_t proc_entry_addr) noexcept;
     const char * getName(addr_t proc_entry_addr) const noexcept;
-    bool isNonReturning(const char * proc_name) const noexcept;
+    bool isNonReturnProcedure(const char *proc_name) const noexcept;
     addr_t calculateGotOffset(addr_t proc_entry_addr) const noexcept;
     bool valid() const { return m_elf_file->valid(); }
     bool isWithinPLTSection(addr_t addr) const noexcept;
 private:
     const elf::elf *m_elf_file;
-    std::unordered_map<addr_t, const char *> m_got_to_proc_name_map;
+    std::unordered_map<addr_t, const char *> m_got_proc_name_map;
     std::unordered_map<addr_t, std::pair<addr_t, bool>> m_addr_got_map;
     MCParser m_parser;
     const uint8_t *m_start_plt_code_ptr;

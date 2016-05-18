@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
             disassembler.prettyPrintSectionCFG
                 (&analyzer.getCFG(),
                  disasm::PrettyPrintConfig::kHideDataNodes);
-//            analyzer.buildCallGraph();
+            analyzer.buildCallGraph();
         } else {
             disassembler.disassembleCodeSpeculative();
         }
@@ -71,10 +71,12 @@ int main(int argc, char **argv) {
             << file_path << "\n";
         if (cmd_parser.exist(config.kText)) {
             auto result = disassembler.disassembleSectionbyName(".text");
-//            disassembler.prettyPrintSectionDisassembly(&result);
             disasm::SectionDisassemblyAnalyzerARM analyzer{&elf_file, &result};
             analyzer.buildCFG();
             analyzer.refineCFG();
+//            disassembler.prettyPrintSectionCFG
+//                (&analyzer.getCFG(),
+//                 disasm::PrettyPrintConfig::kDisplayDataNodes);
 //            disassembler.prettyPrintSwitchTables(&analyzer.getCFG());
             analyzer.buildCallGraph();
 //            disassembler.prettyPrintSectionCFG(&analyzer.getCFG());

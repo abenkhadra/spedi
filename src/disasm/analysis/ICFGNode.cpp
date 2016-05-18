@@ -19,6 +19,8 @@ ICFGNode::ICFGNode(addr_t entry_addr,
                    ICFGProcedureType type) :
     m_proc_type{type},
     m_valid{false},
+    m_non_return_proc{false},
+    m_returns_to_caller{false},
     m_entry_node{entry_node},
     m_end_node{nullptr},
     m_entry_addr{entry_addr},
@@ -45,6 +47,8 @@ ICFGNode::ICFGNode(addr_t entry_addr,
 ICFGNode::ICFGNode(CFGNode *entry_node, ICFGProcedureType type) :
     m_proc_type{type},
     m_valid{false},
+    m_non_return_proc{false},
+    m_returns_to_caller{false},
     m_entry_node{entry_node},
     m_end_node{nullptr},
     m_entry_addr{entry_node->getCandidateStartAddr()},
@@ -111,6 +115,19 @@ addr_t ICFGNode::estimatedEndAddr() const noexcept {
     return m_estimated_end_addr;
 }
 
+void ICFGNode::setName(const char *name) noexcept {
+    // XXX: assuming name points to well-formed .dynstr section
+    m_name = name;
+}
+
+void ICFGNode::setNonReturn(bool non_return) noexcept {
+    m_non_return_proc = non_return;
+}
+
+void ICFGNode::setReturnsToCaller(bool returns_to_caller) noexcept {
+    m_returns_to_caller = returns_to_caller;
+}
+
 const std::string &ICFGNode::name() const noexcept {
     return m_name;
 }
@@ -121,6 +138,18 @@ ICFGProcedureType ICFGNode::type() const noexcept {
 
 void ICFGNode::finalize() noexcept {
     m_valid = true;
-    m_entry_node->m_role_in_procedure = CFGNodeRoleInProcedure::kEntry;
+}
+
+bool ICFGNode::isNonReturnProcedure() const noexcept {
+    return m_non_return_proc;
+}
+
+bool ICFGNode::isReturnsToCaller() const noexcept {
+    return m_returns_to_caller;
+}
+
+const std::vector<std::pair<ICFGExitNodeType, CFGNode *>> &
+ICFGNode::getExitNodes() const noexcept {
+    return m_exit_nodes;
 }
 }

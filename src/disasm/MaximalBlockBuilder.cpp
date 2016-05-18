@@ -234,14 +234,19 @@ void MaximalBlockBuilder::appendBranch(const cs_insn *inst) {
 
 void MaximalBlockBuilder::setBranch(const cs_insn *inst) {
     cs_detail *detail = inst->detail;
-    m_branch.m_conditional_branch = (inst->detail->arm.cc != ARM_CC_AL);
     if (inst->id == ARM_INS_CBZ || inst->id == ARM_INS_CBNZ) {
         m_branch.m_conditional_branch = true;
         m_branch.m_direct_branch = true;
+        m_branch.m_is_call = false;
         m_branch.m_target = static_cast<addr_t>(detail->arm.operands[1].imm);
         return;
     }
-
+    if (inst->id == ARM_INS_BLX || inst->id == ARM_INS_BL) {
+        m_branch.m_is_call = true;
+    } else {
+        m_branch.m_is_call = false;
+    }
+    m_branch.m_conditional_branch = (inst->detail->arm.cc != ARM_CC_AL);
     if (inst->detail->arm.op_count == 1
         && inst->detail->arm.operands[0].type == ARM_OP_IMM) {
         m_branch.m_direct_branch = true;
