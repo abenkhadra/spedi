@@ -29,7 +29,7 @@ public:
         &operator=(const DisassemblyAnalysisHelperARM &src) = default;
     DisassemblyAnalysisHelperARM(DisassemblyAnalysisHelperARM &&src) = default;
     bool modifySP(const MCInst *inst) const;
-    std::vector<const MCInst *> getPCRelativeLoadsInstructions
+    std::vector<const MCInst *> getPCRelativeLoadInstructions
         (const CFGNode *cfg_node) const noexcept;
     // returns 0 if valid instructions do not store LR, otherwise returns the
     // index of LR on the stack.

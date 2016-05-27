@@ -47,10 +47,11 @@ public:
     void setSectionEndAddr(addr_t sec_end_addr) noexcept;
     bool isNonReturnProcedure(const ICFGNode &proc) const noexcept;
     void checkNonReturnProcedureAndFixCallers(ICFGNode &proc) const noexcept;
+    addr_t sectionEndAddr() const noexcept;
     friend class SectionDisassemblyAnalyzerARM;
 private:
     std::vector<ICFGNode> &buildInitialCallGraph() noexcept;
-    void rebuildCallGraph() noexcept;
+    void buildCallGraph() noexcept;
 private:
     size_t m_section_start_addr;
     size_t m_section_end_addr;

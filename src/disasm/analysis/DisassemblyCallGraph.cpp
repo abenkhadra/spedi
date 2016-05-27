@@ -68,15 +68,17 @@ ICFGNode DisassemblyCallGraph::createProcedure
     return ICFGNode(entry_addr, entry_node, ICFGProcedureType::kDirectlyCalled);
 }
 
-void DisassemblyCallGraph::rebuildCallGraph() noexcept {
+void DisassemblyCallGraph::buildCallGraph() noexcept {
     for (auto &proc : m_unmerged_procs) {
         m_main_procs.push_back(proc);
     }
     m_unmerged_procs.clear();
-
+    // if func doesn't cover next && func has no overlap && func has no internal tail call
+    //   then pass
+    // if cover next doesn't overlap with this
     std::sort(m_main_procs.begin(), m_main_procs.end());
     for (auto proc_iter = m_main_procs.begin();
-         proc_iter < m_main_procs.end() - 1;
+         proc_iter < m_main_procs.end();
          ++proc_iter) {
         for (auto &node_pair : (*proc_iter).m_exit_nodes) {
             if (node_pair.first == ICFGExitNodeType::kTailCallOrOverlap) {
@@ -86,9 +88,14 @@ void DisassemblyCallGraph::rebuildCallGraph() noexcept {
                     node_pair.first = ICFGExitNodeType::kOverlap;
                 }
             }
+            // If tail call proc (node_pair)
         }
         prettyPrintProcedure(*proc_iter);
     }
+    // if has invalid node only and node is last
+    // TODO: restructure call graph
+    // TODO: add each proc ptr to map, check if tail_calls and overlap persists,
+    // add caller, callee relation.
     m_call_graph_ordered = true;
 }
 
@@ -115,7 +122,6 @@ void DisassemblyCallGraph::checkNonReturnProcedureAndFixCallers
                 return;
             }
         }
-//        printf("Set to non-return procedure\n");
         // TODO: recursively identify non-return procedures?
         proc.setNonReturn(true);
         for (auto &cfg_edge : proc.entryNode()->getDirectPredecessors()) {
@@ -169,6 +175,10 @@ void DisassemblyCallGraph::prettyPrintProcedure
                 printf("Exit_tail_call node %lu at: 0x%lx /",
                        exitNodePair.second->id(),
                        exitNodePair.second->getCandidateStartAddr());
+                if ((exitNodePair.second->remoteSuccessor() != nullptr)
+                    && !exitNodePair.second->maximalBlock()->branchInfo().isCall()) {
+                    printf("(internal)");
+                }
                 break;
             case ICFGExitNodeType::kOverlap:
                 printf("Exit_overlap node %lu at: 0x%lx /",
@@ -194,5 +204,9 @@ void DisassemblyCallGraph::prettyPrintProcedure
         printf("\n");
     }
     printf("Procedure end ...\n");
+}
+
+addr_t DisassemblyCallGraph::sectionEndAddr() const noexcept {
+    return m_section_end_addr;
 }
 }

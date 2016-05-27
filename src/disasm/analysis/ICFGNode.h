@@ -29,6 +29,7 @@ enum class ICFGProcedureType: unsigned char {
     kDirectlyCalled,
     kExternal,
     kIndirectlyCalled,
+    kInvalid
 };
 
 /**

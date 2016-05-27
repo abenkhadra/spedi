@@ -13,6 +13,7 @@
 #include <cassert>
 #include <disasm/MCParser.h>
 #include <disasm/RawInstWrapper.h>
+#include <deque>
 
 namespace disasm {
 
@@ -230,7 +231,7 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
          node_iter < m_sec_cfg.m_cfg.end(); ++node_iter) {
         if ((*node_iter).isData())
             continue;
-        resolveOverlapBetweenNodes(*node_iter);
+        resolveSpaceOverlap(*node_iter);
         if ((*node_iter).isData())
             continue;
         addCallReturnRelation(*node_iter);
@@ -306,9 +307,10 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
 //        resolveValidBasicBlock((*node_iter));
     }
     recoverSwitchStatements();
+    identifyPCRelativeLoadData();
 }
 
-void SectionDisassemblyAnalyzerARM::resolveOverlapBetweenNodes(CFGNode &node) {
+void SectionDisassemblyAnalyzerARM::resolveSpaceOverlap(CFGNode &node) {
     if (!node.hasOverlapWithOtherNode() || node.getOverlapNode()->isData()) {
         return;
     }
@@ -448,66 +450,75 @@ void SectionDisassemblyAnalyzerARM::resolveCFGConflicts
     }
 }
 
-void SectionDisassemblyAnalyzerARM::resolveLoadConflicts(CFGNode &node) {
-    // A load conflict can happen between an MB_1 and another MB_2 such that
-    // MB_1 < MB_2 (comparing start addresses)
-    auto pc_relative_loads =
-        m_analyzer.getPCRelativeLoadsInstructions(&node);
-    for (auto inst_ptr: pc_relative_loads) {
-        // get conflict target node
-        // compare weights and shrink the node with less weight
-        addr_t target = inst_ptr->addr() + 4 +
-            inst_ptr->detail().arm.operands[1].mem.disp;
-        target = (target >> 2) << 2; // align target to word address
-        CFGNode *target_node =
-            findCFGNodeAffectedByLoadStartingFrom(node, target);
-        if (target_node == nullptr) {
-            shortenToCandidateAddressOrSetToData(node, inst_ptr->endAddr());
+void SectionDisassemblyAnalyzerARM::identifyPCRelativeLoadData() {
+    // find the memory region of "pure data" elf sections
+//    addr_t data_region_start = UINT64_MAX;
+//    addr_t data_region_end = 0;
+//    addr_t dummy_len = 0;
+    // get the memory region of pure data sections
+//    for (const auto &sec : m_elf_file->sections()) {
+//        if ((sec.is_alloc() && sec.is_writable())
+//            || (strcmp(".rodata", sec.get_name(&dummy_len)) == 0)
+//            || (strcmp(".eh_frame", sec.get_name(&dummy_len)) == 0)) {
+//            if (data_region_start > sec.get_hdr().addr) {
+//                data_region_start = sec.get_hdr().addr;
+//            }
+//            if (data_region_end < (sec.get_hdr().addr + sec.get_hdr().size)) {
+//                data_region_end = sec.get_hdr().addr + sec.get_hdr().size;
+//            }
+//        }
+//    }
+    std::deque<addr_t> data_word_addrs;
+    for (auto &node : m_sec_cfg.m_cfg) {
+        if (node.getType() == CFGNodeType::kData) {
             continue;
         }
-        if (target + 4 <= target_node->getCandidateStartAddr()) {
-            continue;
-        }
-        // XXX: no weight analysis is applied here, that should be handled
-        shortenToCandidateAddressOrSetToData((*target_node), target + 4);
-//        printf("Node %lu shortens node %lu\n", node.id(), target_node->id());
-        if (target_node->isData()) {
-            auto next_node =
-                m_sec_cfg.ptrToNodeAt(target_node->id() + 1);
-            if (next_node->getCandidateStartAddr() < target + 4) {
-//                printf("Inner: node %lu shortens node %lu\n",
-//                       node.id(),
-//                       target_node->id());
-                shortenToCandidateAddressOrSetToData(*next_node, target + 4);
+        // set PC-relative words to data
+        for (const auto wordAddr : data_word_addrs) {
+            if (wordAddr < node.maximalBlock()->addrOfFirstInst()) {
+                data_word_addrs.pop_front();
+                continue;
+            }
+            if (wordAddr < node.maximalBlock()->endAddr()) {
+                if (wordAddr < node.maximalBlock()->addrOfLastInst()) {
+                    node.setCandidateStartAddr(wordAddr + 4);
+                } else {
+                    node.setToDataAndInvalidatePredecessors();
+                }
             }
         }
-    }
-}
-
-CFGNode *SectionDisassemblyAnalyzerARM::findCFGNodeAffectedByLoadStartingFrom
-    (const CFGNode &node, addr_t target) noexcept {
-    // TODO: compare this with another version that does binary search
-    if (target < node.maximalBlock()->endAddr()
-        || target > m_exec_addr_end) {
-        // A PC-relative load can't target its same MB or load an external address
-        return nullptr;
-    }
-    for (auto node_iter = m_sec_cfg.m_cfg.begin() + node.id() + 1;
-         node_iter < m_sec_cfg.m_cfg.end(); ++node_iter) {
-        // we only care about affected instructions
-        if (target <= (*node_iter).maximalBlock()->addrOfLastInst()) {
-            return &(*node_iter);
+        // add PC-relative word addresses
+        auto pc_relative_load_insts =
+            m_analyzer.getPCRelativeLoadInstructions(&node);
+        // TODO: more analysis to identify invalid PC-relative loads
+        for (auto inst_ptr: pc_relative_load_insts) {
+            addr_t target_addr = ((inst_ptr->addr() >> 2) << 2)
+                + 4 + inst_ptr->detail().arm.operands[1].mem.disp;
+//            uint32_t loaded_addr =
+//                *(reinterpret_cast<const uint32_t *>
+//                (m_sec_disasm->physicalAddrOf(target_addr)));
+//            if (loaded_addr % 4 != 0
+//                || loaded_addr < data_region_start
+//                || loaded_addr > data_region_end) {
+//                // invalid PC-relative load
+//                printf("special data at %lx / %x\n", target_addr, loaded_addr);
+//                continue;
+//            }
+            if (std::find(data_word_addrs.begin(),
+                          data_word_addrs.end(),
+                          target_addr) == data_word_addrs.end()) {
+                data_word_addrs.push_back(target_addr);
+                if (inst_ptr->id() == ARM_INS_VLDR
+                    && ARM_REG_D0 <= inst_ptr->detail().arm.operands[0].reg
+                    && inst_ptr->detail().arm.operands[0].reg <= ARM_REG_D31) {
+                    // D register hold double words.
+                    data_word_addrs.push_back(target_addr + 4);
+                }
+            }
         }
-    }
-    return nullptr;
-}
-
-void SectionDisassemblyAnalyzerARM::shortenToCandidateAddressOrSetToData
-    (CFGNode &node, addr_t addr) noexcept {
-    if (node.isCandidateStartAddressValid(addr)) {
-        node.setCandidateStartAddr(addr);
-    } else {
-        node.setToDataAndInvalidatePredecessors();
+        if (pc_relative_load_insts.size() > 0) {
+            std::sort(data_word_addrs.begin(), data_word_addrs.end());
+        }
     }
 }
 
@@ -807,19 +818,18 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
     // building directly called procedures.
     for (auto &proc : untraversed_procedures) {
         buildProcedure(proc);
-        m_call_graph.prettyPrintProcedure(proc);
         m_call_graph.checkNonReturnProcedureAndFixCallers(proc);
     }
     // a pass to identify all remaining procedures.
     // these are either tail-called, indirectly called, or not called at all.
     auto proc_iter = m_call_graph.m_main_procs.begin();
     for (auto node_iter = m_sec_cfg.m_cfg.begin();
-         proc_iter < m_call_graph.m_main_procs.end()
-             && node_iter < m_sec_cfg.m_cfg.end();
+         node_iter < m_sec_cfg.m_cfg.end();
          ++node_iter) {
 
-        if ((*proc_iter).estimatedEndAddr()
-            <= (*node_iter).getCandidateStartAddr()) {
+        if (proc_iter < m_call_graph.m_main_procs.end()
+            && ((*proc_iter).estimatedEndAddr()
+                <= (*node_iter).getCandidateStartAddr())) {
             proc_iter++;
         }
         if ((*node_iter).isData()) {
@@ -834,13 +844,12 @@ void SectionDisassemblyAnalyzerARM::buildCallGraph() {
                 proc_node->m_estimated_end_addr =
                     (*proc_iter).estimatedEndAddr();
             } else {
-                proc_node->m_estimated_end_addr =
-                    m_call_graph.m_section_end_addr;
+                proc_node->m_estimated_end_addr = m_call_graph.sectionEndAddr();
             }
             buildProcedure(*proc_node);
         }
     }
-    m_call_graph.rebuildCallGraph();
+    m_call_graph.buildCallGraph();
     // TODO: an entry node with two different entry addresses should be split to
     // two procedures.
     // TODO: a final pass over all procedures to (1) properly classify
@@ -851,6 +860,11 @@ void SectionDisassemblyAnalyzerARM::buildProcedure
     (ICFGNode &proc_node) noexcept {
     assert(proc_node.entryAddr() < proc_node.m_estimated_end_addr
                && "Invalid end address");
+    if (proc_node.entryAddr() % 4 != 0) {
+        proc_node.m_entry_addr += 2;
+        proc_node.entryNode()->setCandidateStartAddr
+            (proc_node.entryNode()->getCandidateStartAddr() + 2);
+    }
     if (!proc_node.entryNode()->isCall() &&
         !proc_node.entryNode()->maximalBlock()->branchInfo().isDirect()) {
         if (m_analyzer.isReturnToCaller

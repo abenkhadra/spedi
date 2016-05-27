@@ -20,7 +20,7 @@ DisassemblyAnalysisHelperARM::DisassemblyAnalysisHelperARM(ISAType isa) :
 }
 
 std::vector<const MCInst *>
-DisassemblyAnalysisHelperARM::getPCRelativeLoadsInstructions
+DisassemblyAnalysisHelperARM::getPCRelativeLoadInstructions
     (const CFGNode *cfg_node) const noexcept {
     // XXX: assuming pc-relative loads can happen only in LDR, VLDR, and LDRD
     auto predicate = [](const MCInst *inst) -> bool {

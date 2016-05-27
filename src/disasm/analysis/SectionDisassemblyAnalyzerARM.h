@@ -52,11 +52,6 @@ public:
     const DisassemblyCFG &getCFG() const noexcept;
 
     /*
-     * precondition: given instruction is PC-relative load
-     */
-    CFGNode *findCFGNodeAffectedByLoadStartingFrom
-        (const CFGNode &node, addr_t target) noexcept;
-    /*
      * returns the sum of instruction count of all predecessors in addition to
      * instruction count of current node.
      */
@@ -76,13 +71,11 @@ private:
      */
     void resolveValidBasicBlock(CFGNode &node);
     void addConditionalBranchToCFG(CFGNode &node);
-    void resolveOverlapBetweenNodes(CFGNode &node);
+    void resolveSpaceOverlap(CFGNode &node);
     void resolveCFGConflicts
         (CFGNode &node, const std::vector<CFGEdge> &valid_predecessors);
-    void resolveLoadConflicts(CFGNode &node);
     void recoverSwitchStatements();
-    void shortenToCandidateAddressOrSetToData
-        (CFGNode &node, addr_t addr) noexcept;
+    void identifyPCRelativeLoadData();
     bool isConditionalBranchAffectedByNodeOverlap
         (const CFGNode &node) const noexcept;
 private:

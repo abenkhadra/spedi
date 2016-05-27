@@ -75,9 +75,9 @@ addr_t SectionDisassemblyARM::virtualAddrOf(const uint8_t *ptr) const {
 
 const uint8_t *SectionDisassemblyARM::physicalAddrOf
     (const addr_t virtual_addr) const {
-    assert(secStartAddr() <= virtual_addr
-               && virtual_addr < secEndAddr()
-               && "Invalid virtual address !!!");
+//    assert(secStartAddr() <= virtual_addr
+//               && virtual_addr < secEndAddr()
+//               && "Invalid virtual address !!!");
     return ptrToData() + (virtual_addr - secStartAddr());
 }
 
