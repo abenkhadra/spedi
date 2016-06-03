@@ -225,8 +225,13 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
     if (!m_sec_cfg.isValid()) {
         return;
     }
+    // variables related to fixing IT block
     MCParser parser;
     parser.initialize(CS_ARCH_ARM, CS_MODE_THUMB, m_sec_disasm->secEndAddr());
+    addr_t it_block_size = 0;
+    addr_t it_block_addr = 0;
+    const uint8_t *it_block_ptr = nullptr;
+
     for (auto node_iter = m_sec_cfg.m_cfg.begin();
          node_iter < m_sec_cfg.m_cfg.end(); ++node_iter) {
         if ((*node_iter).isData())
@@ -234,8 +239,30 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
         resolveSpaceOverlap(*node_iter);
         if ((*node_iter).isData())
             continue;
-        addCallReturnRelation(*node_iter);
         auto &node = (*node_iter);
+        if (it_block_size > 0) {
+            // XXX: copy'n'paste code, consider refactoring
+            RawInstWrapper inst;
+            for (auto inst_iter =
+                node.maximalBlockPtr()->getInstructionsRef().begin();
+                 inst_iter
+                     < node.maximalBlockPtr()->getInstructionsRef().end()
+                     && it_block_size > 0;
+                 ++inst_iter) {
+                if ((*inst_iter).addr() != it_block_addr) continue;
+                parser.disasm(it_block_ptr, 4, it_block_addr, inst.rawPtr());
+                (*inst_iter).setMnemonic(inst.rawPtr()->mnemonic);
+                (*inst_iter).setDetail(*inst.rawPtr()->detail);
+                it_block_addr += inst.rawPtr()->size;
+                it_block_ptr += inst.rawPtr()->size;
+                --it_block_size;
+            }
+            bool is_conditional =
+                node.maximalBlock()->branchInstruction()->condition()
+                    != ARM_CC_AL;
+            node.maximalBlockPtr()->setBranchCondition(is_conditional);
+        }
+        addCallReturnRelation(*node_iter);
         if (!node.isCandidateStartAddressSet()) {
             node.setCandidateStartAddr(node.maximalBlock()->addrOfFirstInst());
         }
@@ -248,58 +275,33 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
             if ((*inst_iter).addr() == current) {
                 current += (*inst_iter).size();
             } else {
-                if ((*inst_iter).id() == ARM_INS_IT
-                    && (*inst_iter).detail().arm.cc != ARM_CC_AL) {
+                if ((*inst_iter).id() == ARM_INS_IT) {
                     RawInstWrapper inst;
-                    auto addr = (*inst_iter).addr() + 2;
-                    auto code_ptr = m_sec_disasm->physicalAddrOf(addr);
-                    auto it_block_size = (*inst_iter).mnemonic().length() - 1;
-                    inst_iter++;
+                    it_block_addr = (*inst_iter).addr() + 2;
+                    it_block_ptr = m_sec_disasm->physicalAddrOf(it_block_addr);
+                    it_block_size = (*inst_iter).mnemonic().length() - 1;
+                    ++inst_iter;
                     for (;
                         inst_iter
                             < node.maximalBlockPtr()->getInstructionsRef().end()
                             && it_block_size > 0;
                         ++inst_iter) {
-                        if ((*inst_iter).addr() != addr) continue;
-                        parser.disasm(code_ptr, 4, addr, inst.rawPtr());
+                        if ((*inst_iter).addr() != it_block_addr) continue;
+                        parser.disasm(it_block_ptr,
+                                      4,
+                                      it_block_addr,
+                                      inst.rawPtr());
                         (*inst_iter).setMnemonic(inst.rawPtr()->mnemonic);
                         (*inst_iter).setDetail(*inst.rawPtr()->detail);
-                        addr += inst.rawPtr()->size;
-                        code_ptr += inst.rawPtr()->size;
+                        it_block_addr += inst.rawPtr()->size;
+                        it_block_ptr += inst.rawPtr()->size;
                         --it_block_size;
                     }
                     bool is_conditional =
                         node.maximalBlock()->branchInstruction()->condition()
                             != ARM_CC_AL;
                     node.maximalBlockPtr()->setBranchCondition(is_conditional);
-//                    if (it_block_size == 0) {
-//                        current = addr;
-//                        continue;
-//                    }
-                    // IT errors can span more than one MB!
-//                    auto &next_node = *(node_iter + 1);
-//                    for (auto inst_iter2 =
-//                        next_node.maximalBlockPtr()->getInstructionsRef().begin();
-//                         it_block_size > 0
-//                             && inst_iter2 <
-//                                 next_node.maximalBlockPtr()->getInstructionsRef().end();
-//                         ++inst_iter2) {
-//                        if ((*inst_iter2).addr() == addr) {
-//                            parser.disasm(code_ptr, 4, addr, inst.rawPtr());
-//                            (*inst_iter2).setMnemonic(inst.rawPtr()->mnemonic);
-//                            (*inst_iter2).setDetail(*inst.rawPtr()->detail);
-//                            addr += inst.rawPtr()->size;
-//                            code_ptr += inst.rawPtr()->size;
-//                            --it_block_size;
-//                        }
-//                    }
-//                    is_conditional =
-//                        next_node.maximalBlock()->branchInstruction()->condition()
-//                            != ARM_CC_AL;
-//                    next_node.maximalBlockPtr()->
-//                        setBranchCondition(is_conditional);
-//                    assert(it_block_size == 0 && "Invalid IT spans more than "
-//                        "two MBs!");
+                    current = it_block_addr;
                 }
             }
         }
@@ -471,7 +473,7 @@ void SectionDisassemblyAnalyzerARM::identifyPCRelativeLoadData() {
                 }
             }
         }
-        // Get PC-relative load instructions
+        // Get PC-relative load instructions of this node
         auto pc_relative_load_insts =
             m_analyzer.getPCRelativeLoadInstructions(&node);
         if (pc_relative_load_insts.size() == 0) {
