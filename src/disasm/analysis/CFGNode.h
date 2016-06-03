@@ -106,8 +106,8 @@ public:
     /*
      * returns true if immediate predecessor is a PossibleCall
      */
-    bool isReturnNode() const noexcept;
-    const CFGNode *getPreceedingCallNode() const noexcept;
+    bool isAlignedToPredecessor() const noexcept;
+    const CFGNode *getAlignedPredecessor() const noexcept;
     /*
      * returns a valid value only after recovering switch tables.
      */

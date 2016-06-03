@@ -248,7 +248,8 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
             if ((*inst_iter).addr() == current) {
                 current += (*inst_iter).size();
             } else {
-                if ((*inst_iter).id() == ARM_INS_IT) {
+                if ((*inst_iter).id() == ARM_INS_IT
+                    && (*inst_iter).detail().arm.cc != ARM_CC_AL) {
                     RawInstWrapper inst;
                     auto addr = (*inst_iter).addr() + 2;
                     auto code_ptr = m_sec_disasm->physicalAddrOf(addr);
@@ -271,34 +272,34 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
                         node.maximalBlock()->branchInstruction()->condition()
                             != ARM_CC_AL;
                     node.maximalBlockPtr()->setBranchCondition(is_conditional);
-                    if (it_block_size == 0) {
-                        current = addr;
-                        continue;
-                    }
+//                    if (it_block_size == 0) {
+//                        current = addr;
+//                        continue;
+//                    }
                     // IT errors can span more than one MB!
-                    auto &next_node = *(node_iter + 1);
-                    for (auto inst_iter2 =
-                        next_node.maximalBlockPtr()->getInstructionsRef().begin();
-                         it_block_size > 0
-                             && inst_iter2 <
-                                 next_node.maximalBlockPtr()->getInstructionsRef().end();
-                         ++inst_iter2) {
-                        if ((*inst_iter2).addr() == addr) {
-                            parser.disasm(code_ptr, 4, addr, inst.rawPtr());
-                            (*inst_iter2).setMnemonic(inst.rawPtr()->mnemonic);
-                            (*inst_iter2).setDetail(*inst.rawPtr()->detail);
-                            addr += inst.rawPtr()->size;
-                            code_ptr += inst.rawPtr()->size;
-                            --it_block_size;
-                        }
-                    }
-                    is_conditional =
-                        next_node.maximalBlock()->branchInstruction()->condition()
-                            != ARM_CC_AL;
-                    next_node.maximalBlockPtr()->
-                        setBranchCondition(is_conditional);
-                    assert(it_block_size == 0 && "Invalid IT spans more than "
-                        "two MBs!");
+//                    auto &next_node = *(node_iter + 1);
+//                    for (auto inst_iter2 =
+//                        next_node.maximalBlockPtr()->getInstructionsRef().begin();
+//                         it_block_size > 0
+//                             && inst_iter2 <
+//                                 next_node.maximalBlockPtr()->getInstructionsRef().end();
+//                         ++inst_iter2) {
+//                        if ((*inst_iter2).addr() == addr) {
+//                            parser.disasm(code_ptr, 4, addr, inst.rawPtr());
+//                            (*inst_iter2).setMnemonic(inst.rawPtr()->mnemonic);
+//                            (*inst_iter2).setDetail(*inst.rawPtr()->detail);
+//                            addr += inst.rawPtr()->size;
+//                            code_ptr += inst.rawPtr()->size;
+//                            --it_block_size;
+//                        }
+//                    }
+//                    is_conditional =
+//                        next_node.maximalBlock()->branchInstruction()->condition()
+//                            != ARM_CC_AL;
+//                    next_node.maximalBlockPtr()->
+//                        setBranchCondition(is_conditional);
+//                    assert(it_block_size == 0 && "Invalid IT spans more than "
+//                        "two MBs!");
                 }
             }
         }
@@ -451,23 +452,6 @@ void SectionDisassemblyAnalyzerARM::resolveCFGConflicts
 }
 
 void SectionDisassemblyAnalyzerARM::identifyPCRelativeLoadData() {
-    // find the memory region of "pure data" elf sections
-//    addr_t data_region_start = UINT64_MAX;
-//    addr_t data_region_end = 0;
-//    addr_t dummy_len = 0;
-    // get the memory region of pure data sections
-//    for (const auto &sec : m_elf_file->sections()) {
-//        if ((sec.is_alloc() && sec.is_writable())
-//            || (strcmp(".rodata", sec.get_name(&dummy_len)) == 0)
-//            || (strcmp(".eh_frame", sec.get_name(&dummy_len)) == 0)) {
-//            if (data_region_start > sec.get_hdr().addr) {
-//                data_region_start = sec.get_hdr().addr;
-//            }
-//            if (data_region_end < (sec.get_hdr().addr + sec.get_hdr().size)) {
-//                data_region_end = sec.get_hdr().addr + sec.get_hdr().size;
-//            }
-//        }
-//    }
     std::deque<addr_t> data_word_addrs;
     for (auto &node : m_sec_cfg.m_cfg) {
         if (node.getType() == CFGNodeType::kData) {
@@ -475,7 +459,7 @@ void SectionDisassemblyAnalyzerARM::identifyPCRelativeLoadData() {
         }
         // set PC-relative words to data
         for (const auto wordAddr : data_word_addrs) {
-            if (wordAddr < node.maximalBlock()->addrOfFirstInst()) {
+            if (wordAddr + 4 < node.maximalBlock()->addrOfFirstInst()) {
                 data_word_addrs.pop_front();
                 continue;
             }
@@ -487,23 +471,26 @@ void SectionDisassemblyAnalyzerARM::identifyPCRelativeLoadData() {
                 }
             }
         }
-        // add PC-relative word addresses
+        // Get PC-relative load instructions
         auto pc_relative_load_insts =
             m_analyzer.getPCRelativeLoadInstructions(&node);
-        // TODO: more analysis to identify invalid PC-relative loads
+        if (pc_relative_load_insts.size() == 0) {
+            continue;
+        }
+        // TODO: better analysis to identify invalid PC-relative loads
+        addr_t minimum_pred =
+            (node.getDirectPredecessors().size() == 0) ? 0 : UINT64_MAX;
+        for (const auto &pred : node.getDirectPredecessors()) {
+            if (pred.targetAddr() < minimum_pred) {
+                minimum_pred = pred.targetAddr();
+            }
+        }
+        if (pc_relative_load_insts[0]->addr() < minimum_pred) {
+            continue;
+        }
         for (auto inst_ptr: pc_relative_load_insts) {
             addr_t target_addr = ((inst_ptr->addr() >> 2) << 2)
                 + 4 + inst_ptr->detail().arm.operands[1].mem.disp;
-//            uint32_t loaded_addr =
-//                *(reinterpret_cast<const uint32_t *>
-//                (m_sec_disasm->physicalAddrOf(target_addr)));
-//            if (loaded_addr % 4 != 0
-//                || loaded_addr < data_region_start
-//                || loaded_addr > data_region_end) {
-//                // invalid PC-relative load
-//                printf("special data at %lx / %x\n", target_addr, loaded_addr);
-//                continue;
-//            }
             if (std::find(data_word_addrs.begin(),
                           data_word_addrs.end(),
                           target_addr) == data_word_addrs.end()) {

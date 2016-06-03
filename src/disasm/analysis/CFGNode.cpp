@@ -217,12 +217,11 @@ void CFGNode::setIsCall(bool value) noexcept {
     }
 }
 
-bool CFGNode::isReturnNode() const noexcept {
-    return m_node_appendable_by_this != nullptr
-        && m_node_appendable_by_this->isCall();
+bool CFGNode::isAlignedToPredecessor() const noexcept {
+    return m_node_appendable_by_this != nullptr;
 }
 
-const CFGNode *CFGNode::getPreceedingCallNode() const noexcept {
+const CFGNode *CFGNode::getAlignedPredecessor() const noexcept {
     return m_node_appendable_by_this;
 }
 
