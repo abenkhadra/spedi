@@ -169,6 +169,8 @@ SectionDisassemblyARM ElfDisassembler::disassembleSectionSpeculative
                     // an IT block. Instructions setting condition codes
                     // can appear in IT block.
                     // Branch instructions that writes to PC can appear.
+                    // XXX We can't do much here since we can't control the
+                    // IT state inside Capstone.
                 }
                 for (int i = 0; i < it_block_size; ++i) {
                     auto it_inst_ptr = it_block_insts[i].rawPtr();
@@ -357,7 +359,7 @@ void ElfDisassembler::prettyPrintMaximalBlock
     printf(" / BB count. %lu, Total inst count %lu: \n",
            mblock->getBasicBlocksCount(), mblock->instructionsCount());
 
-    for (auto &block :mblock->getBasicBlocks()) {
+    for (const auto &block :mblock->getBasicBlocks()) {
         printf("Basic Block Id %u, inst count %lu\n / ",
                block.id(), block.instructionCount());
         for (auto addr : mblock->getInstructionAddressesOf(block)) {
@@ -365,7 +367,7 @@ void ElfDisassembler::prettyPrintMaximalBlock
         }
         printf("\n");
     }
-    for (auto &inst :mblock->getInstructions()) {
+    for (const auto &inst :mblock->getInstructions()) {
         printf("0x%" PRIx64 ":\t%s\t\t%s ",
                inst.addr(), inst.mnemonic().c_str(), inst.operands().c_str());
         if (inst.condition() != ARM_CC_AL) {

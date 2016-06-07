@@ -61,6 +61,9 @@ size_t SectionDisassemblyAnalyzerARM::calculateNodeWeight
     unsigned pred_weight = 0;
     for (auto pred_iter = node->getDirectPredecessors().cbegin();
          pred_iter < node->getDirectPredecessors().cend(); ++pred_iter) {
+        if ((*pred_iter).node()->isData()) {
+            continue;
+        }
         pred_weight +=
             (*pred_iter).node()->maximalBlock()->instructionsCount();
     }
@@ -241,8 +244,10 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
             continue;
         auto &node = (*node_iter);
         if (it_block_size > 0) {
+            // Fix invalid IT found in a previous MB.
             // XXX: copy'n'paste code, consider refactoring
             RawInstWrapper inst;
+            size_t dummy_size = 20;
             for (auto inst_iter =
                 node.maximalBlockPtr()->getInstructionsRef().begin();
                  inst_iter
@@ -250,11 +255,9 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
                      && it_block_size > 0;
                  ++inst_iter) {
                 if ((*inst_iter).addr() != it_block_addr) continue;
-                parser.disasm(it_block_ptr, 4, it_block_addr, inst.rawPtr());
+                parser.disasm2(&it_block_ptr, &dummy_size, &it_block_addr, inst.rawPtr());
                 (*inst_iter).setMnemonic(inst.rawPtr()->mnemonic);
                 (*inst_iter).setDetail(*inst.rawPtr()->detail);
-                it_block_addr += inst.rawPtr()->size;
-                it_block_ptr += inst.rawPtr()->size;
                 --it_block_size;
             }
             bool is_conditional =
@@ -279,7 +282,19 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
                     RawInstWrapper inst;
                     it_block_addr = (*inst_iter).addr() + 2;
                     it_block_ptr = m_sec_disasm->physicalAddrOf(it_block_addr);
-                    it_block_size = (*inst_iter).mnemonic().length() - 1;
+                    // XXX workaround Capstone's behavior which does allow
+                    // to control it_state stored in cs_handle.
+//#define RESET_IT "\xe8\xbf" //it al
+//                    parser.disasm((unsigned char *)RESET_IT,
+//                                  2,
+//                                  0,
+//                                  inst.rawPtr());
+                    if (it_block_size > 0) {
+                        it_block_size = 7;
+                    } else {
+                        it_block_size = (*inst_iter).mnemonic().length() - 1;
+                    }
+                    size_t dummy_size = 20;
                     ++inst_iter;
                     for (;
                         inst_iter
@@ -287,14 +302,12 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
                             && it_block_size > 0;
                         ++inst_iter) {
                         if ((*inst_iter).addr() != it_block_addr) continue;
-                        parser.disasm(it_block_ptr,
-                                      4,
-                                      it_block_addr,
+                        parser.disasm2(&it_block_ptr,
+                                      &dummy_size,
+                                      &it_block_addr,
                                       inst.rawPtr());
                         (*inst_iter).setMnemonic(inst.rawPtr()->mnemonic);
                         (*inst_iter).setDetail(*inst.rawPtr()->detail);
-                        it_block_addr += inst.rawPtr()->size;
-                        it_block_ptr += inst.rawPtr()->size;
                         --it_block_size;
                     }
                     bool is_conditional =
@@ -305,7 +318,7 @@ void SectionDisassemblyAnalyzerARM::refineCFG() {
                 }
             }
         }
-        addConditionalBranchToCFG(*node_iter);
+        addConditionalBranchToCFG(node);
         // find maximally valid BB and resolves conflicts between MBs
 //        resolveValidBasicBlock((*node_iter));
     }
