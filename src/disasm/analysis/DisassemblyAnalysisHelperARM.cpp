@@ -74,10 +74,7 @@ addr_t DisassemblyAnalysisHelperARM::recoverLDRSwitchBaseAddr
 unsigned DisassemblyAnalysisHelperARM::getLRStackStoreIndex
     (const CFGNode *cfg_node) const noexcept {
     auto predicate = [](const MCInst *inst) -> bool {
-        if (inst->id() == ARM_INS_PUSH) {
-            return true;
-        }
-        return false;
+        return inst->id() == ARM_INS_PUSH;
     };
     auto stack_pushes = cfg_node->getCandidateInstructionsSatisfying(predicate);
     // LR is normally the last one to be saved
