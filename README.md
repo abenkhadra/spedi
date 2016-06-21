@@ -2,8 +2,8 @@
 A speculative disassembler for the variable-size Thumb ISA. Given an 
  ELF file as input, Spedi can:
   
-  - Recover correct assembly instructions
-  - Recover targets of switch jumps tables
+  - Recover correct assembly instructions.
+  - Recover targets of switch jumps tables.
   - Identify procedures in the binary and their call graph. 
   
 Spedi works directly on the binary without using any symbol information. We found Spedi 
@@ -12,7 +12,7 @@ Spedi works directly on the binary without using any symbol information. We foun
 # Main idea
 
 Spedi recovers all possible Basic Blocks (BB) available in the binary. BBs that
- share the same jump instruction are group in a Maximal Block (MB). Then, MBs are refined
+ share the same jump instruction are grouped in a Maximal Block (MB). Then, MBs are refined
  using overlap and CFG conflict analysis. More details are available in our upcoming
  CASES'16 paper.
 
@@ -27,6 +27,7 @@ The following command will instruct `spedi`to speculatively disassemble
 ```sh
 $ ./spedi -t -s -f $FILE > speculative.inst
 ```
+
 Use the following command to instruct `spedi` to disassemble the `.text` section 
  based on ARM code mapping symbols which provides the ground truth about correct instructions,
 
@@ -39,23 +40,27 @@ The easiest way to compare both outputs is by using,
 $ diff -y correct.inst speculative.inst |less
 ```
 
-Currently, you need to fiddle with `main.cpp` to show results related to 
+Currently, you need to manually modify `main.cpp` to show results related to 
  switch table and call-graph recovery.
  
 # Road map
 
-Spedi is an academic proof-of-concept tool, hence, we won't be continuously improving
-  it. However, there are certain features that we have in mind for the future, namely:
+Spedi is an academic proof-of-concept tool. Currently, it's not on our priority list. 
+ However, there are certain features that we have in mind for the future, namely:
   
-  - Mixed-mode ARM/Thumb disassembly: the general idea of speculative disassembly provides 
+  - **Mixed-mode ARM/Thumb disassembly**. The general idea of speculative disassembly provides 
     the framework to do that. Basically, one needs to speculatively disassemble a code region
     twice. One time in Thumb mode, and another time in ARM mode. Later, mode switching instructions
     (mainly `bx` and `blx`) should be analyzed. This [paper] provides more details.
-  - ELF Reader: currently our ELF reader is based on [libelfin]. Hence, we inherit some memory leakage issues. 
+  - **ELF Reader**: currently our ELF reader is based on [libelfin]. We inherit some memory leakage issues. 
    Additionally, the reader might crash on binaries with dwarf debug info. These issues needs to be 
    addressed either in upstream or directly here.
-  - Support for x86/x64: Thumb and similar RISC-like ISA have limited variability. Basically, instructions can either
-  be 2 or 4 bytes width. We need to push the challenge even further by supporting x86/x64. 
+  - **Support for x86/x64**. Thumb and similar RISC-like ISA have limited variability. Basically, instructions can either
+  be 2 or 4 bytes width. We need to push the challenge even further by supporting x86/x64. To this end, overlap
+   analysis might span more than two MB which complicates things. Current Maximal Block data structure is not efficient
+    to do that. 
+  - **Refactorings**. The code is tightly coupled to our ELF reader. Also, it is specific to Thumb ISA. We need to 
+    make it more modular to suppport other ISAs and binary formats.
     
 # Dependencies 
 

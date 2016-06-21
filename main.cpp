@@ -59,9 +59,9 @@ int main(int argc, char **argv) {
             disasm::SectionDisassemblyAnalyzerARM analyzer{&elf_file, &result};
             analyzer.buildCFG();
             analyzer.refineCFG();
-            disassembler.prettyPrintSectionCFG
-                (&analyzer.getCFG(),
-                 disasm::PrettyPrintConfig::kHideDataNodes);
+//            disassembler.prettyPrintSectionCFG
+//                (&analyzer.getCFG(),
+//                 disasm::PrettyPrintConfig::kHideDataNodes);
 //            disassembler.prettyPrintSwitchTables(&analyzer.getCFG());
 //            analyzer.buildCallGraph();
         } else {

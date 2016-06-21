@@ -25,7 +25,7 @@ public:
      * methods other than operator= and valid on this results in
      * undefined behavior.
      */
-    BasicBlock();
+    BasicBlock() = delete;
     BasicBlock(size_t id, const cs_insn *inst);
     virtual ~BasicBlock() = default;
     BasicBlock(const BasicBlock &src) = default;
@@ -36,7 +36,7 @@ public:
     friend class MaximalBlock;
     friend class MaximalBlockBuilder;
 
-    unsigned int id() const;
+    size_t id() const;
     bool isValid() const;
     const size_t size() const;
 

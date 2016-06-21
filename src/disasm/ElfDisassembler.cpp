@@ -203,6 +203,7 @@ SectionDisassemblyARM ElfDisassembler::disassembleSectionSpeculative
                     if (m_analyzer.isBranch(inst_ptr)) {
                         mb_builder.appendBranch(inst_ptr);
                         result.add(mb_builder.build());
+//                        printf("MB id: %lu at: %lx \n", result.back().id(), result.back().addrOfFirstInst());
                     } else {
                         mb_builder.append(inst_ptr);
                     }
@@ -360,7 +361,7 @@ void ElfDisassembler::prettyPrintMaximalBlock
            mblock->getBasicBlocksCount(), mblock->instructionsCount());
 
     for (const auto &block :mblock->getBasicBlocks()) {
-        printf("Basic Block Id %u, inst count %lu\n / ",
+        printf("Basic Block Id %lu, inst count %lu\n / ",
                block.id(), block.instructionCount());
         for (auto addr : mblock->getInstructionAddressesOf(block)) {
             printf(" Inst Addr: %#6x", static_cast<unsigned>(addr));
@@ -397,7 +398,7 @@ void ElfDisassembler::prettyPrintCFGNode
            mblock->getBasicBlocksCount(), mblock->instructionsCount());
 
     for (auto &block :mblock->getBasicBlocks()) {
-        printf("Basic Block Id %u, inst count %lu\n / ",
+        printf("Basic Block Id %lu, inst count %lu\n / ",
                block.id(), block.instructionCount());
         for (auto addr : mblock->getInstructionAddressesOf(block)) {
             printf(" Inst Addr: %#6x", static_cast<unsigned>(addr));

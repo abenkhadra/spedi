@@ -14,12 +14,6 @@
 
 namespace disasm {
 
-BasicBlock::BasicBlock() :
-    m_valid{false},
-    m_id{0},
-    m_size{0} {
-}
-
 BasicBlock::BasicBlock(size_t id, const cs_insn *inst) :
     m_valid{false},
     m_id{id},
@@ -31,7 +25,7 @@ bool BasicBlock::isValid() const {
     return m_valid && m_inst_addrs.size() > 0;
 }
 
-unsigned BasicBlock::id() const {
+size_t BasicBlock::id() const {
     return m_id;
 }
 
