@@ -19,22 +19,28 @@ Spedi recovers all possible Basic Blocks (BBs) available in the binary. BBs that
 
 # Result summary
 
-![inst](https://cloud.githubusercontent.com/assets/11852302/19958591/bed340b2-a1a0-11e6-97b0-79e203aa4a2e.png)
+<center>
+<img src="https://cloud.githubusercontent.com/assets/11852302/19958591/bed340b2-a1a0-11e6-97b0-79e203aa4a2e.png" alt="Instructions" align="middle" width="700px"/>
+</center>
 
 Spedi (almost) perfectly recovers assembly instructions from our benchmarks binaries
 with 99.96% average. In comparison, IDA Pro has an average of 95.83% skewed by the
 relative poor perfomance on *sha* benchmark.
 
-![callgraph](https://cloud.githubusercontent.com/assets/11852302/19958593/bed7920c-a1a0-11e6-8576-65edb12707c5.png)
+<center>
+<img src="https://cloud.githubusercontent.com/assets/11852302/19958593/bed7920c-a1a0-11e6-8576-65edb12707c5.png" alt="Callgraph" align="middle" width="700px"/>
+</center>
 
-Spedi recovery 97.46% of functions precisly. That is, it identifies the correct start
+Spedi precisely recovers 97.46% of functions on average. That is, it identifies the correct start
 address and end address. Compare that to 40.53% average achieved by IDA Pro.
 
-![time](https://cloud.githubusercontent.com/assets/11852302/19958592/bed69ee2-a1a0-11e6-98bf-91b4e91ffd7d.png)
+<center>
+<img src="https://cloud.githubusercontent.com/assets/11852302/19958592/bed69ee2-a1a0-11e6-98bf-91b4e91ffd7d.png" alt="Disassembly time" align="middle" width="700px"/>
+</center>
 
 A nice property of our technique is that it's also fast and scales well with increased
 benchmark size. For example, spedi disassembles *du* (50K instructions) in about 150 ms.
-Also, there is good room for more optimizations.
+Note that there is good room for further optimizations.
 
 # Citing
 
