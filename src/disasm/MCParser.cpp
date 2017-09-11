@@ -21,7 +21,7 @@ void MCParser::initialize(cs_arch arch, cs_mode mode,
     err_no = cs_open(m_arch, m_mode, &m_handle);
     if (err_no) {
         throw std::runtime_error("Failed on cs_open() "
-                                     "with error returned:" + err_no);
+                                     "with error returned:" + std::to_string(err_no));
     }
     cs_option(m_handle, CS_OPT_DETAIL, CS_OPT_ON);
     m_valid = true;
@@ -40,7 +40,7 @@ void MCParser::reset(cs_arch arch, cs_mode mode) {
     err_no = cs_open(m_arch, m_mode, &m_handle);
     if (err_no) {
         throw std::runtime_error("Failed on cs_open() "
-                                     "with error returned:" + err_no);
+                                     "with error returned:" + std::to_string(err_no));
     }
     cs_option(m_handle, CS_OPT_DETAIL, CS_OPT_ON);
     m_valid = true;

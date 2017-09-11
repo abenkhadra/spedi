@@ -12,7 +12,8 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ")
 
-set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3 -O0 -fno-inline -fno-omit-frame-pointer" CACHE STRING
+set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3 -O0 -pedantic -Wall\
+    -fno-inline -fno-omit-frame-pointer" CACHE STRING
     "Flags used by the C++ compiler for debug builds."
     FORCE)
 

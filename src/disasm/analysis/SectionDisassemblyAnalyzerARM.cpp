@@ -786,7 +786,7 @@ CFGNode *SectionDisassemblyAnalyzerARM::findSwitchTableTarget
 }
 
 addr_t SectionDisassemblyAnalyzerARM::validateProcedure(const ICFGNode &proc) noexcept {
-
+    // TODO: Rotten procedure
     for (auto node_iter =
         std::next(m_sec_cfg.m_cfg.begin(), proc.entryNode()->id() + 1);
          node_iter < m_sec_cfg.m_cfg.end()
@@ -807,6 +807,7 @@ addr_t SectionDisassemblyAnalyzerARM::validateProcedure(const ICFGNode &proc) no
 //            buildProcedure(*proc_node);
         }
     }
+    return 0;
 }
 
 void SectionDisassemblyAnalyzerARM::buildCallGraph() {

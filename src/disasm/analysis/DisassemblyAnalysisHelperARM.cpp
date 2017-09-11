@@ -114,5 +114,6 @@ bool DisassemblyAnalysisHelperARM::isIndirectTailCall
             return true;
         }
     }
+    return false;
 }
 }
