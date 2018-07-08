@@ -53,7 +53,7 @@ SectionDisassemblyARM ElfDisassembler::disassembleSectionUsingSymbols
     MCParser parser{};
     parser.initialize(CS_ARCH_ARM, CS_MODE_THUMB, last_addr);
 
-    const uint8_t *code_ptr = (const uint8_t *) sec.data();
+    const uint8_t *code_ptr;
 
     RawInstWrapper inst;
     cs_insn *inst_ptr = inst.rawPtr();
@@ -70,16 +70,19 @@ SectionDisassemblyARM ElfDisassembler::disassembleSectionUsingSymbols
     for (auto &symbol : symbols) {
         index++;
         if (symbol.second == ARMCodeSymbolType::kData) {
-            if (index < symbols.size())
-                // adjust code_ptr to start of next symbol.
-                code_ptr += (symbols[index].first - symbol.first);
             continue;
         }
-        address = symbol.first;
+        address = symbol.first & ~1;
+        if ( (address < start_addr) || (address >= last_addr) ) {
+            continue;
+        }
         if (index < symbols.size())
             size = symbols[index].first - symbol.first;
         else
             size = last_addr - symbol.first;
+
+        code_ptr = (const uint8_t *) sec.data();
+        code_ptr += address - start_addr;
 
         if (symbol.second == ARMCodeSymbolType::kARM) {
             parser.changeModeTo(CS_MODE_ARM);
