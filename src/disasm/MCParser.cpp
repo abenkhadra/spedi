@@ -28,7 +28,8 @@ void MCParser::initialize(cs_arch arch, cs_mode mode,
 }
 
 MCParser::~MCParser() {
-    cs_close(&m_handle);
+    if(valid())
+        cs_close(&m_handle);
 }
 
 void MCParser::reset(cs_arch arch, cs_mode mode) {

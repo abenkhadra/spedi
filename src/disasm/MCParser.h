@@ -61,7 +61,7 @@ public:
     }
 
 private:
-    bool m_valid;
+    bool m_valid = false;
     csh m_handle;
     cs_arch m_arch;
     cs_mode m_mode;
